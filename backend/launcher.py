@@ -39,15 +39,31 @@ def find_free_port(start: int = 8000) -> int:
     return start
 
 
-def open_browser(url: str, delay: float = 3.0):
-    """Wait for server to start, then open the browser."""
-    time.sleep(delay)
+def wait_for_server(host: str, port: int, timeout: int = 30) -> bool:
+    """Poll until the server accepts connections, then return True."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            with socket.create_connection((host, port), timeout=1):
+                return True
+        except OSError:
+            time.sleep(0.3)
+    return False
+
+
+def open_browser(url: str):
+    """Wait until server is actually ready, then open the browser."""
+    host, port_str = url.replace("http://", "").split(":")
+    ready = wait_for_server(host, int(port_str), timeout=30)
+    if not ready:
+        return  # Server never started — nothing to open
     try:
-        # Most reliable method on Windows (works in frozen .exe)
-        subprocess.Popen(['cmd', '/c', 'start', '', url])
+        subprocess.run(f'start "" "{url}"', shell=True)
     except Exception:
-        # Fallback to webbrowser module
-        webbrowser.open(url)
+        try:
+            os.startfile(url)
+        except Exception:
+            webbrowser.open(url)
 
 
 def run_server(port: int):

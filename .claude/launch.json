@@ -3,9 +3,9 @@
   "configurations": [
     {
       "name": "StructIQ API",
-      "runtimeExecutable": "uvicorn",
-      "runtimeArgs": ["main:app", "--reload", "--port", "8000", "--app-dir", "backend"],
-      "port": 8000
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["backend/start_server.py"],
+      "autoPort": true
     }
   ]
 }

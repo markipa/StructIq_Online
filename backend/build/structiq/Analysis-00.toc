@@ -3958,13 +3958,13 @@
    'c:\\Users\\Mark '
    'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\__init__.py',
    'PYMODULE'),
-  ('_py_abc',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\_py_abc.py',
-   'PYMODULE'),
   ('stringprep',
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\stringprep.py',
+   'PYMODULE'),
+  ('_py_abc',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\_py_abc.py',
    'PYMODULE'),
   ('tracemalloc',
    'C:\\Users\\Mark '
@@ -4142,62 +4142,46 @@
    'c:\\Users\\Mark '
    'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\RECORD',
    'DATA'),
+  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\licenses\\LICENSE',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\licenses\\LICENSE',
+   'DATA'),
   ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\INSTALLER',
    'c:\\Users\\Mark '
    'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\INSTALLER',
    'DATA'),
-  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\REQUESTED',
+  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\WHEEL',
    'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\REQUESTED',
-   'DATA'),
-  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\licenses\\LICENSE',
-   'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\licenses\\LICENSE',
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\WHEEL',
    'DATA'),
   ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\METADATA',
    'c:\\Users\\Mark '
    'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\METADATA',
    'DATA'),
+  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\REQUESTED',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\REQUESTED',
+   'DATA'),
   ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\top_level.txt',
    'c:\\Users\\Mark '
    'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\top_level.txt',
-   'DATA'),
-  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\WHEEL',
-   'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\WHEEL',
    'DATA'),
   ('setuptools\\_vendor\\jaraco\\text\\Lorem ipsum.txt',
    'c:\\Users\\Mark '
    'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\jaraco\\text\\Lorem '
    'ipsum.txt',
    'DATA'),
-  ('click-8.3.1.dist-info\\licenses\\LICENSE.txt',
+  ('click-8.3.1.dist-info\\INSTALLER',
    'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\licenses\\LICENSE.txt',
-   'DATA'),
-  ('click-8.3.1.dist-info\\RECORD',
-   'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\RECORD',
-   'DATA'),
-  ('click-8.3.1.dist-info\\WHEEL',
-   'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\WHEEL',
-   'DATA'),
-  ('pydantic-2.12.5.dist-info\\WHEEL',
-   'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\WHEEL',
-   'DATA'),
-  ('click-8.3.1.dist-info\\METADATA',
-   'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\METADATA',
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\INSTALLER',
    'DATA'),
   ('pydantic-2.12.5.dist-info\\INSTALLER',
    'c:\\Users\\Mark '
    'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\INSTALLER',
    'DATA'),
-  ('pydantic-2.12.5.dist-info\\METADATA',
+  ('click-8.3.1.dist-info\\METADATA',
    'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\METADATA',
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\METADATA',
    'DATA'),
   ('pydantic-2.12.5.dist-info\\licenses\\LICENSE',
    'c:\\Users\\Mark '
@@ -4207,27 +4191,35 @@
    'c:\\Users\\Mark '
    'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\REQUESTED',
    'DATA'),
-  ('click-8.3.1.dist-info\\INSTALLER',
+  ('pydantic-2.12.5.dist-info\\WHEEL',
    'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\INSTALLER',
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\WHEEL',
+   'DATA'),
+  ('click-8.3.1.dist-info\\WHEEL',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\WHEEL',
+   'DATA'),
+  ('click-8.3.1.dist-info\\RECORD',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\RECORD',
+   'DATA'),
+  ('click-8.3.1.dist-info\\licenses\\LICENSE.txt',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\licenses\\LICENSE.txt',
    'DATA'),
   ('pydantic-2.12.5.dist-info\\RECORD',
    'c:\\Users\\Mark '
    'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\RECORD',
    'DATA'),
+  ('pydantic-2.12.5.dist-info\\METADATA',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\METADATA',
+   'DATA'),
   ('base_library.zip',
    'C:\\Users\\Mark '
    'Ipa\\Documents\\Claude\\StructIQ\\backend\\build\\structiq\\base_library.zip',
    'DATA')],
- [('functools',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\functools.py',
-   'PYMODULE'),
-  ('codecs',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\codecs.py',
-   'PYMODULE'),
-  ('collections.abc',
+ [('collections.abc',
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\collections\\abc.py',
    'PYMODULE'),
@@ -4235,97 +4227,13 @@
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\collections\\__init__.py',
    'PYMODULE'),
-  ('genericpath',
+  ('posixpath',
    'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\genericpath.py',
-   'PYMODULE'),
-  ('ntpath',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\ntpath.py',
-   'PYMODULE'),
-  ('keyword',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\keyword.py',
-   'PYMODULE'),
-  ('heapq',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\heapq.py',
-   'PYMODULE'),
-  ('stat',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\stat.py',
-   'PYMODULE'),
-  ('sre_constants',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\sre_constants.py',
-   'PYMODULE'),
-  ('enum',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\enum.py',
-   'PYMODULE'),
-  ('io',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\io.py',
-   'PYMODULE'),
-  ('sre_parse',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\sre_parse.py',
-   'PYMODULE'),
-  ('linecache',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\linecache.py',
-   'PYMODULE'),
-  ('_collections_abc',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\_collections_abc.py',
-   'PYMODULE'),
-  ('sre_compile',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\sre_compile.py',
-   'PYMODULE'),
-  ('re._parser',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\re\\_parser.py',
-   'PYMODULE'),
-  ('re._constants',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\re\\_constants.py',
-   'PYMODULE'),
-  ('re._compiler',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\re\\_compiler.py',
-   'PYMODULE'),
-  ('re._casefix',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\re\\_casefix.py',
-   'PYMODULE'),
-  ('re',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\re\\__init__.py',
-   'PYMODULE'),
-  ('locale',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\locale.py',
-   'PYMODULE'),
-  ('weakref',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\weakref.py',
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\posixpath.py',
    'PYMODULE'),
   ('_weakrefset',
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\_weakrefset.py',
-   'PYMODULE'),
-  ('abc',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\abc.py',
-   'PYMODULE'),
-  ('reprlib',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\reprlib.py',
-   'PYMODULE'),
-  ('traceback',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\traceback.py',
    'PYMODULE'),
   ('encodings.zlib_codec',
    'C:\\Users\\Mark '
@@ -4815,25 +4723,117 @@
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\encodings\\__init__.py',
    'PYMODULE'),
-  ('types',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\types.py',
-   'PYMODULE'),
-  ('operator',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\operator.py',
-   'PYMODULE'),
   ('copyreg',
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\copyreg.py',
+   'PYMODULE'),
+  ('reprlib',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\reprlib.py',
+   'PYMODULE'),
+  ('heapq',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\heapq.py',
+   'PYMODULE'),
+  ('stat',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\stat.py',
+   'PYMODULE'),
+  ('abc',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\abc.py',
+   'PYMODULE'),
+  ('_collections_abc',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\_collections_abc.py',
+   'PYMODULE'),
+  ('traceback',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\traceback.py',
+   'PYMODULE'),
+  ('io',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\io.py',
+   'PYMODULE'),
+  ('codecs',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\codecs.py',
+   'PYMODULE'),
+  ('genericpath',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\genericpath.py',
+   'PYMODULE'),
+  ('ntpath',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\ntpath.py',
+   'PYMODULE'),
+  ('sre_parse',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\sre_parse.py',
+   'PYMODULE'),
+  ('locale',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\locale.py',
+   'PYMODULE'),
+  ('sre_compile',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\sre_compile.py',
+   'PYMODULE'),
+  ('re._parser',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\re\\_parser.py',
+   'PYMODULE'),
+  ('re._constants',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\re\\_constants.py',
+   'PYMODULE'),
+  ('re._compiler',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\re\\_compiler.py',
+   'PYMODULE'),
+  ('re._casefix',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\re\\_casefix.py',
+   'PYMODULE'),
+  ('re',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\re\\__init__.py',
+   'PYMODULE'),
+  ('linecache',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\linecache.py',
+   'PYMODULE'),
+  ('sre_constants',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\sre_constants.py',
+   'PYMODULE'),
+  ('enum',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\enum.py',
+   'PYMODULE'),
+  ('weakref',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\weakref.py',
+   'PYMODULE'),
+  ('types',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\types.py',
    'PYMODULE'),
   ('warnings',
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\warnings.py',
    'PYMODULE'),
-  ('posixpath',
+  ('functools',
    'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\posixpath.py',
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\functools.py',
+   'PYMODULE'),
+  ('keyword',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\keyword.py',
+   'PYMODULE'),
+  ('operator',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\operator.py',
    'PYMODULE'),
   ('os',
    'C:\\Users\\Mark '

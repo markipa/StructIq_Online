@@ -84,7 +84,7 @@
  [],
  False,
  False,
- 1772738143,
+ 1772739156,
  [('run.exe',
    'c:\\Users\\Mark '
    'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\PyInstaller\\bootloader\\Windows-64bit-intel\\run.exe',
