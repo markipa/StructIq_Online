@@ -39,10 +39,15 @@ def find_free_port(start: int = 8000) -> int:
     return start
 
 
-def open_browser(url: str, delay: float = 1.5):
-    """Wait briefly then open the browser."""
+def open_browser(url: str, delay: float = 3.0):
+    """Wait for server to start, then open the browser."""
     time.sleep(delay)
-    webbrowser.open(url)
+    try:
+        # Most reliable method on Windows (works in frozen .exe)
+        subprocess.Popen(['cmd', '/c', 'start', '', url])
+    except Exception:
+        # Fallback to webbrowser module
+        webbrowser.open(url)
 
 
 def run_server(port: int):
