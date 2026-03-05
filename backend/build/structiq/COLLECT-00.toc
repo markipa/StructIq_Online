@@ -1,0 +1,227 @@
+([('StructIQ.exe',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\build\\structiq\\StructIQ.exe',
+   'EXECUTABLE'),
+  ('python312.dll',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\python312.dll',
+   'BINARY'),
+  ('_decimal.pyd',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\_decimal.pyd',
+   'EXTENSION'),
+  ('_hashlib.pyd',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\_hashlib.pyd',
+   'EXTENSION'),
+  ('_lzma.pyd',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\_lzma.pyd',
+   'EXTENSION'),
+  ('_bz2.pyd',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\_bz2.pyd',
+   'EXTENSION'),
+  ('unicodedata.pyd',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\unicodedata.pyd',
+   'EXTENSION'),
+  ('_socket.pyd',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\_socket.pyd',
+   'EXTENSION'),
+  ('select.pyd',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\select.pyd',
+   'EXTENSION'),
+  ('_overlapped.pyd',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\_overlapped.pyd',
+   'EXTENSION'),
+  ('_ssl.pyd',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\_ssl.pyd',
+   'EXTENSION'),
+  ('_queue.pyd',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\_queue.pyd',
+   'EXTENSION'),
+  ('_ctypes.pyd',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\_ctypes.pyd',
+   'EXTENSION'),
+  ('_multiprocessing.pyd',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\_multiprocessing.pyd',
+   'EXTENSION'),
+  ('pyexpat.pyd',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\pyexpat.pyd',
+   'EXTENSION'),
+  ('_asyncio.pyd',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\_asyncio.pyd',
+   'EXTENSION'),
+  ('_wmi.pyd',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\_wmi.pyd',
+   'EXTENSION'),
+  ('_sqlite3.pyd',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\_sqlite3.pyd',
+   'EXTENSION'),
+  ('pydantic_core\\_pydantic_core.cp312-win_amd64.pyd',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic_core\\_pydantic_core.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('_uuid.pyd',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\_uuid.pyd',
+   'EXTENSION'),
+  ('_zoneinfo.pyd',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\_zoneinfo.pyd',
+   'EXTENSION'),
+  ('VCRUNTIME140.dll',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\VCRUNTIME140.dll',
+   'BINARY'),
+  ('libcrypto-3.dll',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\libcrypto-3.dll',
+   'BINARY'),
+  ('libssl-3.dll',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\libssl-3.dll',
+   'BINARY'),
+  ('libffi-8.dll',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\libffi-8.dll',
+   'BINARY'),
+  ('sqlite3.dll',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\sqlite3.dll',
+   'BINARY'),
+  ('config.py',
+   'C:\\Users\\Mark Ipa\\Documents\\Claude\\StructIQ\\backend\\config.py',
+   'DATA'),
+  ('database.py',
+   'C:\\Users\\Mark Ipa\\Documents\\Claude\\StructIQ\\backend\\database.py',
+   'DATA'),
+  ('etabs_api\\__init__.py',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\etabs_api\\__init__.py',
+   'DATA'),
+  ('etabs_api\\__pycache__\\__init__.cpython-312.pyc',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\etabs_api\\__pycache__\\__init__.cpython-312.pyc',
+   'DATA'),
+  ('etabs_api\\__pycache__\\actions.cpython-312.pyc',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\etabs_api\\__pycache__\\actions.cpython-312.pyc',
+   'DATA'),
+  ('etabs_api\\__pycache__\\connection.cpython-312.pyc',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\etabs_api\\__pycache__\\connection.cpython-312.pyc',
+   'DATA'),
+  ('etabs_api\\actions.py',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\etabs_api\\actions.py',
+   'DATA'),
+  ('etabs_api\\connection.py',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\etabs_api\\connection.py',
+   'DATA'),
+  ('frontend\\app.js',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\frontend\\app.js',
+   'DATA'),
+  ('frontend\\index.html',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\frontend\\index.html',
+   'DATA'),
+  ('frontend\\styles.css',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\frontend\\styles.css',
+   'DATA'),
+  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\INSTALLER',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\INSTALLER',
+   'DATA'),
+  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\licenses\\LICENSE',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\licenses\\LICENSE',
+   'DATA'),
+  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\RECORD',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\RECORD',
+   'DATA'),
+  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\top_level.txt',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\top_level.txt',
+   'DATA'),
+  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\REQUESTED',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\REQUESTED',
+   'DATA'),
+  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\WHEEL',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\WHEEL',
+   'DATA'),
+  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\METADATA',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\METADATA',
+   'DATA'),
+  ('setuptools\\_vendor\\jaraco\\text\\Lorem ipsum.txt',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\jaraco\\text\\Lorem '
+   'ipsum.txt',
+   'DATA'),
+  ('pydantic-2.12.5.dist-info\\RECORD',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\RECORD',
+   'DATA'),
+  ('pydantic-2.12.5.dist-info\\WHEEL',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\WHEEL',
+   'DATA'),
+  ('pydantic-2.12.5.dist-info\\METADATA',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\METADATA',
+   'DATA'),
+  ('click-8.3.1.dist-info\\WHEEL',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\WHEEL',
+   'DATA'),
+  ('click-8.3.1.dist-info\\RECORD',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\RECORD',
+   'DATA'),
+  ('pydantic-2.12.5.dist-info\\INSTALLER',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\INSTALLER',
+   'DATA'),
+  ('pydantic-2.12.5.dist-info\\REQUESTED',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\REQUESTED',
+   'DATA'),
+  ('pydantic-2.12.5.dist-info\\licenses\\LICENSE',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\licenses\\LICENSE',
+   'DATA'),
+  ('click-8.3.1.dist-info\\licenses\\LICENSE.txt',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\licenses\\LICENSE.txt',
+   'DATA'),
+  ('click-8.3.1.dist-info\\INSTALLER',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\INSTALLER',
+   'DATA'),
+  ('click-8.3.1.dist-info\\METADATA',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\METADATA',
+   'DATA'),
+  ('base_library.zip',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\build\\structiq\\base_library.zip',
+   'DATA')],)

@@ -1,0 +1,67 @@
+('C:\\Users\\Mark '
+ 'Ipa\\Documents\\Claude\\StructIQ\\backend\\build\\structiq\\StructIQ.pkg',
+ {'BINARY': True,
+  'DATA': True,
+  'EXECUTABLE': True,
+  'EXTENSION': True,
+  'PYMODULE': True,
+  'PYSOURCE': True,
+  'PYZ': False,
+  'SPLASH': True,
+  'SYMLINK': False},
+ [('pyi-contents-directory _internal', '', 'OPTION'),
+  ('PYZ-00.pyz',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\build\\structiq\\PYZ-00.pyz',
+   'PYZ'),
+  ('struct',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\build\\structiq\\localpycs\\struct.pyc',
+   'PYMODULE'),
+  ('pyimod01_archive',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\build\\structiq\\localpycs\\pyimod01_archive.pyc',
+   'PYMODULE'),
+  ('pyimod02_importers',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\build\\structiq\\localpycs\\pyimod02_importers.pyc',
+   'PYMODULE'),
+  ('pyimod03_ctypes',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\build\\structiq\\localpycs\\pyimod03_ctypes.pyc',
+   'PYMODULE'),
+  ('pyimod04_pywin32',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\build\\structiq\\localpycs\\pyimod04_pywin32.pyc',
+   'PYMODULE'),
+  ('pyiboot01_bootstrap',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\PyInstaller\\loader\\pyiboot01_bootstrap.py',
+   'PYSOURCE'),
+  ('pyi_rth_inspect',
+   'C:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks\\pyi_rth_inspect.py',
+   'PYSOURCE'),
+  ('pyi_rth_pkgutil',
+   'C:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks\\pyi_rth_pkgutil.py',
+   'PYSOURCE'),
+  ('pyi_rth_multiprocessing',
+   'C:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks\\pyi_rth_multiprocessing.py',
+   'PYSOURCE'),
+  ('pyi_rth_setuptools',
+   'C:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks\\pyi_rth_setuptools.py',
+   'PYSOURCE'),
+  ('launcher',
+   'C:\\Users\\Mark Ipa\\Documents\\Claude\\StructIQ\\backend\\launcher.py',
+   'PYSOURCE')],
+ 'python312.dll',
+ True,
+ False,
+ False,
+ [],
+ None,
+ None,
+ None)
