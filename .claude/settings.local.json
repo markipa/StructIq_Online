@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m uvicorn main:app --help)",
+      "Bash(if not exist \"C:\\\\Users\\\\Mark Ipa\\\\OneDrive\\\\AntiGravity\\\\Try\\\\.claude\" mkdir \"C:\\\\Users\\\\Mark Ipa\\\\OneDrive\\\\AntiGravity\\\\Try\\\\.claude\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(curl -s http://localhost:8000/api/status)",
+      "Bash(Get-Content \"C:\\\\Users\\\\Mark Ipa\\\\OneDrive\\\\AntiGravity\\\\Try\\\\backend\\\\frontend\\\\styles.css\")",
+      "Bash(Measure-Object -Line)",
+      "Bash(Select-Object -ExpandProperty Lines)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Mark Ipa\\\\OneDrive\\\\AntiGravity\\\\Try\" -Recurse -File)",
+      "Bash(Where-Object { $_FullName -notmatch '\\\\\\\\\\\\.git\\\\\\\\|\\\\\\\\\\\\.venv\\\\\\\\|\\\\\\\\__pycache__\\\\\\\\|\\\\\\\\dist\\\\\\\\|\\\\\\\\build\\\\\\\\' })",
+      "Bash(Select-Object FullName, Length)",
+      "Bash(Sort-Object FullName)",
+      "Bash(cmd /c \"dir /s /b /a-d \"C:UsersMark IpaOneDriveAntiGravityTry\" | findstr /v \"__pycache__|.pyc|.venv|\\\\dist\\\\|\\\\build\\\\|.git\\\\\" \")",
+      "Bash(powershell.exe -Command \"Get-ChildItem -Path ''C:\\\\Users\\\\Mark Ipa\\\\OneDrive\\\\AntiGravity\\\\Try'' -Recurse -File | Where-Object { $_FullName -notmatch ''__pycache__|\\\\.venv|\\\\dist\\\\|\\\\build\\\\|\\\\.git'' } | Select-Object -ExpandProperty FullName\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem -Path ''C:\\\\Users\\\\Mark Ipa\\\\OneDrive\\\\AntiGravity\\\\Try'' -Recurse -File | Where-Object { $_FullName -notmatch ''\\(__pycache__|\\\\.venv|\\\\dist\\\\|\\\\build\\\\|\\\\.git\\)'' } | ForEach-Object { $_FullName }\")",
+      "Bash(powershell -Command \":*)",
+      "Bash(powershell -Command \"Get-ChildItem -Path ''C:\\\\Users\\\\Mark Ipa\\\\OneDrive\\\\AntiGravity\\\\Try\\\\backend'' -Recurse | Select-Object FullName, PSIsContainer | Format-Table -AutoSize\")",
+      "Bash(powershell.exe -Command \"Rename-Item -Path ''C:\\\\Users\\\\Mark Ipa\\\\OneDrive\\\\AntiGravity\\\\Try'' -NewName ''StructIQ''; Test-Path ''C:\\\\Users\\\\Mark Ipa\\\\OneDrive\\\\AntiGravity\\\\StructIQ''\")"
+    ]
+  }
+}

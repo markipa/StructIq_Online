@@ -1,0 +1,2091 @@
+// ================================================================
+//  StructIQ — App Logic
+// ================================================================
+
+// ─────────────────────────────────────────────────────────────────
+//  AUTH MODULE
+// ─────────────────────────────────────────────────────────────────
+const AUTH_KEY = 'siq_token';
+
+function authToken() { return localStorage.getItem(AUTH_KEY); }
+
+/** Wrapper around fetch() that injects the Bearer token automatically. */
+async function authFetch(url, options = {}) {
+  const token = authToken();
+  const headers = Object.assign({}, options.headers || {});
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  return fetch(url, { ...options, headers });
+}
+
+async function initAuth() {
+  const token = authToken();
+  if (!token) { showAuthOverlay(); return; }
+
+  try {
+    const res = await fetch('/api/auth/me', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (res.ok) {
+      const user = await res.json();
+      hideAuthOverlay(user);
+    } else {
+      localStorage.removeItem(AUTH_KEY);
+      showAuthOverlay();
+    }
+  } catch {
+    // Network error – still let them in if token exists (offline ETABS use)
+    hideAuthOverlay(null);
+  }
+}
+
+function showAuthOverlay() {
+  document.getElementById('auth-overlay').classList.remove('hidden');
+}
+
+function hideAuthOverlay(user) {
+  document.getElementById('auth-overlay').classList.add('hidden');
+  if (user) renderUserPill(user);
+  bootApp();
+  // Fire-and-forget cloud plan sync (updates plan badge if Pro/Enterprise)
+  syncCloudPlan();
+}
+
+function renderUserPill(user) {
+  const pill = document.getElementById('user-pill');
+  pill.classList.remove('hidden');
+
+  // Avatar: first letter of name
+  document.getElementById('user-avatar').textContent = (user.name || user.email || '?')[0].toUpperCase();
+
+  // Name
+  document.getElementById('user-pill-name').textContent = user.name || user.email;
+
+  // Plan badge
+  updatePlanBadge(user.plan || 'free');
+}
+
+/** Update just the plan badge chip (called by renderUserPill + syncCloudPlan). */
+function updatePlanBadge(plan) {
+  const planEl = document.getElementById('user-pill-plan');
+  if (!planEl) return;
+  planEl.textContent = plan;
+  planEl.className = 'user-pill-plan';
+  if (plan === 'pro')        planEl.classList.add('plan-pro');
+  if (plan === 'enterprise') planEl.classList.add('plan-enterprise');
+}
+
+/**
+ * Silently call /api/cloud/sync after login.
+ * If Railway responds with a plan, update the badge — otherwise keep local value.
+ */
+async function syncCloudPlan() {
+  try {
+    const res = await authFetch('/api/cloud/sync');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.plan) updatePlanBadge(data.plan);
+    // Show a subtle indicator if synced from cloud
+    if (data.synced && data.source === 'cloud') {
+      const planEl = document.getElementById('user-pill-plan');
+      if (planEl) planEl.title = `Plan synced from cloud ✓`;
+    }
+  } catch { /* Network error — silently ignore, app works fully offline */ }
+}
+
+function bootApp() {
+  // Kick off background tasks that need auth
+  checkStatus();
+  populateReactionCombos();
+}
+
+// ── State ──
+let isConnected          = false;
+let driftsChartHasData   = false;       // true when Plotly chart is rendered
+let driftCombos          = [];          // available combinations
+let driftCases           = [];          // available load cases
+let driftSelected        = new Map();   // name → 'combo' | 'case'
+let driftFilterText      = '';
+let driftSourceFilter    = 'all';       // 'all' | 'combo' | 'case'
+let driftLastData        = [];          // raw rows from last Extract (for table)
+let reactionsData         = [];          // ALL fetched reactions (unfiltered)
+let reactionsChartHasData = false;       // true when Plotly chart is rendered
+
+// ── Joint / Spring Reactions state ──
+let jointData           = [];           // ALL fetched joint reactions (unfiltered)
+let jointLoadType       = 'combo';      // 'combo' | 'case'
+let jointAllCombos      = [];           // master list for picker
+let jointSelectedCombos = new Set();    // which items are checked
+let jointActiveForce    = 'FZ';         // component shown in bubble plot
+let jointBubbleCombo    = '';           // combo/case shown in bubble plot
+// ── Bubble plot display controls ──
+let jointBubbleScale = 1.0;            // bubble size multiplier (0.25 – 4.0)
+let jointTextSize    = 11;             // label font size in px (7 – 20)
+let jointAxisX       = { min: null, max: null };  // null = autorange
+let jointAxisY       = { min: null, max: null };  // null = autorange
+let jointColorMin    = null;           // color scale min  (null = auto = data min)
+let jointColorMax    = null;           // color scale max  (null = auto = data max)
+let jointColorPalette = 'Plasma';     // active Plotly named colorscale
+let reactionsActiveForces = new Set(['FX','FY','FZ','MX','MY','MZ']);
+let reactionsAllCombos      = [];         // master list of available picker names
+let reactionsSelectedCombos = new Set();  // which items are checked (empty = all)
+let reactionsLoadType       = 'combo';    // 'combo' | 'case'
+
+// ── Force component color palette (used by Plotly chart) ──
+const FORCE_COLORS = {
+  FX: '#ef4444', FY: '#f97316', FZ: '#3b82f6',
+  MX: '#8b5cf6', MY: '#a855f7', MZ: '#6366f1',
+};
+
+// ── Boot ──
+document.addEventListener('DOMContentLoaded', () => {
+  // ── Auth overlay setup ──
+  initAuth();
+
+  // Tab switching: Sign In ↔ Create Account
+  document.getElementById('tab-login').addEventListener('click', () => {
+    document.getElementById('tab-login').classList.add('active');
+    document.getElementById('tab-register').classList.remove('active');
+    document.getElementById('form-login').classList.remove('hidden');
+    document.getElementById('form-register').classList.add('hidden');
+    document.getElementById('login-error').classList.add('hidden');
+  });
+  document.getElementById('tab-register').addEventListener('click', () => {
+    document.getElementById('tab-register').classList.add('active');
+    document.getElementById('tab-login').classList.remove('active');
+    document.getElementById('form-register').classList.remove('hidden');
+    document.getElementById('form-login').classList.add('hidden');
+    document.getElementById('reg-error').classList.add('hidden');
+  });
+
+  // Login form submit
+  document.getElementById('form-login').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = e.target.querySelector('.auth-submit-btn');
+    const errEl = document.getElementById('login-error');
+    errEl.classList.add('hidden');
+    btn.disabled = true; btn.textContent = 'Signing in…';
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: document.getElementById('login-email').value.trim(),
+          password: document.getElementById('login-password').value,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Login failed');
+      localStorage.setItem(AUTH_KEY, data.token);
+      hideAuthOverlay(data.user);
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.classList.remove('hidden');
+      btn.disabled = false; btn.textContent = 'Sign In';
+    }
+  });
+
+  // Register form submit
+  document.getElementById('form-register').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = e.target.querySelector('.auth-submit-btn');
+    const errEl = document.getElementById('reg-error');
+    errEl.classList.add('hidden');
+    btn.disabled = true; btn.textContent = 'Creating account…';
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: document.getElementById('reg-email').value.trim(),
+          name:  document.getElementById('reg-name').value.trim(),
+          password: document.getElementById('reg-password').value,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Registration failed');
+      localStorage.setItem(AUTH_KEY, data.token);
+      hideAuthOverlay(data.user);
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.classList.remove('hidden');
+      btn.disabled = false; btn.textContent = 'Create Account';
+    }
+  });
+
+  // Logout
+  document.getElementById('btn-logout').addEventListener('click', async () => {
+    const token = authToken();
+    if (token) {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+      }).catch(() => {});
+    }
+    localStorage.removeItem(AUTH_KEY);
+    // Clear user pill, show overlay
+    document.getElementById('user-pill').classList.add('hidden');
+    document.getElementById('login-email').value = '';
+    document.getElementById('login-password').value = '';
+    document.getElementById('login-error').classList.add('hidden');
+    showAuthOverlay();
+  });
+
+  // Navigation
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.preventDefault();
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.target).classList.add('active');
+      // Auto-load combo/case list when joint panel is opened (if not already loaded)
+      if (btn.dataset.target === 'joint-panel' && isConnected && !jointAllCombos.length) {
+        jointLoadSources();
+      }
+    });
+  });
+
+  // Core buttons
+  document.getElementById('btn-reconnect').addEventListener('click', checkStatus);
+  document.getElementById('btn-get-torsion').addEventListener('click', getTorsion);
+  document.getElementById('btn-get-reactions').addEventListener('click', getReactions);
+
+  // Drift panel buttons
+  document.getElementById('btn-get-drift-sources').addEventListener('click', driftGetSources);
+  document.getElementById('btn-extract-drift').addEventListener('click', driftExtract);
+
+  // ── Drift panel: tab switching (same pattern as reactions / joint) ──
+  document.querySelectorAll('#drifts-panel .tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#drifts-panel .tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#drifts-panel .tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const panel = document.getElementById(btn.dataset.tab);
+      if (panel) panel.classList.add('active');
+      // Re-trigger Plotly resize when switching to chart tab
+      if (btn.dataset.tab === 'drift-chart-tab' && driftsChartHasData) {
+        setTimeout(() => Plotly.Plots.resize('driftsChart'), 50);
+      }
+    });
+  });
+
+  // ── Drift picker: open / close ──
+  document.getElementById('drift-picker-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    const dd     = document.getElementById('drift-picker-dropdown');
+    const btn    = document.getElementById('drift-picker-btn');
+    const isOpen = !dd.classList.contains('hidden');
+    dd.classList.toggle('hidden', isOpen);
+    btn.classList.toggle('open', !isOpen);
+    if (!isOpen) {
+      const si = document.getElementById('drift-picker-search');
+      si.value = '';
+      driftPickerApplyFilter('');
+      setTimeout(() => si.focus(), 60);
+    }
+  });
+  document.getElementById('drift-picker-search').addEventListener('click', e => e.stopPropagation());
+  document.getElementById('drift-picker-search').addEventListener('input', e =>
+    driftPickerApplyFilter(e.target.value));
+
+  // ── Drift picker: Select All / Clear All ──
+  document.getElementById('drift-pick-all').addEventListener('click', () => {
+    document.querySelectorAll('#drift-picker-list .combo-picker-item').forEach(item => {
+      if (item.style.display === 'none') return;
+      const cb = item.querySelector('input[type="checkbox"]');
+      cb.checked = true;
+      item.classList.add('checked');
+      driftSelected.set(item.dataset.name, item.dataset.dtype);
+    });
+    driftUpdatePickerLabel();
+  });
+  document.getElementById('drift-pick-none').addEventListener('click', () => {
+    document.querySelectorAll('#drift-picker-list .combo-picker-item').forEach(item => {
+      const cb = item.querySelector('input[type="checkbox"]');
+      cb.checked = false;
+      item.classList.remove('checked');
+      driftSelected.delete(item.dataset.name);
+    });
+    driftUpdatePickerLabel();
+  });
+
+  // LC spreadsheet buttons
+  document.getElementById('btn-get-lc').addEventListener('click', lcFetchCases);
+  document.getElementById('btn-clear-lc').addEventListener('click', lcClearCases);
+  document.getElementById('btn-filter-lc').addEventListener('click', lcShowFilterModal);
+  document.getElementById('btn-generate-batch').addEventListener('click', lcGenerateBatch);
+  document.getElementById('btn-add-lc-row').addEventListener('click', () => lcAddRow());
+  document.getElementById('btn-filter-apply').addEventListener('click', lcApplyFilter);
+  document.getElementById('btn-filter-cancel').addEventListener('click', () =>
+    document.getElementById('lc-filter-modal').classList.add('hidden'));
+  document.getElementById('btn-filter-all').addEventListener('click', () =>
+    document.querySelectorAll('#lc-filter-checks input[type=checkbox]').forEach(cb => cb.checked = true));
+  document.getElementById('btn-filter-none').addEventListener('click', () =>
+    document.querySelectorAll('#lc-filter-checks input[type=checkbox]').forEach(cb => cb.checked = false));
+
+  // ── Reactions tab switching ──
+  document.querySelectorAll('#reactions-panel .tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#reactions-panel .tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#reactions-panel .tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const panel = document.getElementById(btn.dataset.tab);
+      if (panel) panel.classList.add('active');
+      // Auto-render chart when switching to chart tab
+      if (btn.dataset.tab === 'reactions-chart-tab' && reactionsData.length) {
+        renderReactionsChart(reactionsGetFiltered()); // Plotly.react handles both create & update
+      }
+    });
+  });
+
+  // ── Force toggle pills ──
+  document.querySelectorAll('.force-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const force = btn.dataset.force;
+      if (reactionsActiveForces.has(force)) {
+        if (reactionsActiveForces.size > 1) {   // keep at least one active
+          reactionsActiveForces.delete(force);
+          btn.classList.remove('active');
+        }
+      } else {
+        reactionsActiveForces.add(force);
+        btn.classList.add('active');
+      }
+      if (reactionsData.length) renderReactionsChart(reactionsGetFiltered());
+    });
+  });
+
+  // ── Drift source type filter (All | Combos | Cases) ──
+  document.querySelectorAll('.drift-type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.dtype === driftSourceFilter) return;
+      document.querySelectorAll('.drift-type-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      driftSourceFilter = btn.dataset.dtype;
+      driftPickerApplyFilter(document.getElementById('drift-picker-search').value);
+    });
+  });
+
+  // ── Source type toggle (Combinations | Load Cases) ──
+  document.querySelectorAll('.react-type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.type === reactionsLoadType) return; // no change
+      document.querySelectorAll('.react-type-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      reactionsLoadType = btn.dataset.type;
+      // Reset picker & data when type switches
+      reactionsAllCombos = [];
+      reactionsSelectedCombos = new Set();
+      reactionsData = [];
+      const list = document.getElementById('combo-picker-list');
+      const label = document.getElementById('combo-picker-label');
+      const placeholder = document.getElementById('combo-picker-search');
+      list.innerHTML  = `<div class="combo-picker-empty">Click Fetch to load ${reactionsLoadType === 'case' ? 'load cases' : 'combinations'}</div>`;
+      label.textContent = reactionsLoadType === 'case' ? 'All Load Cases' : 'All Combinations';
+      if (placeholder) placeholder.placeholder = reactionsLoadType === 'case' ? 'Search load cases…' : 'Search combinations…';
+      // Clear table & chart
+      renderReactionsTableDOM([]);
+      const chartDiv = document.getElementById('reactionsChart');
+      if (chartDiv) { chartDiv.style.display = 'none'; Plotly.purge('reactionsChart'); }
+      document.getElementById('reactions-chart-empty').style.display = '';
+      reactionsChartHasData = false;
+    });
+  });
+
+  // ── Joint reactions: main button ──
+  document.getElementById('btn-get-joint-reactions').addEventListener('click', getJointReactions);
+
+  // ── Joint reactions: source type toggle ──
+  document.querySelectorAll('.joint-type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.jtype === jointLoadType) return;
+      document.querySelectorAll('.joint-type-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      jointLoadType = btn.dataset.jtype;
+      // Reset picker & data
+      jointAllCombos = []; jointSelectedCombos = new Set(); jointData = [];
+      const list      = document.getElementById('joint-picker-list');
+      const label     = document.getElementById('joint-picker-label');
+      const srch      = document.getElementById('joint-picker-search');
+      const sel       = document.getElementById('joint-bubble-combo');
+      list.innerHTML  = `<div class="combo-picker-empty">Loading…</div>`;
+      label.textContent = jointLoadType === 'case' ? 'All Load Cases' : 'All Combinations';
+      if (srch) srch.placeholder = jointLoadType === 'case' ? 'Search load cases…' : 'Search combinations…';
+      sel.innerHTML   = '<option value="">— Fetch data first —</option>';
+      renderJointTable([]);
+      document.getElementById('jointBubbleChart').style.display = 'none';
+      Plotly.purge('jointBubbleChart');
+      document.getElementById('joint-bubble-empty').style.display = '';
+      // Auto-load sources for new type
+      if (isConnected) jointLoadSources();
+    });
+  });
+
+  // ── Joint picker: open / close ──
+  document.getElementById('joint-picker-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    const dd  = document.getElementById('joint-picker-dropdown');
+    const isOpen = !dd.classList.contains('hidden');
+    dd.classList.toggle('hidden', isOpen);
+    document.getElementById('joint-picker-btn').classList.toggle('open', !isOpen);
+    if (!isOpen) {
+      const si = document.getElementById('joint-picker-search');
+      si.value = '';
+      jointPickerApplySearch('');
+      setTimeout(() => si.focus(), 60);
+    }
+  });
+
+  // ── Joint picker: live search ──
+  document.getElementById('joint-picker-search').addEventListener('input', e => {
+    jointPickerApplySearch(e.target.value);
+  });
+  document.getElementById('joint-picker-search').addEventListener('click', e => e.stopPropagation());
+
+  // ── Joint picker: Select All / Clear All ──
+  document.getElementById('joint-pick-all').addEventListener('click', () => {
+    document.querySelectorAll('#joint-picker-list .combo-picker-item').forEach(item => {
+      const cb = item.querySelector('input[type="checkbox"]');
+      cb.checked = true; item.classList.add('checked');
+      jointSelectedCombos.add(cb.value);
+    });
+    updateJointPickerLabel();
+    applyJointFilter();
+  });
+  document.getElementById('joint-pick-none').addEventListener('click', () => {
+    document.querySelectorAll('#joint-picker-list .combo-picker-item').forEach(item => {
+      const cb = item.querySelector('input[type="checkbox"]');
+      cb.checked = false; item.classList.remove('checked');
+    });
+    jointSelectedCombos.clear();
+    updateJointPickerLabel();
+    applyJointFilter();
+  });
+
+  // ── Joint panel: tab switching ──
+  document.querySelectorAll('#joint-panel .tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#joint-panel .tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#joint-panel .tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const panel = document.getElementById(btn.dataset.tab);
+      if (panel) panel.classList.add('active');
+      if (btn.dataset.tab === 'joint-bubble-tab' && jointData.length && jointBubbleCombo) {
+        renderJointBubblePlot(jointData, jointActiveForce, jointBubbleCombo);
+      }
+    });
+  });
+
+  // ── Joint force component pills ──
+  document.querySelectorAll('.joint-force-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.joint-force-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      jointActiveForce = btn.dataset.jforce;
+      if (jointData.length && jointBubbleCombo) {
+        renderJointBubblePlot(jointData, jointActiveForce, jointBubbleCombo);
+      }
+    });
+  });
+
+  // ── Joint bubble combo/case selector ──
+  document.getElementById('joint-bubble-combo').addEventListener('change', e => {
+    jointBubbleCombo = e.target.value;
+    if (jointData.length && jointBubbleCombo) {
+      renderJointBubblePlot(jointData, jointActiveForce, jointBubbleCombo);
+    }
+  });
+
+  // ── Bubble display controls ──
+  function replotBubble() {
+    if (jointData.length && jointBubbleCombo)
+      renderJointBubblePlot(jointData, jointActiveForce, jointBubbleCombo);
+  }
+
+  // Bubble size slider + ± buttons
+  const bsSlider = document.getElementById('bubble-size-slider');
+  const bsVal    = document.getElementById('bubble-size-val');
+  function applyBubbleScale(v) {
+    jointBubbleScale = Math.min(4, Math.max(0.25, +v));
+    bsSlider.value   = jointBubbleScale;
+    // Format: "1×", "0.5×", "2.5×" — strip trailing .00 or trailing 0 after decimal
+    const label = jointBubbleScale % 1 === 0
+      ? jointBubbleScale + '×'
+      : jointBubbleScale.toFixed(2).replace(/0+$/, '').replace(/\.$/, '') + '×';
+    bsVal.textContent = label;
+    replotBubble();
+  }
+  bsSlider.addEventListener('input', e => applyBubbleScale(e.target.value));
+  document.getElementById('bubble-size-minus').addEventListener('click', () =>
+    applyBubbleScale(+(jointBubbleScale - 0.25).toFixed(2)));
+  document.getElementById('bubble-size-plus').addEventListener('click', () =>
+    applyBubbleScale(+(jointBubbleScale + 0.25).toFixed(2)));
+
+  // Text size slider + ± buttons
+  const btSlider = document.getElementById('bubble-text-slider');
+  const btVal    = document.getElementById('bubble-text-val');
+  function applyTextSize(v) {
+    jointTextSize    = Math.min(20, Math.max(7, Math.round(+v)));
+    btSlider.value   = jointTextSize;
+    btVal.textContent = jointTextSize + 'px';
+    replotBubble();
+  }
+  btSlider.addEventListener('input', e => applyTextSize(e.target.value));
+  document.getElementById('bubble-text-minus').addEventListener('click', () => applyTextSize(jointTextSize - 1));
+  document.getElementById('bubble-text-plus').addEventListener('click',  () => applyTextSize(jointTextSize + 1));
+
+  // Axis range inputs — fires on blur/Enter (not every keystroke to avoid thrashing)
+  function readAxisRanges() {
+    const xminV = document.getElementById('bubble-xmin').value.trim();
+    const xmaxV = document.getElementById('bubble-xmax').value.trim();
+    const yminV = document.getElementById('bubble-ymin').value.trim();
+    const ymaxV = document.getElementById('bubble-ymax').value.trim();
+    jointAxisX = { min: xminV !== '' ? +xminV : null, max: xmaxV !== '' ? +xmaxV : null };
+    jointAxisY = { min: yminV !== '' ? +yminV : null, max: ymaxV !== '' ? +ymaxV : null };
+    replotBubble();
+  }
+  ['bubble-xmin','bubble-xmax','bubble-ymin','bubble-ymax'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('change', readAxisRanges);   // fires on blur after value change
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.target.blur(); readAxisRanges(); } });
+  });
+
+  // Reset X / Reset Y buttons
+  document.getElementById('bubble-x-reset').addEventListener('click', () => {
+    document.getElementById('bubble-xmin').value = '';
+    document.getElementById('bubble-xmax').value = '';
+    jointAxisX = { min: null, max: null };
+    replotBubble();
+  });
+  document.getElementById('bubble-y-reset').addEventListener('click', () => {
+    document.getElementById('bubble-ymin').value = '';
+    document.getElementById('bubble-ymax').value = '';
+    jointAxisY = { min: null, max: null };
+    replotBubble();
+  });
+
+  // Color scale min / max inputs
+  function readColorRange() {
+    const cminV = document.getElementById('bubble-cmin').value.trim();
+    const cmaxV = document.getElementById('bubble-cmax').value.trim();
+    jointColorMin = cminV !== '' ? +cminV : null;
+    jointColorMax = cmaxV !== '' ? +cmaxV : null;
+    replotBubble();
+  }
+  ['bubble-cmin', 'bubble-cmax'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('change', readColorRange);
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.target.blur(); readColorRange(); } });
+  });
+  document.getElementById('bubble-c-reset').addEventListener('click', () => {
+    document.getElementById('bubble-cmin').value = '';
+    document.getElementById('bubble-cmax').value = '';
+    jointColorMin = null;
+    jointColorMax = null;
+    replotBubble();
+  });
+
+  // Palette selector
+  document.getElementById('bubble-palette').addEventListener('change', e => {
+    jointColorPalette = e.target.value;
+    replotBubble();
+  });
+
+  // ── Combo picker: open / close ──
+  document.getElementById('combo-picker-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    const dd     = document.getElementById('combo-picker-dropdown');
+    const btn    = document.getElementById('combo-picker-btn');
+    const isOpen = !dd.classList.contains('hidden');
+    dd.classList.toggle('hidden', isOpen);
+    btn.classList.toggle('open', !isOpen);
+    if (!isOpen) {                       // just opened — reset search & focus it
+      const si = document.getElementById('combo-picker-search');
+      si.value = '';
+      comboPickerApplySearch('');
+      setTimeout(() => si.focus(), 60);
+    }
+  });
+
+  // ── Combo picker: live search ──
+  document.getElementById('combo-picker-search').addEventListener('input', e => {
+    comboPickerApplySearch(e.target.value);
+  });
+  // Prevent outside-click handler from firing while typing inside picker
+  document.getElementById('combo-picker-search').addEventListener('click', e => e.stopPropagation());
+
+  // ── Combo picker: Select All ──
+  document.getElementById('combo-pick-all').addEventListener('click', () => {
+    document.querySelectorAll('#combo-picker-list .combo-picker-item').forEach(item => {
+      const cb = item.querySelector('input[type="checkbox"]');
+      cb.checked = true;
+      item.classList.add('checked');
+      reactionsSelectedCombos.add(cb.value);
+    });
+    updateComboPickerLabel();
+    applyReactionsFilter();
+  });
+
+  // ── Combo picker: Clear All ──
+  document.getElementById('combo-pick-none').addEventListener('click', () => {
+    document.querySelectorAll('#combo-picker-list .combo-picker-item').forEach(item => {
+      const cb = item.querySelector('input[type="checkbox"]');
+      cb.checked = false;
+      item.classList.remove('checked');
+    });
+    reactionsSelectedCombos.clear();
+    updateComboPickerLabel();
+    applyReactionsFilter();
+  });
+
+  // ── Close pickers on outside click ──
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#combo-picker')) {
+      document.getElementById('combo-picker-dropdown').classList.add('hidden');
+      document.getElementById('combo-picker-btn').classList.remove('open');
+    }
+    if (!e.target.closest('#joint-picker')) {
+      document.getElementById('joint-picker-dropdown').classList.add('hidden');
+      document.getElementById('joint-picker-btn').classList.remove('open');
+    }
+    if (!e.target.closest('#drift-picker')) {
+      document.getElementById('drift-picker-dropdown').classList.add('hidden');
+      document.getElementById('drift-picker-btn').classList.remove('open');
+    }
+    if (!e.target.closest('.lc-name-input') && !e.target.closest('#lc-ac-popup')) lcHideAc();
+  });
+});
+
+// ── Generic fetch helper (auto-attaches auth token) ──
+async function apiCall(endpoint, method = 'GET') {
+  const res = await authFetch(endpoint, { method });
+  if (!res.ok) {
+    if (res.status === 401) { localStorage.removeItem(AUTH_KEY); showAuthOverlay(); return; }
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// ── Toast ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+// ================================================================
+//  1 · STATUS CHECK
+// ================================================================
+async function checkStatus() {
+  try {
+    const data = await apiCall('/api/status');
+    const pill = document.getElementById('conn-pill');
+    const dot  = document.getElementById('conn-dot');
+    const text = document.getElementById('connection-status');
+    if (data.connected) {
+      pill.classList.add('connected');
+      dot.classList.add('connected');
+      text.textContent = 'Connected to ETABS';
+      isConnected = true;
+      showToast('Successfully linked to active ETABS.');
+      // Auto-load joint sources if the joint panel is currently visible
+      const jointPanel = document.getElementById('joint-panel');
+      if (jointPanel && jointPanel.classList.contains('active') && !jointAllCombos.length) {
+        jointLoadSources();
+      }
+    } else {
+      pill.classList.remove('connected');
+      dot.classList.remove('connected');
+      text.textContent = 'Disconnected';
+      isConnected = false;
+    }
+  } catch (e) {
+    showToast('Cannot reach server: ' + e.message);
+  }
+}
+
+// ================================================================
+//  2 · STORY DRIFTS  (multi-case, height vs drift chart)
+// ================================================================
+
+// Colour palette for drift lines (skip red — reserved for limit line)
+const DRIFT_COLORS = [
+  '#3b82f6', '#f59e0b', '#10b981', '#8b5cf6',
+  '#f97316', '#06b6d4', '#84cc16', '#ec4899',
+  '#6366f1', '#14b8a6', '#a855f7', '#fb923c',
+];
+
+async function driftGetSources() {
+  const btn = document.getElementById('btn-get-drift-sources');
+  btn.textContent = 'Loading…';
+  btn.disabled = true;
+  try {
+    const [comboData, caseData] = await Promise.all([
+      apiCall('/api/load-combinations'),
+      apiCall('/api/load-cases'),
+    ]);
+    driftCombos = comboData.combinations || [];
+    driftCases  = caseData.cases        || [];
+    driftSelected.clear();
+    driftPickerPopulate();
+    showToast(`Loaded ${driftCombos.length} combos + ${driftCases.length} cases.`);
+  } catch (e) {
+    showToast('Error: ' + e.message);
+  } finally {
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+      stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <circle cx="8" cy="8" r="6"/>
+      <line x1="8" y1="5" x2="8" y2="11"/>
+      <line x1="5" y1="8" x2="11" y2="8"/></svg> Get Sources`;
+    btn.disabled = false;
+  }
+}
+
+// Build the picker list from driftCombos + driftCases
+function driftPickerPopulate() {
+  const list = document.getElementById('drift-picker-list');
+  list.innerHTML = '';
+
+  if (!driftCombos.length && !driftCases.length) {
+    list.innerHTML = '<div class="combo-picker-empty">No sources found</div>';
+    driftUpdatePickerLabel();
+    return;
+  }
+
+  function renderGroup(names, dtype, title) {
+    if (!names.length) return;
+    const grp = document.createElement('div');
+    grp.className = 'combo-picker-group';
+    grp.dataset.groupDtype = dtype;
+
+    const hdr = document.createElement('div');
+    hdr.className = 'combo-picker-group-label';
+    hdr.textContent = title;
+    grp.appendChild(hdr);
+
+    names.forEach(name => {
+      const lbl = document.createElement('label');
+      lbl.className = 'combo-picker-item' + (driftSelected.has(name) ? ' checked' : '');
+      lbl.dataset.name  = name;
+      lbl.dataset.dtype = dtype;
+
+      const cb = document.createElement('input');
+      cb.type    = 'checkbox';
+      cb.checked = driftSelected.has(name);
+      cb.addEventListener('change', () => {
+        if (cb.checked) {
+          driftSelected.set(name, dtype);
+          lbl.classList.add('checked');
+        } else {
+          driftSelected.delete(name);
+          lbl.classList.remove('checked');
+        }
+        driftUpdatePickerLabel();
+      });
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'combo-picker-name';
+      nameSpan.textContent = name;
+
+      const badge = document.createElement('span');
+      badge.className = `list-type-badge ${dtype === 'combo' ? 'badge-combo' : 'badge-case'}`;
+      badge.textContent = dtype === 'combo' ? 'C' : 'LC';
+
+      lbl.appendChild(cb);
+      lbl.appendChild(nameSpan);
+      lbl.appendChild(badge);
+      grp.appendChild(lbl);
+    });
+
+    list.appendChild(grp);
+  }
+
+  renderGroup(driftCombos, 'combo', 'COMBINATIONS');
+  renderGroup(driftCases,  'case',  'LOAD CASES');
+  driftPickerApplyFilter('');
+  driftUpdatePickerLabel();
+}
+
+// Filter visible picker items by search query and/or type toggle
+function driftPickerApplyFilter(query) {
+  const q = (query || '').toLowerCase();
+  document.querySelectorAll('#drift-picker-list .combo-picker-item').forEach(item => {
+    const name  = (item.dataset.name  || '').toLowerCase();
+    const dtype = item.dataset.dtype  || '';
+    const matchQuery = !q || name.includes(q);
+    const matchType  = driftSourceFilter === 'all' || driftSourceFilter === dtype;
+    item.style.display = (matchQuery && matchType) ? '' : 'none';
+  });
+  // Hide group header if all its items are hidden
+  document.querySelectorAll('#drift-picker-list .combo-picker-group').forEach(grp => {
+    const visible = [...grp.querySelectorAll('.combo-picker-item')].some(i => i.style.display !== 'none');
+    grp.style.display = visible ? '' : 'none';
+  });
+}
+
+// Update the picker button label to show selection count
+function driftUpdatePickerLabel() {
+  const count = driftSelected.size;
+  const total = driftCombos.length + driftCases.length;
+  const label = document.getElementById('drift-picker-label');
+  if (!total)          label.textContent = 'Get Sources First';
+  else if (!count)     label.textContent = 'No Sources Selected';
+  else if (count === total) label.textContent = `All ${count} Selected`;
+  else                 label.textContent = `${count} of ${total} Selected`;
+}
+
+async function driftExtract() {
+  if (driftSelected.size === 0) {
+    showToast('Select at least one load case / combination first.');
+    return;
+  }
+  const btn = document.getElementById('btn-extract-drift');
+  btn.textContent = 'Extracting…';
+  btn.disabled = true;
+
+  const allowable  = parseFloat(document.getElementById('drift-allowable').value)  || 0.002;
+  const multiplier = parseFloat(document.getElementById('drift-multiplier').value) || 1;
+
+  // Split selected items by type
+  const selectedCombos = [];
+  const selectedCases  = [];
+  driftSelected.forEach((type, name) => {
+    if (type === 'combo') selectedCombos.push(name);
+    else                  selectedCases.push(name);
+  });
+
+  try {
+    // Fire both extractions in parallel (only if there are items of that type)
+    const requests = [];
+    if (selectedCombos.length) {
+      requests.push(authFetch('/api/results/drifts-selected', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ names: selectedCombos, load_type: 'combo' }),
+      }).then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(new Error(e.detail || `HTTP ${r.status}`)))));
+    }
+    if (selectedCases.length) {
+      requests.push(authFetch('/api/results/drifts-selected', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ names: selectedCases, load_type: 'case' }),
+      }).then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(new Error(e.detail || `HTTP ${r.status}`)))));
+    }
+
+    const results = await Promise.all(requests);
+    const allData = results.flatMap(r => r.data || []);
+    driftLastData = allData;
+    driftRenderTable(allData, allowable, multiplier);
+    driftRenderChart(allData, allowable, multiplier);
+    showToast(`Extracted ${driftSelected.size} series (${selectedCombos.length} combo, ${selectedCases.length} case).`);
+  } catch (e) {
+    showToast('Error: ' + e.message);
+  } finally {
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 15 15" fill="none"
+      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="3,2 13,7.5 3,13" fill="currentColor" stroke="none"/></svg> Extract`;
+    btn.disabled = false;
+  }
+}
+
+function driftRenderTable(rawData, allowable, multiplier) {
+  const emptyEl = document.getElementById('drift-table-empty');
+  const wrapEl  = document.getElementById('drift-table-wrap');
+  const tbody   = document.getElementById('drift-table-body');
+
+  if (!rawData.length) {
+    emptyEl.style.display = '';
+    wrapEl.classList.add('hidden');
+    return;
+  }
+
+  // Sort: elevation descending (top story first), then by case name
+  const sorted = [...rawData].sort((a, b) =>
+    b.elevation - a.elevation || a.case.localeCompare(b.case)
+  );
+
+  tbody.innerHTML = '';
+  sorted.forEach(row => {
+    const driftAbs  = Math.abs(row.drift);
+    const driftMult = driftAbs * multiplier;
+    const pass      = driftMult <= allowable;
+    const dir       = row.dir || row.label || '—';
+    const exceedPct = pass ? '' : ` (${(((driftMult - allowable) / allowable) * 100).toFixed(1)}% over)`;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${row.story}</td>
+      <td>${row.case}</td>
+      <td>${dir}</td>
+      <td>${(+row.elevation).toFixed(2)}</td>
+      <td class="${driftMult > allowable ? 'val-neg' : ''}">${driftAbs.toFixed(5)}</td>
+      <td class="${driftMult > allowable ? 'val-neg' : ''}">${driftMult.toFixed(5)}</td>
+      <td>
+        <span class="${pass ? 'badge-ok' : 'badge-warn'}">
+          ${pass ? '✓ Pass' : `✗ Fail${exceedPct}`}
+        </span>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+
+  emptyEl.style.display = 'none';
+  wrapEl.classList.remove('hidden');
+}
+
+function driftRenderChart(rawData, allowable, multiplier) {
+  // ── Group rows by case name ──
+  const byCase = {};
+  rawData.forEach(row => {
+    if (!byCase[row.case]) byCase[row.case] = [];
+    byCase[row.case].push(row);
+  });
+
+  const allElevations = rawData.map(r => r.elevation);
+  const minElev = Math.min(...allElevations);
+  const maxElev = Math.max(...allElevations);
+
+  const traces = [];
+  let colorIdx = 0;
+
+  Object.entries(byCase).forEach(([caseName, rows]) => {
+    // Collapse X + Y: keep max |drift| per story
+    const byStory = {};
+    rows.forEach(r => {
+      if (!byStory[r.story] || Math.abs(r.drift) > Math.abs(byStory[r.story].drift)) {
+        byStory[r.story] = r;
+      }
+    });
+
+    const sorted = Object.values(byStory).sort((a, b) => a.elevation - b.elevation);
+    const color  = DRIFT_COLORS[colorIdx % DRIFT_COLORS.length];
+
+    traces.push({
+      x:    sorted.map(r => Math.abs(r.drift) * multiplier),
+      y:    sorted.map(r => r.elevation),
+      mode: 'lines+markers',
+      type: 'scatter',
+      name: caseName,
+      line:   { color, width: 2 },
+      marker: { color, size: 6, symbol: 'circle' },
+      hovertemplate: `<b>${caseName}</b><br>Drift: %{x:.5f}<br>Elev: %{y:.1f} m<extra></extra>`,
+    });
+    colorIdx++;
+  });
+
+  // ── Allowable vertical line ──
+  traces.push({
+    x:    [allowable, allowable],
+    y:    [minElev, maxElev],
+    mode: 'lines',
+    type: 'scatter',
+    name: 'Allowable Limit',
+    line: { color: '#ef4444', width: 2.5, dash: 'dash' },
+    hovertemplate: `Allowable: ${allowable}<extra></extra>`,
+  });
+
+  const layout = {
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor:  'rgba(0,0,0,0)',
+    margin: { l: 64, r: 24, t: 24, b: 64 },
+    font:   { family: 'Inter, sans-serif', color: '#64748b', size: 11 },
+    xaxis: {
+      title:       { text: 'Drift Ratio', font: { size: 12, color: '#64748b' }, standoff: 8 },
+      gridcolor:   'rgba(148,163,184,0.12)',
+      zerolinecolor: 'rgba(148,163,184,0.2)',
+      color:       '#64748b',
+      tickformat:  '.4f',
+    },
+    yaxis: {
+      title:     { text: 'Elevation (m)', font: { size: 12, color: '#64748b' }, standoff: 8 },
+      gridcolor: 'rgba(148,163,184,0.12)',
+      color:     '#64748b',
+    },
+    legend: {
+      bgcolor:     'rgba(0,0,0,0)',
+      borderwidth: 0,
+      font:        { size: 11, color: '#64748b' },
+      orientation: 'h',
+      y:           -0.14,
+    },
+    hoverlabel: {
+      bgcolor:    'rgba(8,18,34,0.92)',
+      bordercolor: 'rgba(59,130,246,0.3)',
+      font:       { family: 'Inter, sans-serif', size: 12, color: '#f1f5f9' },
+    },
+    hovermode: 'closest',
+  };
+
+  const config = { responsive: true, displayModeBar: true, displaylogo: false,
+    modeBarButtonsToRemove: ['lasso2d', 'select2d', 'toImage'] };
+
+  // ── Show chart div, hide empty state ──
+  const empty = document.getElementById('drift-chart-empty');
+  const div   = document.getElementById('driftsChart');
+  empty.style.display = 'none';
+  div.style.display   = 'block';
+  driftsChartHasData  = true;
+
+  Plotly.react('driftsChart', traces, layout, config);
+}
+
+// ================================================================
+//  3 · TORSIONAL CHECK
+// ================================================================
+async function getTorsion() {
+  const btn = document.getElementById('btn-get-torsion');
+  btn.textContent = 'Checking…';
+  btn.disabled = true;
+  try {
+    const res = await apiCall('/api/results/torsional-irregularity');
+    if (res.status === 'success') {
+      renderTorsionResults(res.data);
+      showToast('Torsional checks complete.');
+    }
+  } catch (e) { showToast(e.message); }
+  finally {
+    btn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><polyline points="8,5 8,8 10.5,10"/></svg> Run Checks';
+    btn.disabled = false;
+  }
+}
+
+function renderTorsionResults(data) {
+  const details   = data.details || [];
+  const summaryEl = document.getElementById('torsion-summary');
+  const gridEl    = document.getElementById('torsion-results');
+
+  const total    = details.length;
+  const irregular = details.filter(d => d.ratio > 1.2).length;
+  const maxRatio  = details.reduce((m, d) => Math.max(m, d.ratio), 0);
+  const isIrr     = data.isIrregular;
+
+  // Summary bar
+  summaryEl.classList.remove('hidden');
+  summaryEl.innerHTML = `
+    <div class="summary-stat">
+      <div class="stat-label">Total Checks</div>
+      <div class="stat-value" style="color:var(--blue-light)">${total}</div>
+    </div>
+    <div class="summary-stat">
+      <div class="stat-label">Irregular Stories</div>
+      <div class="stat-value" style="color:${irregular > 0 ? 'var(--red)' : 'var(--green)'}">${irregular}</div>
+    </div>
+    <div class="summary-stat">
+      <div class="stat-label">Max Ratio</div>
+      <div class="stat-value" style="color:${maxRatio > 1.2 ? 'var(--red)' : 'var(--green)'}">${maxRatio.toFixed(2)}</div>
+    </div>
+    <div class="summary-stat">
+      <div class="stat-label">Overall Status</div>
+      <div class="stat-value" style="color:${isIrr ? 'var(--red)' : 'var(--green)'};font-size:1rem;font-weight:800;letter-spacing:-0.5px">
+        ${isIrr ? '⚠ IRREGULAR' : '✓ REGULAR'}
+      </div>
+    </div>`;
+
+  // Result cards
+  gridEl.innerHTML = '';
+  if (!details.length) {
+    gridEl.innerHTML = '<div class="empty-placeholder"><p>No results returned from analysis.</p></div>';
+    return;
+  }
+  details.forEach(item => {
+    const irr = item.ratio > 1.2;
+    const card = document.createElement('div');
+    card.className = `result-card${irr ? ' irregular' : ''}`;
+    card.innerHTML = `
+      <div class="rc-label">Story / Combo</div>
+      <div class="rc-story">${item.story}</div>
+      <div class="rc-combo">${item.combo}</div>
+      <div class="rc-ratio" style="color:${irr ? 'var(--red)' : 'var(--green)'}">${item.ratio.toFixed(3)}</div>
+      <div class="rc-badge ${irr ? 'badge-warn' : 'badge-ok'}">
+        ${irr ? '⚠ Irregular' : '✓ Within Limit'}
+      </div>`;
+    gridEl.appendChild(card);
+  });
+}
+
+// ================================================================
+//  4 · BASE REACTIONS
+// ================================================================
+
+// ── Combo picker helpers ──
+function populateComboPickerFromList(combos) {
+  reactionsAllCombos = combos;
+  // Default: all selected
+  reactionsSelectedCombos = new Set(combos);
+
+  const list = document.getElementById('combo-picker-list');
+  list.innerHTML = '';
+
+  if (!combos.length) {
+    list.innerHTML = '<div class="combo-picker-empty">No combinations found</div>';
+    updateComboPickerLabel();
+    return;
+  }
+
+  combos.forEach(name => {
+    const item = document.createElement('label');
+    item.className = 'combo-picker-item checked';
+
+    const cb = document.createElement('input');
+    cb.type    = 'checkbox';
+    cb.value   = name;
+    cb.checked = true;
+    cb.addEventListener('change', () => {
+      if (cb.checked) {
+        reactionsSelectedCombos.add(name);
+        item.classList.add('checked');
+      } else {
+        reactionsSelectedCombos.delete(name);
+        item.classList.remove('checked');
+      }
+      updateComboPickerLabel();
+      applyReactionsFilter();
+    });
+
+    const span = document.createElement('span');
+    span.textContent = name;
+
+    item.appendChild(cb);
+    item.appendChild(span);
+    list.appendChild(item);
+  });
+
+  updateComboPickerLabel();
+}
+
+function comboPickerApplySearch(query) {
+  const q = query.toLowerCase().trim();
+  let visibleCount = 0;
+  document.querySelectorAll('#combo-picker-list .combo-picker-item').forEach(item => {
+    const name = item.querySelector('span').textContent.toLowerCase();
+    const match = !q || name.includes(q);
+    item.style.display = match ? '' : 'none';
+    if (match) visibleCount++;
+  });
+  // Show "no matches" hint when nothing passes the filter
+  let noMatch = document.getElementById('combo-picker-no-match');
+  if (visibleCount === 0 && q) {
+    if (!noMatch) {
+      noMatch = document.createElement('div');
+      noMatch.id = 'combo-picker-no-match';
+      noMatch.className = 'combo-picker-empty';
+      noMatch.textContent = 'No matches';
+      document.getElementById('combo-picker-list').appendChild(noMatch);
+    }
+    noMatch.style.display = '';
+  } else if (noMatch) {
+    noMatch.style.display = 'none';
+  }
+}
+
+function updateComboPickerLabel() {
+  const label = document.getElementById('combo-picker-label');
+  const total = reactionsAllCombos.length;
+  const sel   = reactionsSelectedCombos.size;
+  if (total === 0 || sel === total) label.textContent = 'All Combinations';
+  else if (sel === 0)               label.textContent = 'None Selected';
+  else                              label.textContent = `${sel} of ${total} Selected`;
+}
+
+function reactionsGetFiltered() {
+  if (reactionsSelectedCombos.size === 0)                          return [];
+  if (reactionsSelectedCombos.size === reactionsAllCombos.length)  return reactionsData;
+  return reactionsData.filter(r => reactionsSelectedCombos.has(r.combo));
+}
+
+function applyReactionsFilter() {
+  const filtered = reactionsGetFiltered();
+  renderReactionsTableDOM(filtered);
+  const chartPanel = document.getElementById('reactions-chart-tab');
+  if (chartPanel && chartPanel.classList.contains('active')) {
+    renderReactionsChart(filtered);
+  }
+}
+
+async function populateReactionCombos() {
+  try {
+    const res = await apiCall(`/api/results/reactions?load_type=${reactionsLoadType}`);
+    if (res.status === 'success') {
+      const available = reactionsLoadType === 'case'
+        ? (res.available_cases || [])
+        : (res.available_combos || []);
+      if (available.length) populateComboPickerFromList(available);
+    }
+  } catch (_) { /* silent — ETABS may not be connected yet */ }
+}
+
+async function getReactions() {
+  const btn = document.getElementById('btn-get-reactions');
+  btn.textContent = 'Loading…';
+  btn.disabled = true;
+  try {
+    const res = await apiCall(`/api/results/reactions?load_type=${reactionsLoadType}`);
+    if (res.status === 'success') {
+      reactionsData = res.data;
+      const available = reactionsLoadType === 'case'
+        ? (res.available_cases || [])
+        : (res.available_combos || []);
+      populateComboPickerFromList(available);
+      applyReactionsFilter();
+      const typeLabel = reactionsLoadType === 'case' ? 'load cases' : 'combinations';
+      showToast(`Base reactions loaded — ${reactionsData.length} row${reactionsData.length === 1 ? '' : 's'} (${typeLabel}).`);
+    }
+  } catch (e) { showToast(e.message); }
+  finally {
+    btn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="8" y1="2" x2="8" y2="11"/><polyline points="5,8 8,11 11,8"/><line x1="3" y1="14" x2="13" y2="14"/></svg> Fetch';
+    btn.disabled = false;
+  }
+}
+
+function renderReactionsTableDOM(data) {
+  const tbody = document.getElementById('reactions-tbody');
+  tbody.innerHTML = '';
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="td-empty"><div class="empty-placeholder">No results for selected combination(s).</div></td></tr>';
+    return;
+  }
+  data.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${r.combo}</strong></td>
+      <td class="${r.FX < 0 ? 'val-neg' : ''}">${r.FX.toFixed(1)}</td>
+      <td class="${r.FY < 0 ? 'val-neg' : ''}">${r.FY.toFixed(1)}</td>
+      <td class="val-fz">${r.FZ.toFixed(1)}</td>
+      <td class="val-moment">${r.MX.toFixed(1)}</td>
+      <td class="val-moment">${r.MY.toFixed(1)}</td>
+      <td class="val-moment">${r.MZ.toFixed(1)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderReactionsChart(data) {
+  const emptyEl = document.getElementById('reactions-chart-empty');
+  const div     = document.getElementById('reactionsChart');
+  if (!data.length) return;
+
+  emptyEl.style.display = 'none';
+  div.style.display     = 'block';
+  reactionsChartHasData = true;
+
+  // X-axis labels = unique combo names (preserving order)
+  const labels = [...new Set(data.map(r => r.combo))];
+
+  const traces = ['FX','FY','FZ','MX','MY','MZ']
+    .filter(f => reactionsActiveForces.has(f))
+    .map(force => {
+      const isMoment = ['MX','MY','MZ'].includes(force);
+      return {
+        x:    labels,
+        y:    labels.map(combo => {
+          const row = data.find(r => r.combo === combo);
+          return row ? row[force] : 0;
+        }),
+        name: force,
+        type: 'bar',
+        marker:        { color: FORCE_COLORS[force], opacity: 0.85 },
+        hovertemplate: `<b>%{x}</b><br>${force}: %{y:.1f} ${isMoment ? 'kN·m' : 'kN'}<extra></extra>`,
+      };
+    });
+
+  const layout = {
+    barmode:       'group',
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor:  'rgba(0,0,0,0)',
+    margin: { l: 64, r: 24, t: 24, b: 80 },
+    font:   { family: 'Inter, sans-serif', color: '#64748b', size: 11 },
+    xaxis: {
+      gridcolor: 'rgba(148,163,184,0.08)',
+      color:     '#64748b',
+      tickangle: -30,
+    },
+    yaxis: {
+      title:       { text: 'kN / kN·m', font: { size: 12, color: '#64748b' }, standoff: 8 },
+      gridcolor:   'rgba(148,163,184,0.12)',
+      zerolinecolor: 'rgba(148,163,184,0.3)',
+      color:       '#64748b',
+    },
+    legend: {
+      bgcolor:     'rgba(0,0,0,0)',
+      borderwidth: 0,
+      font:        { size: 11, color: '#64748b' },
+      orientation: 'h',
+      y:           -0.2,
+    },
+    hoverlabel: {
+      bgcolor:     'rgba(8,18,34,0.92)',
+      bordercolor: 'rgba(59,130,246,0.3)',
+      font:        { family: 'Inter, sans-serif', size: 12, color: '#f1f5f9' },
+    },
+  };
+
+  const config = { responsive: true, displayModeBar: true, displaylogo: false,
+    modeBarButtonsToRemove: ['lasso2d', 'select2d', 'toImage'] };
+
+  Plotly.react('reactionsChart', traces, layout, config);
+}
+
+// ================================================================
+//  5 · JOINT / SPRING REACTIONS
+// ================================================================
+
+// ── Picker helpers ──
+function populateJointPickerFromList(combos) {
+  jointAllCombos = combos;
+  jointSelectedCombos = new Set();   // start EMPTY — user must pick explicitly
+
+  const list = document.getElementById('joint-picker-list');
+  list.innerHTML = '';
+
+  if (!combos.length) {
+    list.innerHTML = '<div class="combo-picker-empty">No items found</div>';
+    updateJointPickerLabel();
+    return;
+  }
+
+  combos.forEach(name => {
+    const item = document.createElement('label');
+    item.className = 'combo-picker-item';   // NOT pre-checked
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.value = name; cb.checked = false;
+    cb.addEventListener('change', () => {
+      if (cb.checked) {
+        jointSelectedCombos.add(name);
+        item.classList.add('checked');
+      } else {
+        jointSelectedCombos.delete(name);
+        item.classList.remove('checked');
+      }
+      updateJointPickerLabel();
+      applyJointFilter();
+    });
+
+    const span = document.createElement('span');
+    span.textContent = name;
+
+    item.appendChild(cb); item.appendChild(span);
+    list.appendChild(item);
+  });
+
+  updateJointPickerLabel();
+}
+
+function jointPickerApplySearch(query) {
+  const q = query.toLowerCase().trim();
+  let count = 0;
+  document.querySelectorAll('#joint-picker-list .combo-picker-item').forEach(item => {
+    const match = !q || item.querySelector('span').textContent.toLowerCase().includes(q);
+    item.style.display = match ? '' : 'none';
+    if (match) count++;
+  });
+  let noMatch = document.getElementById('joint-picker-no-match');
+  if (count === 0 && q) {
+    if (!noMatch) {
+      noMatch = document.createElement('div');
+      noMatch.id = 'joint-picker-no-match';
+      noMatch.className = 'combo-picker-empty';
+      noMatch.textContent = 'No matches';
+      document.getElementById('joint-picker-list').appendChild(noMatch);
+    }
+    noMatch.style.display = '';
+  } else if (noMatch) {
+    noMatch.style.display = 'none';
+  }
+}
+
+function updateJointPickerLabel() {
+  const label = document.getElementById('joint-picker-label');
+  const total = jointAllCombos.length;
+  const sel   = jointSelectedCombos.size;
+  const typeWord = jointLoadType === 'case' ? 'Load Cases' : 'Combinations';
+  if (total === 0)   label.textContent = `Select ${typeWord}`;
+  else if (sel === 0) label.textContent = `— Pick a ${jointLoadType === 'case' ? 'Case' : 'Combo'} to Fetch —`;
+  else if (sel === total) label.textContent = `All ${total} ${typeWord}`;
+  else                    label.textContent = `${sel} of ${total} Selected`;
+}
+
+function jointGetFiltered() {
+  if (jointSelectedCombos.size === 0)                        return [];
+  if (jointSelectedCombos.size === jointAllCombos.length)    return jointData;
+  return jointData.filter(r => jointSelectedCombos.has(r.combo));
+}
+
+function applyJointFilter() {
+  const filtered = jointGetFiltered();
+  renderJointTable(filtered);
+  // Refresh bubble plot if it's the active tab and has a combo selected
+  const bubbleTab = document.getElementById('joint-bubble-tab');
+  if (bubbleTab && bubbleTab.classList.contains('active') && jointBubbleCombo) {
+    renderJointBubblePlot(filtered, jointActiveForce, jointBubbleCombo);
+  }
+}
+
+// ── Populate bubble-plot combo/case dropdown ──
+function populateJointBubbleComboSelect(data) {
+  const sel   = document.getElementById('joint-bubble-combo');
+  const combos = [...new Set(data.map(r => r.combo))];
+  sel.innerHTML = '';
+  combos.forEach((c, i) => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    if (i === 0) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  jointBubbleCombo = combos[0] || '';
+}
+
+// ── Fetch ──
+// ── Phase 1: load just the list of available combos/cases into the picker ──
+async function jointLoadSources() {
+  const list  = document.getElementById('joint-picker-list');
+  const label = document.getElementById('joint-picker-label');
+  list.innerHTML = `<div class="combo-picker-empty">Loading…</div>`;
+  try {
+    const url = jointLoadType === 'case' ? '/api/load-cases' : '/api/load-combinations';
+    const res = await apiCall(url);
+    const items = jointLoadType === 'case'
+      ? (res.cases         || [])
+      : (res.combinations  || []);
+    if (!items.length) {
+      list.innerHTML = `<div class="combo-picker-empty">No ${jointLoadType === 'case' ? 'load cases' : 'combinations'} found</div>`;
+      return;
+    }
+    populateJointPickerFromList(items);
+    const typeWord = jointLoadType === 'case' ? 'load cases' : 'combinations';
+    label.textContent = `All ${items.length} ${typeWord}`;
+  } catch (e) {
+    list.innerHTML = `<div class="combo-picker-empty">Failed to load — check connection</div>`;
+  }
+}
+
+// ── Phase 2: fetch reactions only for selected combos/cases ──
+async function getJointReactions() {
+  const btn = document.getElementById('btn-get-joint-reactions');
+
+  // If sources haven't been loaded yet, load them now and return (user should
+  // review the selection before fetching potentially large data)
+  if (!jointAllCombos.length) {
+    await jointLoadSources();
+    showToast('Sources loaded — review your selection, then click Fetch again.');
+    return;
+  }
+  if (!jointSelectedCombos.size) {
+    showToast('Select at least one combination / case first.');
+    return;
+  }
+
+  btn.textContent = 'Loading…';
+  btn.disabled = true;
+  try {
+    // Always send the explicit selection — never fetch all at once
+    const url = `/api/results/joint-reactions?load_type=${jointLoadType}`
+              + `&names=${[...jointSelectedCombos].map(encodeURIComponent).join(',')}`;
+
+    const res = await apiCall(url);
+    if (res.status === 'success') {
+      jointData = res.data;
+      populateJointBubbleComboSelect(jointData);
+      renderJointTable(jointData);
+      const sel = [...jointSelectedCombos].length;
+      const typeLabel = jointLoadType === 'case' ? 'load cases' : 'combinations';
+      showToast(`Joint reactions loaded — ${jointData.length} rows across ${sel} ${typeLabel}.`);
+    }
+  } catch (e) { showToast(e.message); }
+  finally {
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="8" y1="2" x2="8" y2="11"/><polyline points="5,8 8,11 11,8"/><line x1="3" y1="14" x2="13" y2="14"/></svg> Fetch';
+    btn.disabled = false;
+  }
+}
+
+// ── Table rendering ──
+function renderJointTable(data) {
+  const tbody = document.getElementById('joint-tbody');
+  tbody.innerHTML = '';
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="12" class="td-empty"><div class="empty-placeholder">No results. Select a combination and click Fetch.</div></td></tr>';
+    return;
+  }
+  data.forEach(r => {
+    const tr = document.createElement('tr');
+    // step_type distinguishes envelope steps (Max/Min) from linear single steps
+    const stepLabel = r.step_type || '';
+    const stepClass = stepLabel === 'Max' ? 'step-max'
+                    : stepLabel === 'Min' ? 'step-min'
+                    : 'step-other';
+    tr.innerHTML = `
+      <td><strong>${r.joint}</strong></td>
+      <td>${r.combo}</td>
+      <td class="val-step ${stepClass}">${stepLabel}</td>
+      <td class="val-coord">${r.x.toFixed(3)}</td>
+      <td class="val-coord">${r.y.toFixed(3)}</td>
+      <td class="val-coord">${r.z.toFixed(3)}</td>
+      <td class="${r.FX < 0 ? 'val-neg' : ''}">${r.FX.toFixed(1)}</td>
+      <td class="${r.FY < 0 ? 'val-neg' : ''}">${r.FY.toFixed(1)}</td>
+      <td class="val-fz">${r.FZ.toFixed(1)}</td>
+      <td class="val-moment">${r.MX.toFixed(1)}</td>
+      <td class="val-moment">${r.MY.toFixed(1)}</td>
+      <td class="val-moment">${r.MZ.toFixed(1)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Bubble plot rendering ──
+function renderJointBubblePlot(allData, force, comboName) {
+  const emptyEl = document.getElementById('joint-bubble-empty');
+  const div     = document.getElementById('jointBubbleChart');
+
+  if (!allData.length || !comboName) {
+    emptyEl.style.display = ''; div.style.display = 'none'; return;
+  }
+
+  // Filter to one combo/case
+  const rawData = allData.filter(r => r.combo === comboName);
+  if (!rawData.length) {
+    emptyEl.style.display = ''; div.style.display = 'none'; return;
+  }
+
+  // Deduplicate by joint for the bubble plot.
+  // Envelope combos return multiple steps (Max, Min, …) per joint at the same XY
+  // position — stacking bubbles makes the chart unreadable.
+  // Priority: "Max" > "Min" > first row encountered.
+  const STEP_PRIORITY = { 'Max': 0, 'Min': 1 };
+  const seen = new Map();  // joint → best row
+  rawData.forEach(r => {
+    const cur  = seen.get(r.joint);
+    const rPri = STEP_PRIORITY[r.step_type] ?? 2;
+    const cPri = cur ? (STEP_PRIORITY[cur.step_type] ?? 2) : Infinity;
+    if (!cur || rPri < cPri) seen.set(r.joint, r);
+  });
+  const data     = [...seen.values()];
+  const stepTypes = [...new Set(rawData.map(r => r.step_type))];
+  const stepNote  = stepTypes.length > 1
+    ? ` — Bubble shows "${data[0]?.step_type || 'Max'}" step (${stepTypes.join(', ')} available in table)`
+    : '';
+
+  const values   = data.map(r => r[force]);
+  const absVals  = values.map(v => Math.abs(v));
+  const maxAbs   = Math.max(...absVals, 0.001);
+
+  // Bubble size: scale is applied via sizeref — smaller sizeref = bigger bubbles
+  // jointBubbleScale > 1 enlarges, < 1 shrinks
+  const sizeref = maxAbs / (55 * jointBubbleScale);
+
+  // ── Active colorscale (set by palette selector)
+  const colorscale = jointColorPalette;
+
+  const isMoment  = ['MX','MY','MZ'].includes(force);
+  const unitLabel = isMoment ? 'kN·m' : 'kN';
+
+  // Effective color range: user-set values, or auto (data min/max)
+  const dataMin = Math.min(...values);
+  const dataMax = Math.max(...values);
+  const effCmin = jointColorMin !== null ? jointColorMin : dataMin;
+  const effCmax = jointColorMax !== null ? jointColorMax : dataMax;
+
+  // Per-palette text contrast rules.
+  // Sequential palettes: bright zone is at the HIGH end (norm > threshold → dark text).
+  // Diverging/rainbow palettes: bright zone is in the MIDDLE BAND → dark text there.
+  const range = effCmax !== effCmin ? effCmax - effCmin : 1;
+  const textColors = values.map(v => {
+    const norm = Math.max(0, Math.min(1, (v - effCmin) / range));
+    let dark = false;
+    switch (jointColorPalette) {
+      // Sequential — bright at the top
+      case 'Plasma':    dark = norm > 0.82; break;
+      case 'Viridis':   dark = norm > 0.72; break;
+      case 'Inferno':   dark = false;        break;  // tip is pale-yellow, but text small enough
+      case 'Magma':     dark = false;        break;
+      case 'Hot':       dark = norm > 0.68; break;
+      case 'Blackbody': dark = norm > 0.80; break;
+      case 'Electric':  dark = false;        break;
+      // Diverging / rainbow — bright in middle or top
+      case 'Jet':       dark = norm > 0.38 && norm < 0.63; break;  // cyan-yellow band
+      case 'RdYlBu':    dark = norm > 0.28 && norm < 0.72; break;  // yellow middle
+      case 'RdBu':      dark = norm > 0.38 && norm < 0.62; break;  // white middle
+      case 'Bluered':   dark = false;        break;
+      case 'Rainbow':   dark = norm > 0.30 && norm < 0.55; break;  // yellow-green band
+      default:          dark = false;
+    }
+    return dark ? '#1e293b' : '#ffffff';
+  });
+
+  const trace = {
+    x:    data.map(r => r.x),
+    y:    data.map(r => r.y),
+    mode: 'markers+text',
+    type: 'scatter',
+    text: values.map(v => String(Math.round(v))),   // whole-number labels on bubbles
+    textposition: 'middle center',
+    textfont: {
+      size:   jointTextSize,   // controlled by Text slider
+      color:  textColors,
+      family: 'Inter, sans-serif',
+    },
+    customdata: data.map(r => [r.joint, r.z]),
+    hovertemplate:
+      '<b>Joint: %{customdata[0]}</b><br>' +
+      'X: %{x:.3f} m   Y: %{y:.3f} m   Z: %{customdata[1]:.3f} m<br>' +
+      `${force}: <b>%{marker.color:.2f} ${unitLabel}</b><extra></extra>`,
+    marker: {
+      size:      absVals.map(v => Math.max(v, maxAbs * 0.08)),
+      sizeref,
+      sizemode:  'diameter',
+      sizemin:   Math.max(8, Math.round(22 * jointBubbleScale)),  // scales with bubble control
+      color:      values,
+      colorscale,
+      cmin:       effCmin,
+      cmax:       effCmax,
+      opacity:    1,          // fully solid bubbles
+      showscale:  true,
+      colorbar:  {
+        title:    { text: `${force} (${unitLabel})`, font: { size: 11, color: '#64748b' }, side: 'right' },
+        thickness: 14,
+        len:       0.85,
+        tickfont:  { size: 10, color: '#64748b' },
+        outlinewidth: 0,
+        bgcolor:   'rgba(0,0,0,0)',
+      },
+      line: { color: 'rgba(255,255,255,0.35)', width: 1.0 },  // subtle border on Viridis bubbles
+    },
+  };
+
+  const layout = {
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor:  'rgba(0,0,0,0)',
+    margin: { l: 64, r: 90, t: 48, b: 64 },
+    font:   { family: 'Inter, sans-serif', color: '#64748b', size: 11 },
+    title:  {
+      text: `<b>${force}</b> Reactions — ${comboName}${stepNote}`,
+      font: { size: 13, color: '#1e293b', family: 'Inter, sans-serif' },
+      x: 0.46, y: 0.98, xanchor: 'center',
+    },
+    xaxis: (() => {
+      const xs   = data.map(r => r.x);
+      const dmin = Math.min(...xs), dmax = Math.max(...xs);
+      const pad  = (dmax - dmin) * 0.12 || 1;
+      const xMin = jointAxisX.min !== null ? jointAxisX.min : dmin - pad;
+      const xMax = jointAxisX.max !== null ? jointAxisX.max : dmax + pad;
+      const hasCustom = jointAxisX.min !== null || jointAxisX.max !== null;
+      return {
+        title:        { text: 'X Coordinate (m)', font: { size: 12, color: '#64748b' }, standoff: 8 },
+        gridcolor:    'rgba(148,163,184,0.15)',
+        zerolinecolor:'rgba(148,163,184,0.4)',
+        color:        '#64748b',
+        scaleanchor:  hasCustom ? undefined : 'y',  // disable equal-aspect when user sets a custom range
+        scaleratio:   hasCustom ? undefined : 1,
+        autorange:    !hasCustom,
+        ...(hasCustom ? { range: [xMin, xMax] } : {}),
+      };
+    })(),
+    yaxis: (() => {
+      const ys   = data.map(r => r.y);
+      const dmin = Math.min(...ys), dmax = Math.max(...ys);
+      const pad  = (dmax - dmin) * 0.12 || 1;
+      const yMin = jointAxisY.min !== null ? jointAxisY.min : dmin - pad;
+      const yMax = jointAxisY.max !== null ? jointAxisY.max : dmax + pad;
+      const hasCustom = jointAxisY.min !== null || jointAxisY.max !== null;
+      return {
+        title:        { text: 'Y Coordinate (m)', font: { size: 12, color: '#64748b' }, standoff: 8 },
+        gridcolor:    'rgba(148,163,184,0.15)',
+        zerolinecolor:'rgba(148,163,184,0.4)',
+        color:        '#64748b',
+        autorange:    !hasCustom,
+        ...(hasCustom ? { range: [yMin, yMax] } : {}),
+      };
+    })(),
+    hoverlabel: {
+      bgcolor:     'rgba(8,18,34,0.92)',
+      bordercolor: 'rgba(59,130,246,0.3)',
+      font:        { family: 'Inter, sans-serif', size: 12, color: '#f1f5f9' },
+    },
+    hovermode:  'closest',
+    showlegend: false,
+  };
+
+  const config = { responsive: true, displayModeBar: true, displaylogo: false,
+    modeBarButtonsToRemove: ['lasso2d', 'select2d', 'toImage'] };
+
+  emptyEl.style.display = 'none';
+  div.style.display     = 'block';
+
+  Plotly.react('jointBubbleChart', [trace], layout, config);
+}
+
+// ================================================================
+//  6 · LOAD COMBINATION SPREADSHEET
+// ================================================================
+
+// State
+let lcColumns    = [];
+let lcAllCases   = [];
+let lcHiddenCols = new Set();
+let lcRowId      = 0;
+let lcAcIndex    = -1;
+let lcAcRowEl    = null;
+
+// ── Templates ──
+const LC_TEMPLATES = [
+  // ACI 318 / ASCE 7
+  { name: '1.4D',          factors: { DL: 1.4 } },
+  { name: '1.2D+1.6L',     factors: { DL: 1.2, LL: 1.6 } },
+  { name: '1.2D+1.6Lr+L',  factors: { DL: 1.2, LLR: 1.6, LL: 1.0 } },
+  { name: '1.2D+1.0W+L',   factors: { DL: 1.2, W0: 1.0,  LL: 1.0 } },
+  { name: '0.9D+1.0W',     factors: { DL: 0.9, W0: 1.0 } },
+  { name: '1.2D+Ex+L',     factors: { DL: 1.2, EX: 1.0,  LL: 1.0 } },
+  { name: '1.2D+Ey+L',     factors: { DL: 1.2, EY: 1.0,  LL: 1.0 } },
+  { name: '0.9D+Ex',       factors: { DL: 0.9, EX: 1.0 } },
+  { name: '0.9D+Ey',       factors: { DL: 0.9, EY: 1.0 } },
+  // S-series (NSCP / project)
+  { name: 'S1',            factors: { DL: 1, SDL: 1 } },
+  { name: 'S1+H',          factors: { DL: 1, SDL: 1, H: 1 } },
+  { name: 'S1+H+U',        factors: { DL: 1, SDL: 1, H: 1, U: 1 } },
+  { name: 'S2A',           factors: { DL: 1, SDL: 1, LL: 1, LLR: 1, MLL: 1, EX:  1 } },
+  { name: 'S2B',           factors: { DL: 1, SDL: 1, LL: 1, LLR: 1, MLL: 1, EY: -1 } },
+  { name: 'S2A+H',         factors: { DL: 1, SDL: 1, LL: 1, LLR: 1, MLL: 1, H: 1, EX:  1 } },
+  { name: 'S2A+H+U',       factors: { DL: 1, SDL: 1, LL: 1, LLR: 1, MLL: 1, H: 1, U: 1, EX:  1 } },
+  { name: 'S2B+H',         factors: { DL: 1, SDL: 1, LL: 1, LLR: 1, MLL: 1, H: 1, EY: -1 } },
+  { name: 'S2B+H+U',       factors: { DL: 1, SDL: 1, LL: 1, LLR: 1, MLL: 1, H: 1, U: 1, EY: -1 } },
+  { name: 'S3A',           factors: { DL: 1, SDL: 1, LL: 0.75, LLR: 0.75, MLL: 0.75, EX:  0.75 } },
+  { name: 'S3B',           factors: { DL: 1, SDL: 1, LL: 0.75, LLR: 0.75, MLL: 0.75, EY: -0.75 } },
+  { name: 'S3A+H',         factors: { DL: 1, SDL: 1, LL: 0.75, LLR: 0.75, MLL: 0.75, H: 1, EX:  1 } },
+  { name: 'S3A+H+U',       factors: { DL: 1, SDL: 1, LL: 0.75, LLR: 0.75, MLL: 0.75, H: 1, U: 0.75, EX:  1 } },
+  { name: 'S3B+H',         factors: { DL: 1, SDL: 1, LL: 0.75, LLR: 0.75, MLL: 0.75, H: 1, EY: -0.75 } },
+  { name: 'S3B+H+U',       factors: { DL: 1, SDL: 1, LL: 0.75, LLR: 0.75, MLL: 0.75, H: 1, U: 0.75, EY: -0.75 } },
+  // S4-WT Wind Tunnel (22 directions)
+  ...Array.from({ length: 22 }, (_, i) => ({
+    name: `S4-WT${i + 1}`,
+    factors: { DL: 1, SDL: 1, [`S-WT${i + 1}`]: 1 }
+  }))
+];
+
+// ── Header rebuild ──
+function lcBuildHeader() {
+  const tr = document.getElementById('lc-thead-row');
+  while (tr.children.length > 2) tr.removeChild(tr.lastChild); // keep # and Names
+
+  lcColumns.forEach(col => {
+    if (lcHiddenCols.has(col)) return;
+    const th = document.createElement('th');
+    th.className = 'lc-th-col';
+    th.textContent = col;
+    th.title = col;
+    tr.appendChild(th);
+  });
+
+  const thDel = document.createElement('th');
+  thDel.className = 'lc-th-del';
+  tr.appendChild(thDel);
+
+  document.querySelectorAll('#lc-tbody tr:not(#lc-empty-row)').forEach(row => lcRebuildRow(row));
+  lcUpdateEmptyState();
+}
+
+function lcRebuildRow(rowEl) {
+  const nameVal = rowEl.querySelector('.lc-name-input')?.value || '';
+  const saved   = {};
+  rowEl.querySelectorAll('.lc-factor-input').forEach(i => { saved[i.dataset.col] = i.value; });
+
+  rowEl.innerHTML = '';
+  const rn = parseInt(rowEl.dataset.rowId);
+  rowEl.appendChild(lcMakeRownumCell(rn));
+  rowEl.appendChild(lcMakeNameCell(nameVal, rowEl));
+  lcColumns.forEach(col => {
+    if (!lcHiddenCols.has(col)) rowEl.appendChild(lcMakeFactorCell(col, saved[col] ?? ''));
+  });
+  rowEl.appendChild(lcMakeDeleteCell(rowEl));
+}
+
+// ── Cell factories ──
+function lcMakeRownumCell(num) {
+  const td = document.createElement('td');
+  td.className = 'lc-td-rownum';
+  td.textContent = num;
+  return td;
+}
+
+function lcMakeNameCell(value, rowEl) {
+  const td  = document.createElement('td');
+  td.className = 'lc-td-name';
+  const inp = document.createElement('input');
+  inp.type        = 'text';
+  inp.className   = 'lc-name-input';
+  inp.value       = value;
+  inp.placeholder = 'Combo name…';
+  inp.autocomplete = 'off';
+  inp.addEventListener('input',   () => lcShowAc(inp, rowEl));
+  inp.addEventListener('focus',   () => { if (inp.value) lcShowAc(inp, rowEl); });
+  inp.addEventListener('keydown', e  => lcHandleAcKey(e, inp, rowEl));
+  inp.addEventListener('blur',    () => setTimeout(lcHideAc, 160));
+  td.appendChild(inp);
+  return td;
+}
+
+function lcMakeFactorCell(col, value) {
+  const td  = document.createElement('td');
+  td.className = 'lc-td-factor';
+  const inp = document.createElement('input');
+  inp.type      = 'number';
+  inp.className = 'lc-factor-input';
+  inp.dataset.col = col;
+  inp.value     = value;
+  inp.step      = 'any';
+  inp.addEventListener('focus', () => inp.select());
+  inp.addEventListener('input', () => lcStyleFactor(inp));
+  lcStyleFactor(inp);
+  td.appendChild(inp);
+  return td;
+}
+
+function lcStyleFactor(inp) {
+  const v = parseFloat(inp.value);
+  inp.classList.toggle('has-value',   !isNaN(v) && v !== 0);
+  inp.classList.toggle('is-negative', !isNaN(v) && v < 0);
+}
+
+function lcMakeDeleteCell(rowEl) {
+  const td  = document.createElement('td');
+  td.className = 'lc-td-del';
+  const btn = document.createElement('button');
+  btn.className   = 'lc-del-btn';
+  btn.innerHTML   = '&times;';
+  btn.title       = 'Delete row';
+  btn.addEventListener('click', () => { rowEl.remove(); lcUpdateRowCount(); lcUpdateEmptyState(); });
+  td.appendChild(btn);
+  return td;
+}
+
+// ── Add row ──
+function lcAddRow(template = null) {
+  const emptyRow = document.getElementById('lc-empty-row');
+  if (emptyRow) emptyRow.remove();
+
+  const tbody = document.getElementById('lc-tbody');
+  const tr    = document.createElement('tr');
+  const id    = ++lcRowId;
+  tr.dataset.rowId = id;
+
+  const tf = template ? template.factors : {};
+  tr.appendChild(lcMakeRownumCell(id));
+  tr.appendChild(lcMakeNameCell(template ? template.name : '', tr));
+  lcColumns.forEach(col => {
+    if (!lcHiddenCols.has(col)) tr.appendChild(lcMakeFactorCell(col, tf[col] !== undefined ? tf[col] : ''));
+  });
+  tr.appendChild(lcMakeDeleteCell(tr));
+  tbody.appendChild(tr);
+
+  if (!template) tr.querySelector('.lc-name-input').focus();
+  lcUpdateRowCount();
+  return tr;
+}
+
+function lcUpdateRowCount() {
+  const n = document.querySelectorAll('#lc-tbody tr:not(#lc-empty-row)').length;
+  document.getElementById('lc-row-count').textContent = `${n} row${n === 1 ? '' : 's'}`;
+}
+
+function lcUpdateEmptyState() {
+  const rows = document.querySelectorAll('#lc-tbody tr:not(#lc-empty-row)');
+  const tbody = document.getElementById('lc-tbody');
+  const hasEmpty = !!document.getElementById('lc-empty-row');
+  if (rows.length === 0 && !hasEmpty) {
+    const tr = document.createElement('tr');
+    tr.id = 'lc-empty-row';
+    tr.innerHTML = `<td colspan="${2 + lcColumns.filter(c => !lcHiddenCols.has(c)).length + 1}" class="lc-empty-cell">
+      <div class="lc-empty-state">
+        <svg viewBox="0 0 52 52" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="8" width="44" height="36" rx="2"/>
+          <line x1="4"  y1="18" x2="48" y2="18"/><line x1="4"  y1="28" x2="48" y2="28"/><line x1="4"  y1="38" x2="48" y2="38"/>
+          <line x1="16" y1="8"  x2="16" y2="44"/><line x1="28" y1="8"  x2="28" y2="44"/>
+        </svg>
+        <p>Click <strong>+ Add Row</strong> to create a combination row.</p>
+      </div></td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+// ── Actions ──
+async function lcFetchCases() {
+  const btn = document.getElementById('btn-get-lc');
+  btn.textContent = 'Loading…';
+  try {
+    const res = await apiCall('/api/load-cases');
+    if (res.status === 'success') {
+      lcAllCases = res.cases;
+      lcColumns  = [...res.cases];
+      lcHiddenCols.clear();
+      lcUpdateCasesList();
+      lcBuildHeader();
+      showToast(`Loaded ${res.cases.length} load case(s).`);
+    }
+  } catch (e) { showToast(e.message); }
+  finally { btn.textContent = 'Get LoadCases'; }
+}
+
+function lcClearCases() {
+  lcColumns = [];
+  lcAllCases = [];
+  lcHiddenCols.clear();
+  lcUpdateCasesList();
+  document.getElementById('lc-tbody').innerHTML = '';
+  lcRowId = 0;
+  lcBuildHeader();
+  lcUpdateRowCount();
+  lcUpdateEmptyState();
+  showToast('Load cases cleared.');
+}
+
+function lcUpdateCasesList() {
+  const ul      = document.getElementById('lc-cases-list');
+  const emptyEl = document.getElementById('lc-cases-empty');
+  ul.innerHTML = '';
+  lcAllCases.forEach(name => {
+    const li = document.createElement('li');
+    li.className   = 'lc-case-item';
+    li.textContent = name;
+    ul.appendChild(li);
+  });
+  if (emptyEl) emptyEl.style.display = lcAllCases.length ? 'none' : '';
+}
+
+function lcShowFilterModal() {
+  if (!lcAllCases.length) { showToast('Click "Get LoadCases" first.'); return; }
+  const list = document.getElementById('lc-filter-checks');
+  list.innerHTML = '';
+  lcAllCases.forEach(col => {
+    const lbl = document.createElement('label');
+    lbl.className = 'lc-filter-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.value = col; cb.checked = !lcHiddenCols.has(col);
+    lbl.appendChild(cb);
+    lbl.append('\u00a0' + col);
+    list.appendChild(lbl);
+  });
+  document.getElementById('lc-filter-modal').classList.remove('hidden');
+}
+
+function lcApplyFilter() {
+  lcHiddenCols.clear();
+  document.querySelectorAll('#lc-filter-checks input[type=checkbox]').forEach(cb => {
+    if (!cb.checked) lcHiddenCols.add(cb.value);
+  });
+  lcBuildHeader();
+  document.getElementById('lc-filter-modal').classList.add('hidden');
+}
+
+async function lcGenerateBatch() {
+  const btn      = document.getElementById('btn-generate-batch');
+  const statusEl = document.getElementById('lc-gen-status');
+  btn.textContent = 'Generating…';
+
+  const combinations = [];
+  document.querySelectorAll('#lc-tbody tr:not(#lc-empty-row)').forEach(row => {
+    const name = row.querySelector('.lc-name-input')?.value.trim();
+    if (!name) return;
+    const factors = {};
+    row.querySelectorAll('.lc-factor-input').forEach(inp => {
+      const v = parseFloat(inp.value);
+      if (!isNaN(v) && v !== 0) factors[inp.dataset.col] = v;
+    });
+    combinations.push({ name, combo_type: 0, factors });
+  });
+
+  if (!combinations.length) {
+    showToast('No combinations to generate.');
+    btn.innerHTML = '<svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3,2 13,7.5 3,13"/></svg> Generate in ETABS';
+    return;
+  }
+
+  try {
+    const res  = await authFetch('/api/load-combinations/generate-batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ combinations })
+    });
+    const data = await res.json();
+    statusEl.classList.remove('hidden', 'ok', 'err');
+    if (data.status === 'success') {
+      statusEl.classList.add('ok');
+      statusEl.textContent = '✔ ' + data.message;
+      showToast(data.message);
+    } else {
+      statusEl.classList.add('err');
+      statusEl.textContent = '✘ ' + (data.detail || 'Error');
+    }
+  } catch (e) {
+    statusEl.classList.remove('hidden');
+    statusEl.classList.add('err');
+    statusEl.textContent = '✘ ' + e.message;
+    showToast('Error: ' + e.message);
+  } finally {
+    btn.innerHTML = '<svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3,2 13,7.5 3,13"/></svg> Generate in ETABS';
+  }
+}
+
+// ── Autocomplete ──
+function lcShowAc(input, rowEl) {
+  const q      = input.value.trim().toLowerCase();
+  const popup  = document.getElementById('lc-ac-popup');
+  if (!q) { lcHideAc(); return; }
+
+  const matches = LC_TEMPLATES.filter(t => t.name.toLowerCase().includes(q)).slice(0, 12);
+  if (!matches.length) { lcHideAc(); return; }
+
+  lcAcRowEl = rowEl;
+  lcAcIndex = -1;
+  popup.innerHTML = '';
+
+  matches.forEach(tmpl => {
+    const item    = document.createElement('div');
+    item.className = 'lc-ac-item';
+    const preview = Object.entries(tmpl.factors).map(([k, v]) => `${k}=${v}`).join('  ');
+    item.innerHTML = `<span class="lc-ac-name">${tmpl.name}</span><span class="lc-ac-factors">${preview}</span>`;
+    item.addEventListener('mousedown', e => { e.preventDefault(); lcApplyTemplate(tmpl, rowEl); lcHideAc(); });
+    popup.appendChild(item);
+  });
+
+  const rect = input.getBoundingClientRect();
+  popup.style.left     = rect.left + 'px';
+  popup.style.top      = (rect.bottom + 4) + 'px';
+  popup.style.minWidth = Math.max(rect.width, 400) + 'px';
+  popup.classList.remove('hidden');
+}
+
+function lcHideAc() {
+  document.getElementById('lc-ac-popup').classList.add('hidden');
+  lcAcIndex = -1;
+  lcAcRowEl = null;
+}
+
+function lcHandleAcKey(e, input, rowEl) {
+  const popup = document.getElementById('lc-ac-popup');
+  if (popup.classList.contains('hidden')) return;
+  const items = popup.querySelectorAll('.lc-ac-item');
+  if (!items.length) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    lcAcIndex = Math.min(lcAcIndex + 1, items.length - 1);
+    items.forEach((el, i) => el.classList.toggle('lc-ac-active', i === lcAcIndex));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    lcAcIndex = Math.max(lcAcIndex - 1, 0);
+    items.forEach((el, i) => el.classList.toggle('lc-ac-active', i === lcAcIndex));
+  } else if (e.key === 'Enter' && lcAcIndex >= 0) {
+    e.preventDefault();
+    const q = input.value.trim().toLowerCase();
+    const m = LC_TEMPLATES.filter(t => t.name.toLowerCase().includes(q));
+    if (m[lcAcIndex]) { lcApplyTemplate(m[lcAcIndex], rowEl); lcHideAc(); }
+  } else if (e.key === 'Escape') {
+    lcHideAc();
+  }
+}
+
+function lcApplyTemplate(template, rowEl) {
+  rowEl.querySelector('.lc-name-input').value = template.name;
+  rowEl.querySelectorAll('.lc-factor-input').forEach(inp => {
+    const val = template.factors[inp.dataset.col];
+    inp.value = val !== undefined ? val : '';
+    lcStyleFactor(inp);
+  });
+}
