@@ -66,7 +66,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=True,          # set False to hide the terminal window
-    icon=None,             # add 'icon.ico' here when you have one
+    icon='icon.ico',       # StructIQ brand icon
 )
 
 coll = COLLECT(

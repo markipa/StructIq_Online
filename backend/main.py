@@ -397,6 +397,16 @@ def stripe_checkout(
 os.makedirs("frontend", exist_ok=True)
 app.mount("/app", StaticFiles(directory="frontend"), name="frontend")
 
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    """Serve the StructIQ brand icon as the browser tab favicon."""
+    ico = os.path.join("frontend", "favicon.ico")
+    if os.path.exists(ico):
+        return FileResponse(ico, media_type="image/x-icon")
+    from fastapi.responses import Response
+    return Response(status_code=204)
+
+
 @app.get("/")
 def serve_index():
     if os.path.exists("frontend/index.html"):
