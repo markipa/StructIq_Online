@@ -1072,6 +1072,9 @@
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\concurrent\\futures\\thread.py',
    'PYMODULE'),
+  ('config',
+   'C:\\Users\\Mark Ipa\\Documents\\Claude\\StructIQ\\backend\\config.py',
+   'PYMODULE'),
   ('configparser',
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\configparser.py',
@@ -1103,6 +1106,9 @@
   ('ctypes.wintypes',
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\ctypes\\wintypes.py',
+   'PYMODULE'),
+  ('database',
+   'C:\\Users\\Mark Ipa\\Documents\\Claude\\StructIQ\\backend\\database.py',
    'PYMODULE'),
   ('dataclasses',
    'C:\\Users\\Mark '
@@ -1227,6 +1233,18 @@
   ('email.utils',
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\email\\utils.py',
+   'PYMODULE'),
+  ('etabs_api',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\etabs_api\\__init__.py',
+   'PYMODULE'),
+  ('etabs_api.actions',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\etabs_api\\actions.py',
+   'PYMODULE'),
+  ('etabs_api.connection',
+   'C:\\Users\\Mark '
+   'Ipa\\Documents\\Claude\\StructIQ\\backend\\etabs_api\\connection.py',
    'PYMODULE'),
   ('fastapi',
    'c:\\Users\\Mark '
@@ -1683,6 +1701,9 @@
   ('lzma',
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\lzma.py',
+   'PYMODULE'),
+  ('main',
+   'C:\\Users\\Mark Ipa\\Documents\\Claude\\StructIQ\\backend\\main.py',
    'PYMODULE'),
   ('mimetypes',
    'C:\\Users\\Mark '

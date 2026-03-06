@@ -13,10 +13,9 @@ import subprocess
 
 # ── When packaged with PyInstaller, resources live in sys._MEIPASS ──
 if getattr(sys, 'frozen', False):
-    # Running as compiled .exe
+    # Running as compiled .exe — all files extracted to _MEIPASS (_internal/)
     BASE_DIR = sys._MEIPASS
-    # Also set working dir so relative imports work
-    os.chdir(os.path.dirname(sys.executable))
+    os.chdir(BASE_DIR)  # chdir to _MEIPASS so frontend/, etabs_api/ etc. are found
 else:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -66,19 +65,42 @@ def open_browser(url: str):
             webbrowser.open(url)
 
 
+def log(msg: str):
+    """Write to console AND a crash log file next to the exe."""
+    print(msg)
+    try:
+        log_path = os.path.join(os.path.dirname(sys.executable)
+                                if getattr(sys, 'frozen', False)
+                                else BASE_DIR, "structiq.log")
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(msg + "\n")
+    except Exception:
+        pass
+
+
 def run_server(port: int):
     """Start uvicorn in-process."""
-    import uvicorn
     # Add BASE_DIR to path so imports work when frozen
     if BASE_DIR not in sys.path:
         sys.path.insert(0, BASE_DIR)
-    uvicorn.run(
-        "main:app",
-        host=HOST,
-        port=port,
-        log_level="warning",   # quiet in production
-        reload=False,
-    )
+    log(f"[launcher] sys.path = {sys.path[:3]}")
+    log(f"[launcher] BASE_DIR = {BASE_DIR}")
+    log(f"[launcher] cwd      = {os.getcwd()}")
+    try:
+        import uvicorn
+        from main import app   # direct import — string ref fails in frozen .exe
+        uvicorn.run(
+            app,
+            host=HOST,
+            port=port,
+            log_level="info",
+            reload=False,
+        )
+    except Exception as e:
+        log(f"[ERROR] Server failed to start: {e}")
+        import traceback
+        log(traceback.format_exc())
+        input("Press Enter to exit...")   # keep window open on crash
 
 
 def main():
@@ -86,7 +108,7 @@ def main():
     port = find_free_port(PORT)
     URL  = f"http://{HOST}:{port}"
 
-    print(f"""
+    log(f"""
   ╔══════════════════════════════════════════╗
   ║         StructIQ  is starting...         ║
   ║                                          ║
@@ -104,4 +126,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        log(f"[FATAL] {e}")
+        import traceback
+        log(traceback.format_exc())
+        input("Press Enter to exit...")

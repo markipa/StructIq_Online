@@ -1249,12 +1249,12 @@ function renderReactionsTableDOM(data) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><strong>${r.combo}</strong></td>
-      <td class="${r.FX < 0 ? 'val-neg' : ''}">${r.FX.toFixed(1)}</td>
-      <td class="${r.FY < 0 ? 'val-neg' : ''}">${r.FY.toFixed(1)}</td>
-      <td class="val-fz">${r.FZ.toFixed(1)}</td>
-      <td class="val-moment">${r.MX.toFixed(1)}</td>
-      <td class="val-moment">${r.MY.toFixed(1)}</td>
-      <td class="val-moment">${r.MZ.toFixed(1)}</td>`;
+      <td class="${r.FX < 0 ? 'val-neg' : ''}">${fmtF(r.FX)}</td>
+      <td class="${r.FY < 0 ? 'val-neg' : ''}">${fmtF(r.FY)}</td>
+      <td class="val-fz">${fmtF(r.FZ)}</td>
+      <td class="val-moment">${fmtF(r.MX)}</td>
+      <td class="val-moment">${fmtF(r.MY)}</td>
+      <td class="val-moment">${fmtF(r.MZ)}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -1499,6 +1499,15 @@ async function getJointReactions() {
 }
 
 // ── Table rendering ──
+/** Smart force formatter: shows enough decimals so small values aren't hidden as 0.0 */
+function fmtF(v) {
+  const a = Math.abs(v);
+  if (a === 0)   return '0.0';
+  if (a >= 100)  return v.toFixed(1);
+  if (a >= 1)    return v.toFixed(2);
+  return v.toFixed(3);  // e.g. 0.150, -0.025
+}
+
 function renderJointTable(data) {
   const tbody = document.getElementById('joint-tbody');
   tbody.innerHTML = '';
@@ -1520,12 +1529,12 @@ function renderJointTable(data) {
       <td class="val-coord">${r.x.toFixed(3)}</td>
       <td class="val-coord">${r.y.toFixed(3)}</td>
       <td class="val-coord">${r.z.toFixed(3)}</td>
-      <td class="${r.FX < 0 ? 'val-neg' : ''}">${r.FX.toFixed(1)}</td>
-      <td class="${r.FY < 0 ? 'val-neg' : ''}">${r.FY.toFixed(1)}</td>
-      <td class="val-fz">${r.FZ.toFixed(1)}</td>
-      <td class="val-moment">${r.MX.toFixed(1)}</td>
-      <td class="val-moment">${r.MY.toFixed(1)}</td>
-      <td class="val-moment">${r.MZ.toFixed(1)}</td>`;
+      <td class="${r.FX < 0 ? 'val-neg' : ''}">${fmtF(r.FX)}</td>
+      <td class="${r.FY < 0 ? 'val-neg' : ''}">${fmtF(r.FY)}</td>
+      <td class="val-fz">${fmtF(r.FZ)}</td>
+      <td class="val-moment">${fmtF(r.MX)}</td>
+      <td class="val-moment">${fmtF(r.MY)}</td>
+      <td class="val-moment">${fmtF(r.MZ)}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -1615,7 +1624,14 @@ function renderJointBubblePlot(allData, force, comboName) {
     y:    data.map(r => r.y),
     mode: 'markers+text',
     type: 'scatter',
-    text: values.map(v => String(Math.round(v))),   // whole-number labels on bubbles
+    text: values.map(v => {
+      const a = Math.abs(v);
+      if (a === 0)    return '0';
+      if (a >= 1000)  return String(Math.round(v));
+      if (a >= 100)   return v.toFixed(1);
+      if (a >= 1)     return v.toFixed(2);
+      return v.toFixed(3);   // small decimals like 0.15, -0.025
+    }),
     textposition: 'middle center',
     textfont: {
       size:   jointTextSize,   // controlled by Text slider

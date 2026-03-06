@@ -399,6 +399,7 @@ imports:
  &#8226;   <a href="#keyword">keyword</a>
  &#8226;   <a href="#linecache">linecache</a>
  &#8226;   <a href="#locale">locale</a>
+ &#8226;   <a href="#main">main</a>
  &#8226;   <a href="#ntpath">ntpath</a>
  &#8226;   <a href="#operator">operator</a>
  &#8226;   <a href="#os">os</a>
@@ -518,6 +519,7 @@ imports:
  &#8226;   <a href="#re._constants">re._constants</a>
  &#8226;   <a href="#re._parser">re._parser</a>
  &#8226;   <a href="#reprlib">reprlib</a>
+ &#8226;   <a href="#requests">requests</a>
  &#8226;   <a href="#socket">socket</a>
  &#8226;   <a href="#sqlite3">sqlite3</a>
  &#8226;   <a href="#sre_compile">sre_compile</a>
@@ -6147,6 +6149,7 @@ imported by:
  &#8226;   <a href="#dis">dis</a>
  &#8226;   <a href="#doctest">doctest</a>
  &#8226;   <a href="#email.feedparser">email.feedparser</a>
+ &#8226;   <a href="#etabs_api.actions">etabs_api.actions</a>
  &#8226;   <a href="#fastapi._compat.shared">fastapi._compat.shared</a>
  &#8226;   <a href="#fastapi.encoders">fastapi.encoders</a>
  &#8226;   <a href="#functools">functools</a>
@@ -7318,6 +7321,7 @@ imported by:
  &#8226;   <a href="#comtypes.test.test_viewobject">comtypes.test.test_viewobject</a>
  &#8226;   <a href="#comtypes.test.test_win32com_interop">comtypes.test.test_win32com_interop</a>
  &#8226;   <a href="#comtypes.test.test_word">comtypes.test.test_word</a>
+ &#8226;   <a href="#etabs_api.connection">etabs_api.connection</a>
  &#8226;   <a href="#launcher.py">launcher.py</a>
 
   </div>
@@ -10875,6 +10879,22 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="config"></a>
+  <a target="code" href="///C:/Users/Mark%20Ipa/Documents/Claude/StructIQ/backend/config.py" type="text/plain"><tt>config</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#os">os</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#main">main</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="configparser"></a>
   <a target="code" href="///C:/Users/Mark%20Ipa/AppData/Local/Programs/Python/Python312/Lib/configparser.py" type="text/plain"><tt>configparser</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
@@ -11406,6 +11426,27 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="database"></a>
+  <a target="code" href="///C:/Users/Mark%20Ipa/Documents/Claude/StructIQ/backend/database.py" type="text/plain"><tt>database</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#datetime">datetime</a>
+ &#8226;   <a href="#hashlib">hashlib</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#secrets">secrets</a>
+ &#8226;   <a href="#sqlite3">sqlite3</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#main">main</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="dataclasses"></a>
   <a target="code" href="///C:/Users/Mark%20Ipa/AppData/Local/Programs/Python/Python312/Lib/dataclasses.py" type="text/plain"><tt>dataclasses</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
@@ -11497,6 +11538,7 @@ imported by:
  &#8226;   <a href="#comtypes.test.test_npsupport">comtypes.test.test_npsupport</a>
  &#8226;   <a href="#comtypes.test.test_safearray">comtypes.test.test_safearray</a>
  &#8226;   <a href="#comtypes.test.test_variant">comtypes.test.test_variant</a>
+ &#8226;   <a href="#database">database</a>
  &#8226;   <a href="#email.utils">email.utils</a>
  &#8226;   <a href="#fastapi.encoders">fastapi.encoders</a>
  &#8226;   <a href="#http.cookiejar">http.cookiejar</a>
@@ -14910,6 +14952,62 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="etabs_api"></a>
+  <a target="code" href="///C:/Users/Mark%20Ipa/Documents/Claude/StructIQ/backend/etabs_api/__init__.py" type="text/plain"><tt>etabs_api</tt></a>
+<span class="moduletype">Package</span>  <div class="import">
+imports:
+    <a href="#etabs_api.actions">etabs_api.actions</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#etabs_api.actions">etabs_api.actions</a>
+ &#8226;   <a href="#etabs_api.connection">etabs_api.connection</a>
+ &#8226;   <a href="#main">main</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="etabs_api.actions"></a>
+  <a target="code" href="///C:/Users/Mark%20Ipa/Documents/Claude/StructIQ/backend/etabs_api/actions.py" type="text/plain"><tt>etabs_api.actions</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#collections">collections</a>
+ &#8226;   <a href="#etabs_api">etabs_api</a>
+ &#8226;   <a href="#etabs_api.connection">etabs_api.connection</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#etabs_api">etabs_api</a>
+ &#8226;   <a href="#main">main</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="etabs_api.connection"></a>
+  <a target="code" href="///C:/Users/Mark%20Ipa/Documents/Claude/StructIQ/backend/etabs_api/connection.py" type="text/plain"><tt>etabs_api.connection</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#comtypes.client">comtypes.client</a>
+ &#8226;   <a href="#etabs_api">etabs_api</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#etabs_api.actions">etabs_api.actions</a>
+ &#8226;   <a href="#main">main</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="eval_type_backport"></a>
   <a target="code" href="" type="text/plain"><tt>eval_type_backport</tt></a>
 <span class="moduletype">MissingModule</span>  <div class="import">
@@ -14988,6 +15086,7 @@ imported by:
  &#8226;   <a href="#fastapi.utils">fastapi.utils</a>
  &#8226;   <a href="#fastapi.websockets">fastapi.websockets</a>
  &#8226;   <a href="#launcher.py">launcher.py</a>
+ &#8226;   <a href="#main">main</a>
 
   </div>
 
@@ -15518,6 +15617,7 @@ imports:
   <div class="import">
 imported by:
     <a href="#launcher.py">launcher.py</a>
+ &#8226;   <a href="#main">main</a>
 
   </div>
 
@@ -15824,6 +15924,7 @@ imported by:
     <a href="#fastapi">fastapi</a>
  &#8226;   <a href="#fastapi.openapi.utils">fastapi.openapi.utils</a>
  &#8226;   <a href="#launcher.py">launcher.py</a>
+ &#8226;   <a href="#main">main</a>
 
   </div>
 
@@ -16088,6 +16189,7 @@ imports:
   <div class="import">
 imported by:
     <a href="#launcher.py">launcher.py</a>
+ &#8226;   <a href="#main">main</a>
 
   </div>
 
@@ -16955,7 +17057,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#hmac">hmac</a>
+    <a href="#database">database</a>
+ &#8226;   <a href="#hmac">hmac</a>
  &#8226;   <a href="#random">random</a>
  &#8226;   <a href="#setuptools._vendor.wheel.wheelfile">setuptools._vendor.wheel.wheelfile</a>
  &#8226;   <a href="#starlette.responses">starlette.responses</a>
@@ -18646,6 +18749,35 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="main"></a>
+  <a target="code" href="///C:/Users/Mark%20Ipa/Documents/Claude/StructIQ/backend/main.py" type="text/plain"><tt>main</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#config">config</a>
+ &#8226;   <a href="#database">database</a>
+ &#8226;   <a href="#etabs_api">etabs_api</a>
+ &#8226;   <a href="#etabs_api.actions">etabs_api.actions</a>
+ &#8226;   <a href="#etabs_api.connection">etabs_api.connection</a>
+ &#8226;   <a href="#fastapi">fastapi</a>
+ &#8226;   <a href="#fastapi.middleware.cors">fastapi.middleware.cors</a>
+ &#8226;   <a href="#fastapi.responses">fastapi.responses</a>
+ &#8226;   <a href="#fastapi.staticfiles">fastapi.staticfiles</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#pydantic">pydantic</a>
+ &#8226;   <a href="#pydantic.BaseModel">pydantic.BaseModel</a>
+ &#8226;   <a href="#requests">requests</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#launcher.py">launcher.py</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="marshal"></a>
   <tt>marshal</tt> <span class="moduletype"><i>(builtin module)</i></span>  <div class="import">
 imported by:
@@ -19869,9 +20001,11 @@ imported by:
  &#8226;   <a href="#comtypes.tools.tlbparser">comtypes.tools.tlbparser</a>
  &#8226;   <a href="#concurrent.futures.process">concurrent.futures.process</a>
  &#8226;   <a href="#concurrent.futures.thread">concurrent.futures.thread</a>
+ &#8226;   <a href="#config">config</a>
  &#8226;   <a href="#configparser">configparser</a>
  &#8226;   <a href="#contextlib">contextlib</a>
  &#8226;   <a href="#ctypes">ctypes</a>
+ &#8226;   <a href="#database">database</a>
  &#8226;   <a href="#doctest">doctest</a>
  &#8226;   <a href="#email.utils">email.utils</a>
  &#8226;   <a href="#fnmatch">fnmatch</a>
@@ -19895,6 +20029,7 @@ imported by:
  &#8226;   <a href="#logging.config">logging.config</a>
  &#8226;   <a href="#logging.handlers">logging.handlers</a>
  &#8226;   <a href="#lzma">lzma</a>
+ &#8226;   <a href="#main">main</a>
  &#8226;   <a href="#mimetypes">mimetypes</a>
  &#8226;   <a href="#multiprocessing.connection">multiprocessing.connection</a>
  &#8226;   <a href="#multiprocessing.context">multiprocessing.context</a>
@@ -20955,6 +21090,7 @@ imported by:
  &#8226;   <a href="#fastapi.sse">fastapi.sse</a>
  &#8226;   <a href="#fastapi.types">fastapi.types</a>
  &#8226;   <a href="#launcher.py">launcher.py</a>
+ &#8226;   <a href="#main">main</a>
  &#8226;   <a href="#pydantic">pydantic</a>
  &#8226;   <a href="#pydantic._internal">pydantic._internal</a>
  &#8226;   <a href="#pydantic._internal._core_utils">pydantic._internal._core_utils</a>
@@ -21024,6 +21160,7 @@ imported by:
  &#8226;   <a href="#fastapi.security.http">fastapi.security.http</a>
  &#8226;   <a href="#fastapi.sse">fastapi.sse</a>
  &#8226;   <a href="#fastapi.types">fastapi.types</a>
+ &#8226;   <a href="#main">main</a>
  &#8226;   <a href="#pydantic">pydantic</a>
  &#8226;   <a href="#pydantic._internal._core_utils">pydantic._internal._core_utils</a>
  &#8226;   <a href="#pydantic._internal._import_utils">pydantic._internal._import_utils</a>
@@ -25278,6 +25415,18 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="requests"></a>
+  <a target="code" href="" type="text/plain"><tt>requests</tt></a>
+<span class="moduletype">MissingModule</span>  <div class="import">
+imported by:
+    <a href="#launcher.py">launcher.py</a>
+ &#8226;   <a href="#main">main</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="resource"></a>
   <a target="code" href="" type="text/plain"><tt>resource</tt></a>
 <span class="moduletype">MissingModule</span>  <div class="import">
@@ -25356,7 +25505,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#multiprocessing.shared_memory">multiprocessing.shared_memory</a>
+    <a href="#database">database</a>
+ &#8226;   <a href="#multiprocessing.shared_memory">multiprocessing.shared_memory</a>
  &#8226;   <a href="#starlette.responses">starlette.responses</a>
 
   </div>
@@ -29457,7 +29607,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#launcher.py">launcher.py</a>
+    <a href="#database">database</a>
+ &#8226;   <a href="#launcher.py">launcher.py</a>
  &#8226;   <a href="#sqlite3">sqlite3</a>
  &#8226;   <a href="#sqlite3.__main__">sqlite3.__main__</a>
  &#8226;   <a href="#sqlite3.dbapi2">sqlite3.dbapi2</a>
@@ -32043,6 +32194,8 @@ imported by:
  &#8226;   <a href="#comtypes.tools.typedesc_base">comtypes.tools.typedesc_base</a>
  &#8226;   <a href="#comtypes.typeinfo">comtypes.typeinfo</a>
  &#8226;   <a href="#comtypes.util">comtypes.util</a>
+ &#8226;   <a href="#database">database</a>
+ &#8226;   <a href="#etabs_api.actions">etabs_api.actions</a>
  &#8226;   <a href="#fastapi._compat.shared">fastapi._compat.shared</a>
  &#8226;   <a href="#fastapi._compat.v2">fastapi._compat.v2</a>
  &#8226;   <a href="#fastapi.applications">fastapi.applications</a>
@@ -32084,6 +32237,7 @@ imported by:
  &#8226;   <a href="#importlib.resources._common">importlib.resources._common</a>
  &#8226;   <a href="#importlib.resources._legacy">importlib.resources._legacy</a>
  &#8226;   <a href="#importlib.resources.abc">importlib.resources.abc</a>
+ &#8226;   <a href="#main">main</a>
  &#8226;   <a href="#packaging._elffile">packaging._elffile</a>
  &#8226;   <a href="#packaging._manylinux">packaging._manylinux</a>
  &#8226;   <a href="#packaging._musllinux">packaging._musllinux</a>
