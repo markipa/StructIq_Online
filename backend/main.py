@@ -266,23 +266,38 @@ def stripe_checkout(
     """
     Proxy Stripe checkout through the Railway cloud server.
     Authenticated locally — passes the user's email to Railway.
+    Uses a direct requests call (not _cloud_post) so errors are surfaced.
     """
     if not config.CLOUD_URL:
         raise HTTPException(503, detail="Cloud billing is not configured")
+    if not _HAS_REQUESTS:
+        raise HTTPException(503, detail="requests library unavailable")
 
-    result = _cloud_post("/stripe/create-checkout", {
-        "email":    current_user["email"],
-        "interval": body.interval,
-    })
+    url = f"{config.CLOUD_URL.rstrip('/')}/stripe/create-checkout"
+    try:
+        r = _requests.post(
+            url,
+            json={"email": current_user["email"], "interval": body.interval},
+            timeout=15,
+        )
+        try:
+            data = r.json()
+        except Exception:
+            raise HTTPException(502, detail=f"Bad response from billing server (HTTP {r.status_code})")
 
-    if result is None:
-        raise HTTPException(503, detail="Could not connect to billing server. Check your internet connection.")
+        if not r.ok:
+            detail = data.get("detail", f"Billing server error (HTTP {r.status_code})")
+            raise HTTPException(r.status_code, detail=detail)
 
-    if "checkout_url" not in result:
-        detail = result.get("detail", "Checkout creation failed")
-        raise HTTPException(500, detail=detail)
+        if "checkout_url" not in data:
+            raise HTTPException(500, detail="Billing server did not return a checkout URL")
 
-    return {"checkout_url": result["checkout_url"]}
+        return {"checkout_url": data["checkout_url"]}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(503, detail=f"Could not reach billing server: {e}")
 
 
 # ─── Static frontend ─────────────────────────────────────────────────────────
