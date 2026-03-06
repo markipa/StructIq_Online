@@ -118,6 +118,25 @@ def logout(request: Request):
     return {"ok": True}
 
 
+# ─── Plan sync (email-based, no session needed) ──────────────────
+
+PLAN_SYNC_KEY = os.environ.get("PLAN_SYNC_KEY", "StructIQ-plan-sync-2026")
+
+@app.get("/api/plan")
+def get_plan_by_email(email: str, key: str):
+    """
+    Desktop app calls this to sync plan without needing a Railway session.
+    Used for users whose Railway account was auto-created (no password known).
+    Protected by PLAN_SYNC_KEY env var.
+    """
+    if not key or key != PLAN_SYNC_KEY:
+        raise HTTPException(403, "Forbidden")
+    user = database.get_user_by_email(email)
+    if not user:
+        return {"plan": "free", "found": False}
+    return {"plan": user["plan"], "email": user["email"], "found": True}
+
+
 # ─── License check (called by desktop app on startup) ────────────
 
 @app.get("/api/license/check")

@@ -249,6 +249,26 @@ def cloud_sync(current_user: dict = Depends(get_current_user)):
             return {"plan": plan, "source": "cloud", "synced": True,
                     "name": cloud.get("name"), "email": cloud.get("email")}
 
+    # Fallback: email-based plan lookup (works for auto-created Railway users
+    # who never had a cloud session token).
+    email = current_user.get("email", "")
+    sync_key = getattr(config, "PLAN_SYNC_KEY", "")
+    if email and sync_key and config.CLOUD_URL and _HAS_REQUESTS:
+        try:
+            import urllib.parse
+            params = urllib.parse.urlencode({"email": email, "key": sync_key})
+            r = _requests.get(
+                f"{config.CLOUD_URL.rstrip('/')}/api/plan?{params}",
+                timeout=8,
+            )
+            if r.ok:
+                data = r.json()
+                plan = data.get("plan", "free")
+                database.update_last_cloud_sync(current_user["id"], plan)
+                return {"plan": plan, "source": "cloud", "synced": True}
+        except Exception:
+            pass
+
     # Cloud unreachable or no cloud token → return local plan
     return {"plan": current_user["plan"], "source": "local", "synced": False}
 

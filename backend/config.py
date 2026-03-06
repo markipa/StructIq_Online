@@ -19,6 +19,10 @@ APP_VERSION = "1.0.0"
 # (in case engineer has no internet temporarily)
 OFFLINE_GRACE_DAYS = 3
 
+# ── Plan sync key (must match PLAN_SYNC_KEY in Railway Variables) ─
+# Used as fallback when the user has no cloud session token.
+PLAN_SYNC_KEY = os.environ.get("PLAN_SYNC_KEY", "StructIQ-plan-sync-2026")
+
 # ── Developer / admin accounts ────────────────────────────────────
 # These emails always receive ENTERPRISE plan regardless of what is
 # stored in the database. Add any developer or admin email here.
