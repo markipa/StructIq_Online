@@ -98,6 +98,13 @@ def create_user(email: str, name: str, password: str) -> Optional[dict]:
     except sqlite3.IntegrityError:
         return None
 
+def create_free_user_by_email(email: str) -> Optional[dict]:
+    """Auto-create a free user with a random password (used when checkout is initiated
+    before the user has synced to Railway). They will never log in via Railway directly."""
+    random_pw = secrets.token_urlsafe(24)
+    name = email.split("@")[0]   # use the part before @ as a display name
+    return create_user(email, name, random_pw)
+
 def get_user_by_email(email: str) -> Optional[dict]:
     with _conn() as c:
         row = c.execute(

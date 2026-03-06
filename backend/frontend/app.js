@@ -173,33 +173,24 @@ function showGraceModal(days, msg) {
 /** Open a Stripe Checkout session for the selected interval (monthly | yearly). */
 async function openStripeCheckout(interval) {
   const btn = document.getElementById('btn-subscribe');
-  if (!currentUserEmail) {
-    showToast('Please sign in before subscribing.', 'error');
-    return;
-  }
-
-  const CLOUD = 'https://structiq-production.up.railway.app';
 
   // Disable button while we create the session
   if (btn) { btn.disabled = true; btn.textContent = 'Opening Stripe…'; }
 
   try {
-    const res = await fetch(`${CLOUD}/stripe/create-checkout`, {
+    // Route through local backend — it proxies to Railway and handles auth.
+    // Railway will auto-create the user record if it doesn't exist yet.
+    const res = await authFetch('/api/stripe/checkout', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ email: currentUserEmail, interval }),
+      body:    JSON.stringify({ interval }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Failed to create checkout session');
 
     // Open Stripe Checkout in the user's default browser
     if (data.checkout_url) {
-      // In the Electron / PyInstaller desktop shell, open externally
-      if (window.electronAPI && window.electronAPI.openExternal) {
-        window.electronAPI.openExternal(data.checkout_url);
-      } else {
-        window.open(data.checkout_url, '_blank');
-      }
+      window.open(data.checkout_url, '_blank');
       document.getElementById('upgrade-modal').classList.add('hidden');
       showToast('Stripe Checkout opened in your browser!', 'success');
     }

@@ -194,7 +194,11 @@ def create_checkout(body: CreateCheckoutRequest):
         raise HTTPException(503, "Stripe not configured")
     user = database.get_user_by_email(body.email)
     if not user:
-        raise HTTPException(404, "User not found — please register first")
+        # User hasn't synced to Railway yet — auto-create a free account
+        # so the webhook can upgrade them after payment completes.
+        user = database.create_free_user_by_email(body.email)
+        if not user:
+            raise HTTPException(500, "Could not initialise user account")
 
     price_id = STRIPE_PRICE_YEARLY if body.interval == "yearly" else STRIPE_PRICE_MONTHLY
 

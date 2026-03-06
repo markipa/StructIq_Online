@@ -253,6 +253,38 @@ def cloud_sync(current_user: dict = Depends(get_current_user)):
     return {"plan": current_user["plan"], "source": "local", "synced": False}
 
 
+# ─── Stripe checkout proxy ────────────────────────────────────────────────────
+
+class StripeCheckoutRequest(BaseModel):
+    interval: str   # "monthly" | "yearly"
+
+@app.post("/api/stripe/checkout")
+def stripe_checkout(
+    body: StripeCheckoutRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Proxy Stripe checkout through the Railway cloud server.
+    Authenticated locally — passes the user's email to Railway.
+    """
+    if not config.CLOUD_URL:
+        raise HTTPException(503, detail="Cloud billing is not configured")
+
+    result = _cloud_post("/stripe/create-checkout", {
+        "email":    current_user["email"],
+        "interval": body.interval,
+    })
+
+    if result is None:
+        raise HTTPException(503, detail="Could not connect to billing server. Check your internet connection.")
+
+    if "checkout_url" not in result:
+        detail = result.get("detail", "Checkout creation failed")
+        raise HTTPException(500, detail=detail)
+
+    return {"checkout_url": result["checkout_url"]}
+
+
 # ─── Static frontend ─────────────────────────────────────────────────────────
 
 # Create frontend directory if it doesn't exist
