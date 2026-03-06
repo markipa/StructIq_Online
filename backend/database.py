@@ -136,9 +136,13 @@ def get_user_by_id(user_id: int) -> Optional[dict]:
 # ─────────────────────────────────────────────────────────────────────
 
 def create_session(user_id: int) -> str:
+    """Create a new session, invalidating all previous sessions for this user.
+    Enforces single active session per account."""
     token    = secrets.token_urlsafe(32)
     expires  = (datetime.utcnow() + timedelta(days=SESSION_DAYS)).isoformat()
     with _conn() as c:
+        # Kick out any existing sessions — one device at a time
+        c.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
         c.execute(
             "INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)",
             (token, user_id, expires),

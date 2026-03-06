@@ -432,7 +432,9 @@ def get_drifts():
     return res
 
 @app.get("/api/results/torsional-irregularity")
-def check_torsion():
+def check_torsion(
+    _u: dict = Depends(require_plan("pro")),
+):
     """Returns torsional irregularity check based on real ETABS drift results."""
     res = actions.check_torsional_irregularity()
     if "error" in res:
