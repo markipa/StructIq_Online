@@ -1991,6 +1991,122 @@ body {
   line-height: 1.65;
 }
 
+/* ── Stripe plan toggle ── */
+.upgrade-plan-toggle {
+  display: flex;
+  gap: 10px;
+  margin: 14px 0 10px;
+}
+
+.upgrade-plan-option {
+  flex: 1;
+  cursor: pointer;
+}
+
+.upgrade-plan-option input[type="radio"] {
+  display: none;
+}
+
+.plan-option-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  transition: border-color 0.15s, background 0.15s;
+  cursor: pointer;
+}
+
+.upgrade-plan-option input[type="radio"]:checked + .plan-option-box {
+  border-color: var(--blue);
+  background: rgba(59,130,246,0.12);
+}
+
+.plan-option-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t1);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.plan-option-price {
+  font-size: 15px;
+  font-weight: 700;
+  color: #60a5fa;
+}
+
+.plan-option-per {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--t2);
+}
+
+.plan-save-badge {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: #fff;
+}
+
+.upgrade-secure-note {
+  font-size: 11px;
+  color: var(--t3);
+  margin: 4px 0 0;
+  text-align: center;
+}
+
+/* ── Upgrade plan type tabs ── */
+.upgrade-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 14px;
+}
+.upgrade-tab-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px;
+  border: 1.5px solid var(--bdr-sm);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--t2);
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.upgrade-tab-btn:hover  { border-color: var(--blue); color: var(--t1); }
+.upgrade-tab-btn.active { border-color: var(--blue); background: var(--blue-dim); color: var(--t1); }
+.upgrade-tab-badge {
+  font-size: 10px; font-weight: 800; letter-spacing: .06em;
+  padding: 2px 8px; border-radius: 4px;
+}
+.pro-tab-badge { background: rgba(59,130,246,.18); color: #60a5fa; }
+.ent-tab-badge { background: rgba(124,58,237,.18);  color: #a78bfa; }
+.upgrade-tab-label { font-size: 10px; color: inherit; }
+
+/* ── Upgrade plan panels ── */
+.upgrade-plan-panel        { display: block; }
+.upgrade-plan-panel.hidden { display: none; }
+
+/* ── Enterprise features ── */
+.ent-feature-list {
+  list-style: none; padding: 0; margin: 4px 0 14px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.ent-feature-list li { font-size: var(--fs-sm); color: var(--t1); padding-left: 4px; }
+.ent-price-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 8px; }
+.ent-price     { font-size: 2rem; font-weight: 800; color: var(--t1); }
+.ent-price-sub { font-size: var(--fs-sm); color: var(--t2); }
+
 /* Grace modal warning title */
 .grace-title { color: var(--amber); }
 
