@@ -4159,6 +4159,22 @@
    'C:\\Users\\Mark '
    'Ipa\\Documents\\Claude\\StructIQ\\backend\\frontend\\styles.css',
    'DATA'),
+  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\RECORD',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\RECORD',
+   'DATA'),
+  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\top_level.txt',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\top_level.txt',
+   'DATA'),
+  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\METADATA',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\METADATA',
+   'DATA'),
+  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\licenses\\LICENSE',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\licenses\\LICENSE',
+   'DATA'),
   ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\WHEEL',
    'c:\\Users\\Mark '
    'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\WHEEL',
@@ -4171,90 +4187,106 @@
    'c:\\Users\\Mark '
    'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\REQUESTED',
    'DATA'),
-  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\METADATA',
-   'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\METADATA',
-   'DATA'),
-  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\top_level.txt',
-   'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\top_level.txt',
-   'DATA'),
-  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\RECORD',
-   'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\RECORD',
-   'DATA'),
-  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\licenses\\LICENSE',
-   'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\licenses\\LICENSE',
-   'DATA'),
   ('setuptools\\_vendor\\jaraco\\text\\Lorem ipsum.txt',
    'c:\\Users\\Mark '
    'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\jaraco\\text\\Lorem '
    'ipsum.txt',
    'DATA'),
-  ('click-8.3.1.dist-info\\licenses\\LICENSE.txt',
+  ('pydantic-2.12.5.dist-info\\METADATA',
    'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\licenses\\LICENSE.txt',
-   'DATA'),
-  ('pydantic-2.12.5.dist-info\\WHEEL',
-   'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\WHEEL',
-   'DATA'),
-  ('pydantic-2.12.5.dist-info\\RECORD',
-   'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\RECORD',
-   'DATA'),
-  ('click-8.3.1.dist-info\\METADATA',
-   'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\METADATA',
-   'DATA'),
-  ('click-8.3.1.dist-info\\RECORD',
-   'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\RECORD',
-   'DATA'),
-  ('pydantic-2.12.5.dist-info\\licenses\\LICENSE',
-   'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\licenses\\LICENSE',
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\METADATA',
    'DATA'),
   ('click-8.3.1.dist-info\\WHEEL',
    'c:\\Users\\Mark '
    'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\WHEEL',
    'DATA'),
-  ('pydantic-2.12.5.dist-info\\METADATA',
+  ('pydantic-2.12.5.dist-info\\RECORD',
    'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\METADATA',
-   'DATA'),
-  ('pydantic-2.12.5.dist-info\\INSTALLER',
-   'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\INSTALLER',
-   'DATA'),
-  ('click-8.3.1.dist-info\\INSTALLER',
-   'c:\\Users\\Mark '
-   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\INSTALLER',
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\RECORD',
    'DATA'),
   ('pydantic-2.12.5.dist-info\\REQUESTED',
    'c:\\Users\\Mark '
    'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\REQUESTED',
    'DATA'),
+  ('pydantic-2.12.5.dist-info\\WHEEL',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\WHEEL',
+   'DATA'),
+  ('click-8.3.1.dist-info\\licenses\\LICENSE.txt',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\licenses\\LICENSE.txt',
+   'DATA'),
+  ('click-8.3.1.dist-info\\RECORD',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\RECORD',
+   'DATA'),
+  ('pydantic-2.12.5.dist-info\\INSTALLER',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\INSTALLER',
+   'DATA'),
+  ('pydantic-2.12.5.dist-info\\licenses\\LICENSE',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic-2.12.5.dist-info\\licenses\\LICENSE',
+   'DATA'),
+  ('click-8.3.1.dist-info\\INSTALLER',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\INSTALLER',
+   'DATA'),
+  ('click-8.3.1.dist-info\\METADATA',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click-8.3.1.dist-info\\METADATA',
+   'DATA'),
   ('base_library.zip',
    'C:\\Users\\Mark '
    'Ipa\\Documents\\Claude\\StructIQ\\backend\\build\\structiq\\base_library.zip',
    'DATA')],
- [('copyreg',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\copyreg.py',
-   'PYMODULE'),
-  ('locale',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\locale.py',
-   'PYMODULE'),
-  ('abc',
+ [('abc',
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\abc.py',
    'PYMODULE'),
-  ('warnings',
+  ('_collections_abc',
    'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\warnings.py',
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\_collections_abc.py',
+   'PYMODULE'),
+  ('_weakrefset',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\_weakrefset.py',
+   'PYMODULE'),
+  ('posixpath',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\posixpath.py',
+   'PYMODULE'),
+  ('heapq',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\heapq.py',
+   'PYMODULE'),
+  ('reprlib',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\reprlib.py',
+   'PYMODULE'),
+  ('weakref',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\weakref.py',
+   'PYMODULE'),
+  ('linecache',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\linecache.py',
+   'PYMODULE'),
+  ('functools',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\functools.py',
+   'PYMODULE'),
+  ('stat',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\stat.py',
+   'PYMODULE'),
+  ('genericpath',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\genericpath.py',
+   'PYMODULE'),
+  ('sre_compile',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\sre_compile.py',
    'PYMODULE'),
   ('re._parser',
    'C:\\Users\\Mark '
@@ -4276,33 +4308,21 @@
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\re\\__init__.py',
    'PYMODULE'),
+  ('ntpath',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\ntpath.py',
+   'PYMODULE'),
+  ('sre_constants',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\sre_constants.py',
+   'PYMODULE'),
   ('keyword',
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\keyword.py',
    'PYMODULE'),
-  ('_weakrefset',
+  ('warnings',
    'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\_weakrefset.py',
-   'PYMODULE'),
-  ('io',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\io.py',
-   'PYMODULE'),
-  ('heapq',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\heapq.py',
-   'PYMODULE'),
-  ('stat',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\stat.py',
-   'PYMODULE'),
-  ('_collections_abc',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\_collections_abc.py',
-   'PYMODULE'),
-  ('posixpath',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\posixpath.py',
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\warnings.py',
    'PYMODULE'),
   ('encodings.zlib_codec',
    'C:\\Users\\Mark '
@@ -4792,25 +4812,21 @@
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\encodings\\__init__.py',
    'PYMODULE'),
-  ('genericpath',
+  ('copyreg',
    'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\genericpath.py',
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\copyreg.py',
+   'PYMODULE'),
+  ('codecs',
+   'C:\\Users\\Mark '
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\codecs.py',
    'PYMODULE'),
   ('operator',
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\operator.py',
    'PYMODULE'),
-  ('linecache',
+  ('types',
    'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\linecache.py',
-   'PYMODULE'),
-  ('functools',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\functools.py',
-   'PYMODULE'),
-  ('reprlib',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\reprlib.py',
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\types.py',
    'PYMODULE'),
   ('enum',
    'C:\\Users\\Mark '
@@ -4820,13 +4836,9 @@
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\sre_parse.py',
    'PYMODULE'),
-  ('weakref',
+  ('io',
    'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\weakref.py',
-   'PYMODULE'),
-  ('sre_compile',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\sre_compile.py',
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\io.py',
    'PYMODULE'),
   ('collections.abc',
    'C:\\Users\\Mark '
@@ -4836,21 +4848,9 @@
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\collections\\__init__.py',
    'PYMODULE'),
-  ('sre_constants',
+  ('locale',
    'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\sre_constants.py',
-   'PYMODULE'),
-  ('codecs',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\codecs.py',
-   'PYMODULE'),
-  ('ntpath',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\ntpath.py',
-   'PYMODULE'),
-  ('types',
-   'C:\\Users\\Mark '
-   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\types.py',
+   'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\locale.py',
    'PYMODULE'),
   ('traceback',
    'C:\\Users\\Mark '

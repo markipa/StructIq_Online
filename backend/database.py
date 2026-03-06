@@ -9,7 +9,11 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional
 
-DB_PATH       = os.path.join(os.path.dirname(__file__), "structiq.db")
+# Store DB in AppData so it survives app updates / rebuilds
+_appdata  = os.environ.get("APPDATA", os.path.expanduser("~"))
+_data_dir = os.path.join(_appdata, "StructIQ")
+os.makedirs(_data_dir, exist_ok=True)
+DB_PATH   = os.path.join(_data_dir, "structiq.db")
 SESSION_DAYS  = 30
 PBKDF2_ITERS  = 260_000   # OWASP 2023 recommendation for PBKDF2-HMAC-SHA256
 

@@ -9,25 +9,3 @@
 [launcher] sys.path = ['C:\\Users\\Mark Ipa\\Documents\\Claude\\StructIQ\\backend\\dist\\StructIQ\\_internal\\base_library.zip', 'C:\\Users\\Mark Ipa\\Documents\\Claude\\StructIQ\\backend\\dist\\StructIQ\\_internal\\python3.12\\lib-dynload', 'C:\\Users\\Mark Ipa\\Documents\\Claude\\StructIQ\\backend\\dist\\StructIQ\\_internal']
 [launcher] BASE_DIR = C:\Users\Mark Ipa\Documents\Claude\StructIQ\backend\dist\StructIQ\_internal
 [launcher] cwd      = C:\Users\Mark Ipa\Documents\Claude\StructIQ\backend\dist\StructIQ\_internal
-
-  ╔══════════════════════════════════════════╗
-  ║         StructIQ  is starting...         ║
-  ║                                          ║
-  ║   Opening → http://127.0.0.1:8001        ║
-  ║   Close this window to stop the app.     ║
-  ╚══════════════════════════════════════════╝
-
-[launcher] sys.path = ['C:\\Users\\Mark Ipa\\Documents\\Claude\\StructIQ\\backend\\dist\\StructIQ\\_internal\\base_library.zip', 'C:\\Users\\Mark Ipa\\Documents\\Claude\\StructIQ\\backend\\dist\\StructIQ\\_internal\\python3.12\\lib-dynload', 'C:\\Users\\Mark Ipa\\Documents\\Claude\\StructIQ\\backend\\dist\\StructIQ\\_internal']
-[launcher] BASE_DIR = C:\Users\Mark Ipa\Documents\Claude\StructIQ\backend\dist\StructIQ\_internal
-[launcher] cwd      = C:\Users\Mark Ipa\Documents\Claude\StructIQ\backend\dist\StructIQ\_internal
-
-  ╔══════════════════════════════════════════╗
-  ║         StructIQ  is starting...         ║
-  ║                                          ║
-  ║   Opening → http://127.0.0.1:8001        ║
-  ║   Close this window to stop the app.     ║
-  ╚══════════════════════════════════════════╝
-
-[launcher] sys.path = ['C:\\Users\\Mark Ipa\\Documents\\Claude\\StructIQ\\backend\\dist\\StructIQ\\_internal\\base_library.zip', 'C:\\Users\\Mark Ipa\\Documents\\Claude\\StructIQ\\backend\\dist\\StructIQ\\_internal\\python3.12\\lib-dynload', 'C:\\Users\\Mark Ipa\\Documents\\Claude\\StructIQ\\backend\\dist\\StructIQ\\_internal']
-[launcher] BASE_DIR = C:\Users\Mark Ipa\Documents\Claude\StructIQ\backend\dist\StructIQ\_internal
-[launcher] cwd      = C:\Users\Mark Ipa\Documents\Claude\StructIQ\backend\dist\StructIQ\_internal
