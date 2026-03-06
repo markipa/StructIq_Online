@@ -60,6 +60,9 @@ function renderUserPill(user) {
   // Name
   document.getElementById('user-pill-name').textContent = user.name || user.email;
 
+  // Store email for Stripe checkout
+  currentUserEmail = user.email || '';
+
   // Plan badge + nav locks
   currentUserPlan = user.plan || 'free';
   updatePlanBadge(currentUserPlan);
@@ -136,7 +139,8 @@ let reactionsLoadType       = 'combo';    // 'combo' | 'case'
 
 // ── Plan / license state ──
 const PLAN_LEVEL = { free: 0, pro: 1, enterprise: 2 };
-let currentUserPlan = 'free';
+let currentUserPlan  = 'free';
+let currentUserEmail = '';        // stored at login, used by Stripe checkout
 
 /** True if the current user's plan meets or exceeds `required`. */
 function userHasPlan(required) {
@@ -164,6 +168,46 @@ function showGraceModal(days, msg) {
     `Your license has not been verified for ${days} days (grace period: ${config.OFFLINE_GRACE_DAYS} days).`;
   document.getElementById('grace-msg').textContent = message;
   document.getElementById('grace-modal').classList.remove('hidden');
+}
+
+/** Open a Stripe Checkout session for the selected interval (monthly | yearly). */
+async function openStripeCheckout(interval) {
+  const btn = document.getElementById('btn-subscribe');
+  if (!currentUserEmail) {
+    showToast('Please sign in before subscribing.', 'error');
+    return;
+  }
+
+  const CLOUD = 'https://structiq-production.up.railway.app';
+
+  // Disable button while we create the session
+  if (btn) { btn.disabled = true; btn.textContent = 'Opening Stripe…'; }
+
+  try {
+    const res = await fetch(`${CLOUD}/stripe/create-checkout`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email: currentUserEmail, interval }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Failed to create checkout session');
+
+    // Open Stripe Checkout in the user's default browser
+    if (data.checkout_url) {
+      // In the Electron / PyInstaller desktop shell, open externally
+      if (window.electronAPI && window.electronAPI.openExternal) {
+        window.electronAPI.openExternal(data.checkout_url);
+      } else {
+        window.open(data.checkout_url, '_blank');
+      }
+      document.getElementById('upgrade-modal').classList.add('hidden');
+      showToast('Stripe Checkout opened in your browser!', 'success');
+    }
+  } catch (err) {
+    showToast('Could not start checkout: ' + err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Subscribe with Stripe'; }
+  }
 }
 
 // ── Force component color palette (used by Plotly chart) ──
@@ -288,10 +332,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Upgrade modal close
+  // Upgrade modal close / subscribe
   ['btn-upgrade-close', 'btn-upgrade-dismiss'].forEach(id =>
     document.getElementById(id).addEventListener('click', () =>
       document.getElementById('upgrade-modal').classList.add('hidden')));
+
+  document.getElementById('btn-subscribe').addEventListener('click', () => {
+    const interval = document.querySelector('input[name="upgrade-interval"]:checked')?.value || 'monthly';
+    openStripeCheckout(interval);
+  });
 
   // Grace modal close
   ['btn-grace-close', 'btn-grace-dismiss'].forEach(id =>

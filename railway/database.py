@@ -24,14 +24,17 @@ def init_db():
     with _conn() as c:
         c.executescript("""
             CREATE TABLE IF NOT EXISTS users (
-                id         INTEGER PRIMARY KEY AUTOINCREMENT,
-                email      TEXT    UNIQUE NOT NULL,
-                name       TEXT    NOT NULL,
-                password   TEXT    NOT NULL,
-                salt       TEXT    NOT NULL,
-                plan       TEXT    NOT NULL DEFAULT 'free',
-                is_active  INTEGER NOT NULL DEFAULT 1,
-                created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+                id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+                email                  TEXT    UNIQUE NOT NULL,
+                name                   TEXT    NOT NULL,
+                password               TEXT    NOT NULL,
+                salt                   TEXT    NOT NULL,
+                plan                   TEXT    NOT NULL DEFAULT 'free',
+                is_active              INTEGER NOT NULL DEFAULT 1,
+                created_at             TEXT    NOT NULL DEFAULT (datetime('now')),
+                stripe_customer_id     TEXT,
+                stripe_subscription_id TEXT,
+                subscription_interval  TEXT
             );
             CREATE TABLE IF NOT EXISTS sessions (
                 token      TEXT    PRIMARY KEY,
@@ -40,6 +43,16 @@ def init_db():
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             );
         """)
+        # Migrate existing DBs — add new columns if missing
+        for col_sql in [
+            "ALTER TABLE users ADD COLUMN stripe_customer_id TEXT",
+            "ALTER TABLE users ADD COLUMN stripe_subscription_id TEXT",
+            "ALTER TABLE users ADD COLUMN subscription_interval TEXT",
+        ]:
+            try:
+                c.execute(col_sql)
+            except Exception:
+                pass
 
 
 def _conn() -> sqlite3.Connection:
@@ -109,6 +122,25 @@ def update_user_plan_by_email(email: str, plan: str) -> bool:
             (plan, email.lower().strip()),
         )
         return cur.rowcount > 0
+
+def update_stripe_customer(user_id: int, customer_id: str):
+    with _conn() as c:
+        c.execute("UPDATE users SET stripe_customer_id = ? WHERE id = ?",
+                  (customer_id, user_id))
+
+def update_stripe_subscription(email: str, subscription_id: str, interval: str):
+    with _conn() as c:
+        c.execute(
+            "UPDATE users SET stripe_subscription_id = ?, subscription_interval = ? WHERE email = ?",
+            (subscription_id, interval, email.lower().strip()),
+        )
+
+def get_user_by_stripe_customer(customer_id: str) -> Optional[dict]:
+    with _conn() as c:
+        row = c.execute(
+            "SELECT * FROM users WHERE stripe_customer_id = ?", (customer_id,)
+        ).fetchone()
+        return _safe(row)
 
 def get_all_users() -> list:
     """Return all users (no passwords/salts) ordered by registration date."""

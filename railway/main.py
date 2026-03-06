@@ -5,11 +5,20 @@ Deployed to Railway.app — no ETABS code here
 """
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel
 from typing import Optional
 import database
+import stripe
 import os
+
+# ─── Stripe config ────────────────────────────────────────────────
+stripe.api_key            = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET     = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_PRICE_MONTHLY      = os.environ.get("STRIPE_PRICE_MONTHLY", "price_1T7xXDGjto3S8juRtyrzuMhp")
+STRIPE_PRICE_YEARLY       = os.environ.get("STRIPE_PRICE_YEARLY",  "price_1T7xXDGjto3S8juRw30FfIeQ")
+STRIPE_PUBLISHABLE_KEY    = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
+BASE_URL                  = "https://structiq-production.up.railway.app"
 
 app = FastAPI(title="StructIQ — Auth Server")
 
@@ -61,6 +70,10 @@ class SetPlanByEmailRequest(BaseModel):
     email: str
     plan: str
     admin_secret: str
+
+class CreateCheckoutRequest(BaseModel):
+    email: str
+    interval: str   # "monthly" | "yearly"
 
 
 # ─── Auth routes ─────────────────────────────────────────────────
@@ -170,6 +183,127 @@ def update_plan(body: UpdatePlanRequest):
         raise HTTPException(400, "Invalid plan")
     database.update_user_plan(body.user_id, body.plan)
     return {"ok": True, "user_id": body.user_id, "plan": body.plan}
+
+
+# ─── Stripe endpoints ────────────────────────────────────────────
+
+@app.post("/stripe/create-checkout")
+def create_checkout(body: CreateCheckoutRequest):
+    """Create a Stripe Checkout session. Returns {checkout_url}."""
+    if not stripe.api_key:
+        raise HTTPException(503, "Stripe not configured")
+    user = database.get_user_by_email(body.email)
+    if not user:
+        raise HTTPException(404, "User not found — please register first")
+
+    price_id = STRIPE_PRICE_YEARLY if body.interval == "yearly" else STRIPE_PRICE_MONTHLY
+
+    # Create or reuse Stripe customer
+    customer_id = user.get("stripe_customer_id")
+    if not customer_id:
+        customer    = stripe.Customer.create(
+            email    = body.email,
+            name     = user["name"],
+            metadata = {"user_id": str(user["id"])},
+        )
+        customer_id = customer.id
+        database.update_stripe_customer(user["id"], customer_id)
+
+    session = stripe.checkout.Session.create(
+        customer             = customer_id,
+        payment_method_types = ["card"],
+        line_items           = [{"price": price_id, "quantity": 1}],
+        mode                 = "subscription",
+        success_url          = f"{BASE_URL}/stripe/success?session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url           = f"{BASE_URL}/stripe/cancel",
+        metadata             = {"user_email": body.email, "interval": body.interval},
+    )
+    return {"checkout_url": session.url}
+
+
+@app.post("/stripe/webhook")
+async def stripe_webhook(request: Request):
+    """Stripe sends payment events here — upgrades/downgrades plans automatically."""
+    payload    = await request.body()
+    sig_header = request.headers.get("stripe-signature", "")
+
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+    except stripe.error.SignatureVerificationError:
+        raise HTTPException(400, "Invalid Stripe signature")
+
+    etype = event["type"]
+    obj   = event["data"]["object"]
+
+    if etype == "checkout.session.completed":
+        email    = obj.get("metadata", {}).get("user_email")
+        interval = obj.get("metadata", {}).get("interval", "monthly")
+        sub_id   = obj.get("subscription")
+        if email:
+            database.update_user_plan_by_email(email, "pro")
+            if sub_id:
+                database.update_stripe_subscription(email, sub_id, interval)
+
+    elif etype in ("customer.subscription.deleted", "customer.subscription.paused"):
+        customer_id = obj.get("customer")
+        if customer_id:
+            user = database.get_user_by_stripe_customer(customer_id)
+            if user:
+                database.update_user_plan(user["id"], "free")
+
+    return {"ok": True}
+
+
+@app.get("/stripe/success", response_class=HTMLResponse)
+def stripe_success():
+    return """<!DOCTYPE html>
+<html><head><title>Payment Successful — StructIQ</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+       background:#0b1827;display:flex;align-items:center;
+       justify-content:center;min-height:100vh;}
+  .card{background:#102039;border-radius:16px;padding:48px 40px;
+        max-width:420px;width:90%;text-align:center;
+        border:1px solid rgba(255,255,255,0.07);}
+  .icon{font-size:56px;margin-bottom:16px;}
+  h1{color:#22c55e;font-size:1.5rem;margin-bottom:12px;}
+  p{color:#94a3b8;line-height:1.6;margin-bottom:12px;}
+  strong{color:#f1f5f9;}
+  .badge{display:inline-block;background:linear-gradient(135deg,#7c3aed,#4f46e5);
+         color:#fff;font-size:11px;font-weight:800;letter-spacing:.08em;
+         padding:4px 14px;border-radius:6px;margin-bottom:20px;}
+</style></head>
+<body><div class="card">
+  <div class="icon">✅</div>
+  <div class="badge">PRO</div>
+  <h1>Payment Successful!</h1>
+  <p>Your <strong>StructIQ PRO</strong> subscription is now active.</p>
+  <p>Please <strong>restart StructIQ</strong> on your computer to unlock all PRO features.</p>
+</div></body></html>"""
+
+
+@app.get("/stripe/cancel", response_class=HTMLResponse)
+def stripe_cancel():
+    return """<!DOCTYPE html>
+<html><head><title>Payment Cancelled — StructIQ</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+       background:#0b1827;display:flex;align-items:center;
+       justify-content:center;min-height:100vh;}
+  .card{background:#102039;border-radius:16px;padding:48px 40px;
+        max-width:420px;width:90%;text-align:center;
+        border:1px solid rgba(255,255,255,0.07);}
+  .icon{font-size:56px;margin-bottom:16px;}
+  h1{color:#f97316;font-size:1.5rem;margin-bottom:12px;}
+  p{color:#94a3b8;line-height:1.6;}
+</style></head>
+<body><div class="card">
+  <div class="icon">❌</div>
+  <h1>Payment Cancelled</h1>
+  <p>No charge was made. You can try again anytime from the StructIQ app.</p>
+</div></body></html>"""
 
 
 # ─── Health check ────────────────────────────────────────────────
