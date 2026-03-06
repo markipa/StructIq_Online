@@ -17,6 +17,9 @@ DB_PATH    = os.path.join(_data_dir, "structiq_cloud.db")
 SESSION_DAYS  = 30
 PBKDF2_ITERS  = 260_000
 
+# Max simultaneous sessions per plan
+SESSION_LIMITS = {"free": 1, "pro": 1, "enterprise": 3}
+
 
 # ─── Schema ──────────────────────────────────────────────────────
 
@@ -40,6 +43,14 @@ def init_db():
                 token      TEXT    PRIMARY KEY,
                 user_id    INTEGER NOT NULL,
                 expires_at TEXT    NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS cloud_sessions (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id     INTEGER NOT NULL,
+                session_key TEXT    NOT NULL UNIQUE,
+                created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+                last_seen   TEXT    NOT NULL DEFAULT (datetime('now')),
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             );
         """)
@@ -184,3 +195,64 @@ def get_user_by_token(token: str) -> Optional[dict]:
 def delete_session(token: str):
     with _conn() as c:
         c.execute("DELETE FROM sessions WHERE token = ?", (token,))
+
+
+# ─── Cloud session enforcement ────────────────────────────────────
+
+def register_cloud_session(user_id: int, session_key: str, plan: str) -> dict:
+    """
+    Register a new active session for the user.
+    - free / pro : max 1 → kicks the oldest session to let the new one in
+    - enterprise : max 3 → rejects the 4th login (company slot full)
+    Returns {"ok": True} or {"ok": False, "reason": "..."}.
+    """
+    limit = SESSION_LIMITS.get(plan, 1)
+    # Expire stale sessions (not seen in 48 h) before checking count
+    with _conn() as c:
+        c.execute(
+            "DELETE FROM cloud_sessions WHERE user_id = ? "
+            "AND last_seen < datetime('now', '-48 hours')",
+            (user_id,),
+        )
+        active = c.execute(
+            "SELECT COUNT(*) FROM cloud_sessions WHERE user_id = ?", (user_id,)
+        ).fetchone()[0]
+
+        if active >= limit:
+            if plan == "enterprise":
+                return {"ok": False, "reason": "max_sessions",
+                        "message": "Maximum of 3 simultaneous users reached for this Enterprise plan."}
+            # pro / free: kick the oldest session so new login takes over
+            c.execute(
+                "DELETE FROM cloud_sessions WHERE id = ("
+                "  SELECT id FROM cloud_sessions WHERE user_id = ? "
+                "  ORDER BY last_seen ASC LIMIT 1)", (user_id,)
+            )
+
+        c.execute(
+            "INSERT OR REPLACE INTO cloud_sessions (user_id, session_key, created_at, last_seen) "
+            "VALUES (?, ?, datetime('now'), datetime('now'))",
+            (user_id, session_key),
+        )
+    return {"ok": True}
+
+
+def validate_cloud_session(session_key: str) -> bool:
+    """Returns True if the session is still active; updates last_seen."""
+    with _conn() as c:
+        row = c.execute(
+            "SELECT id FROM cloud_sessions WHERE session_key = ?", (session_key,)
+        ).fetchone()
+        if row:
+            c.execute(
+                "UPDATE cloud_sessions SET last_seen = datetime('now') WHERE session_key = ?",
+                (session_key,),
+            )
+            return True
+    return False
+
+
+def revoke_cloud_session(session_key: str):
+    """Remove the session when user logs out."""
+    with _conn() as c:
+        c.execute("DELETE FROM cloud_sessions WHERE session_key = ?", (session_key,))

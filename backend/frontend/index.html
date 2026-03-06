@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>StructIQ — Structural Analysis</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/app/styles.css?v=36" />
+  <link rel="stylesheet" href="/app/styles.css?v=37" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
 <body>
@@ -850,7 +850,7 @@
           <rect x="3" y="7" width="10" height="8" rx="1.5"/>
           <path d="M5 7V5a3 3 0 0 1 6 0v2"/>
         </svg>
-        Upgrade to PRO
+        Upgrade Required
       </div>
       <button id="btn-upgrade-close" class="modal-close-btn" aria-label="Close">
         <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
@@ -860,35 +860,63 @@
       </button>
     </div>
     <div class="upgrade-body">
-      <div class="upgrade-badge">PRO</div>
       <p class="upgrade-feat-name" id="upgrade-feat-name">This feature</p>
-      <p class="upgrade-desc">requires the <strong>PRO</strong> plan. Choose a billing cycle:</p>
+      <p class="upgrade-desc" id="upgrade-req-desc">requires a higher plan.</p>
 
-      <div class="upgrade-plan-toggle">
-        <label class="upgrade-plan-option">
-          <input type="radio" name="upgrade-interval" value="monthly" checked>
-          <span class="plan-option-box">
-            <span class="plan-option-name">Monthly</span>
-            <span class="plan-option-price">$29 <span class="plan-option-per">/ month</span></span>
-          </span>
-        </label>
-        <label class="upgrade-plan-option">
-          <input type="radio" name="upgrade-interval" value="yearly">
-          <span class="plan-option-box">
-            <span class="plan-option-name">Yearly <span class="plan-save-badge">SAVE 14%</span></span>
-            <span class="plan-option-price">299 AED <span class="plan-option-per">/ year</span></span>
-          </span>
-        </label>
+      <!-- Plan type tabs -->
+      <div class="upgrade-tabs">
+        <button class="upgrade-tab-btn active" data-tab="pro">
+          <span class="upgrade-tab-badge pro-tab-badge">PRO</span>
+          <span class="upgrade-tab-label">Single User</span>
+        </button>
+        <button class="upgrade-tab-btn" data-tab="enterprise">
+          <span class="upgrade-tab-badge ent-tab-badge">ENTERPRISE</span>
+          <span class="upgrade-tab-label">Up to 3 Users</span>
+        </button>
       </div>
 
-      <p class="upgrade-secure-note">
-        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:4px">
-          <rect x="3" y="7" width="10" height="8" rx="1.5"/>
-          <path d="M5 7V5a3 3 0 0 1 6 0v2"/>
-        </svg>
-        Secure payment via Stripe. Cancel anytime.
-      </p>
+      <!-- PRO panel -->
+      <div class="upgrade-plan-panel" data-tab="pro">
+        <div class="upgrade-plan-toggle">
+          <label class="upgrade-plan-option">
+            <input type="radio" name="upgrade-interval" value="monthly" checked>
+            <span class="plan-option-box">
+              <span class="plan-option-name">Monthly</span>
+              <span class="plan-option-price">$29 <span class="plan-option-per">/ month</span></span>
+            </span>
+          </label>
+          <label class="upgrade-plan-option">
+            <input type="radio" name="upgrade-interval" value="yearly">
+            <span class="plan-option-box">
+              <span class="plan-option-name">Yearly <span class="plan-save-badge">SAVE 14%</span></span>
+              <span class="plan-option-price">$299 <span class="plan-option-per">/ year</span></span>
+            </span>
+          </label>
+        </div>
+        <p class="upgrade-secure-note">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:4px">
+            <rect x="3" y="7" width="10" height="8" rx="1.5"/>
+            <path d="M5 7V5a3 3 0 0 1 6 0v2"/>
+          </svg>
+          Secure payment via Stripe. Cancel anytime.
+        </p>
+      </div>
+
+      <!-- Enterprise panel -->
+      <div class="upgrade-plan-panel hidden" data-tab="enterprise">
+        <ul class="ent-feature-list">
+          <li>✓ 3 simultaneous users per license</li>
+          <li>✓ All PRO features included</li>
+          <li>✓ Shared company account</li>
+          <li>✓ Priority support</li>
+        </ul>
+        <div class="ent-price-row">
+          <span class="ent-price">$699</span>
+          <span class="ent-price-sub">/ year</span>
+        </div>
+        <p class="upgrade-secure-note">Contact us and we'll set up your team account.</p>
+      </div>
     </div>
     <div class="modal-footer" style="flex-direction:column;gap:8px;">
       <button id="btn-subscribe" class="btn btn-primary btn-full">
@@ -900,6 +928,10 @@
           <line x1="4" y1="12" x2="6" y2="12"/>
         </svg>
         Subscribe with Stripe
+      </button>
+      <button id="btn-contact-enterprise" class="btn btn-primary btn-full hidden"
+              style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
+        Contact Us for Enterprise
       </button>
       <button id="btn-upgrade-dismiss" class="btn btn-ghost btn-full">Maybe later</button>
     </div>

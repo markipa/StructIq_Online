@@ -84,6 +84,7 @@ function updatePlanBadge(plan) {
 /**
  * Silently call /api/cloud/sync after login.
  * If Railway responds with a plan, update the badge — otherwise keep local value.
+ * Also checks whether this session was kicked by another login (session_valid).
  */
 async function syncCloudPlan() {
   try {
@@ -96,7 +97,22 @@ async function syncCloudPlan() {
       const planEl = document.getElementById('user-pill-plan');
       if (planEl) planEl.title = `Plan synced from cloud ✓`;
     }
+    // Another login kicked this session out → notify and force-logout
+    if (data.session_valid === false) {
+      showToast('Your session was ended — you signed in on another device.', 'error');
+      setTimeout(forceLogout, 2500);
+    }
   } catch { /* Network error — silently ignore, app works fully offline */ }
+}
+
+/** Force-logout: clear local token, hide user pill, return to login screen. */
+function forceLogout() {
+  localStorage.removeItem(AUTH_KEY);
+  document.getElementById('user-pill').classList.add('hidden');
+  document.getElementById('login-email').value    = '';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-error').classList.add('hidden');
+  showAuthOverlay();
 }
 
 function bootApp() {
@@ -157,9 +173,27 @@ function updateNavLocks(plan) {
 }
 
 /** Show the upgrade-required modal for a named feature. */
-function showUpgradeModal(featureName) {
+function showUpgradeModal(featureName, requiredPlan = 'pro') {
   document.getElementById('upgrade-feat-name').textContent = featureName || 'This feature';
+  const descEl = document.getElementById('upgrade-req-desc');
+  if (descEl) {
+    const label = requiredPlan === 'enterprise' ? 'ENTERPRISE' : 'PRO';
+    descEl.innerHTML = `requires a <strong>${label}</strong> plan.`;
+  }
+  setUpgradeTab(requiredPlan === 'enterprise' ? 'enterprise' : 'pro');
   document.getElementById('upgrade-modal').classList.remove('hidden');
+}
+
+/** Switch the upgrade modal between 'pro' and 'enterprise' tabs. */
+function setUpgradeTab(tab) {
+  document.querySelectorAll('.upgrade-tab-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.upgrade-plan-panel').forEach(p =>
+    p.classList.toggle('hidden', p.dataset.tab !== tab));
+  const subBtn = document.getElementById('btn-subscribe');
+  const entBtn = document.getElementById('btn-contact-enterprise');
+  if (subBtn) subBtn.classList.toggle('hidden', tab === 'enterprise');
+  if (entBtn) entBtn.classList.toggle('hidden', tab !== 'enterprise');
 }
 
 /** Show the grace-period-expired modal. */
@@ -308,8 +342,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // Plan gate: show upgrade modal if feature requires a higher plan
       const requiredPlan = btn.dataset.plan || 'free';
       if (!userHasPlan(requiredPlan)) {
-        const label = btn.textContent.trim().replace(/PRO/g, '').trim();
-        showUpgradeModal(label);
+        const label = btn.textContent.trim().replace(/PRO|ENTERPRISE/g, '').trim();
+        showUpgradeModal(label, requiredPlan);
         return;
       }
       document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
@@ -323,14 +357,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Upgrade modal close / subscribe
+  // Upgrade modal close / dismiss
   ['btn-upgrade-close', 'btn-upgrade-dismiss'].forEach(id =>
     document.getElementById(id).addEventListener('click', () =>
       document.getElementById('upgrade-modal').classList.add('hidden')));
 
+  // Upgrade modal tab switching (PRO | ENTERPRISE)
+  document.querySelectorAll('.upgrade-tab-btn').forEach(btn =>
+    btn.addEventListener('click', () => setUpgradeTab(btn.dataset.tab)));
+
+  // PRO → Stripe subscribe
   document.getElementById('btn-subscribe').addEventListener('click', () => {
     const interval = document.querySelector('input[name="upgrade-interval"]:checked')?.value || 'monthly';
     openStripeCheckout(interval);
+  });
+
+  // Enterprise → contact email
+  document.getElementById('btn-contact-enterprise').addEventListener('click', () => {
+    window.open(
+      'mailto:mmi.structural@gmail.com?subject=StructIQ%20Enterprise%20Inquiry',
+      '_blank'
+    );
+    document.getElementById('upgrade-modal').classList.add('hidden');
   });
 
   // Grace modal close

@@ -41,6 +41,24 @@ def _cloud_post(path: str, payload: dict, timeout: int = 8):
     return None
 
 
+def _cloud_session_post(path: str, params: dict, timeout: int = 8):
+    """POST to Railway session endpoint with PLAN_SYNC_KEY auth. Returns dict or None."""
+    if not config.CLOUD_URL or not _HAS_REQUESTS:
+        return None
+    sync_key = getattr(config, "PLAN_SYNC_KEY", "")
+    try:
+        import urllib.parse
+        qs = urllib.parse.urlencode({**params, "key": sync_key})
+        r = _requests.post(
+            f"{config.CLOUD_URL.rstrip('/')}{path}?{qs}",
+            timeout=timeout,
+        )
+        return r.json() if r.ok else None
+    except Exception:
+        pass
+    return None
+
+
 def _cloud_get(path: str, token: str, timeout: int = 8):
     """GET from Railway cloud server with Bearer token. Returns dict or None."""
     if not config.CLOUD_URL or not _HAS_REQUESTS:
@@ -213,6 +231,29 @@ def login(body: LoginRequest):
         if cloud_plan:
             database.update_last_cloud_sync(row["id"], cloud_plan)
 
+    # Register session globally on Railway — enforces single-session (pro)
+    # and 3-session limit (enterprise). Uses the local token as the session key.
+    if config.CLOUD_URL and _HAS_REQUESTS:
+        sync_key = getattr(config, "PLAN_SYNC_KEY", "")
+        try:
+            import urllib.parse
+            qs = urllib.parse.urlencode({
+                "email": body.email, "session_key": token, "key": sync_key
+            })
+            reg_r = _requests.post(
+                f"{config.CLOUD_URL.rstrip('/')}/api/session/register?{qs}",
+                timeout=8,
+            )
+            if reg_r.status_code == 429:
+                # Enterprise plan is at full capacity — block this login
+                database.delete_session(token)
+                detail = reg_r.json().get("detail", "Maximum simultaneous users reached for this plan.")
+                raise HTTPException(429, detail=detail)
+        except HTTPException:
+            raise
+        except Exception:
+            pass  # Railway unreachable — allow offline login gracefully
+
     user = database.get_user_by_id(row["id"])
     return {"token": token, "user": user}
 
@@ -226,51 +267,81 @@ def me(current_user: dict = Depends(get_current_user)):
 def logout(request: Request):
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer "):
-        database.delete_session(auth[7:])
+        token = auth[7:]
+        database.delete_session(token)
+        # Best-effort: free up the Railway cloud session slot on logout
+        _cloud_session_post("/api/session/revoke", {"session_key": token})
     return {"ok": True}
 
 
 # ─── Cloud sync ───────────────────────────────────────────────────────────────
 
 @app.get("/api/cloud/sync")
-def cloud_sync(current_user: dict = Depends(get_current_user)):
+def cloud_sync(request: Request, current_user: dict = Depends(get_current_user)):
     """
-    Sync subscription plan from Railway cloud server.
+    Sync subscription plan from Railway cloud server AND validate the global session.
     Called by the frontend on every boot — best-effort, never blocks the app.
-    Returns: {plan, source: 'cloud'|'local', synced: bool}
+    Returns: {plan, source: 'cloud'|'local', synced: bool, session_valid: bool}
     """
-    cloud_token = database.get_cloud_token(current_user["id"])
+    import urllib.parse
 
+    # Extract the local token — it is also used as the Railway session key
+    token    = request.headers.get("Authorization", "")[7:]
+    sync_key = getattr(config, "PLAN_SYNC_KEY", "")
+
+    plan   = current_user["plan"]
+    synced = False
+    source = "local"
+
+    # ── 1. Plan sync (cloud token path) ──────────────────────────────
+    cloud_token = database.get_cloud_token(current_user["id"])
     if cloud_token and config.CLOUD_URL:
         cloud = _cloud_get("/api/license/check", cloud_token)
         if cloud and cloud.get("valid"):
             plan = cloud["plan"]
             database.update_last_cloud_sync(current_user["id"], plan)
-            return {"plan": plan, "source": "cloud", "synced": True,
-                    "name": cloud.get("name"), "email": cloud.get("email")}
+            synced = True
+            source = "cloud"
 
-    # Fallback: email-based plan lookup (works for auto-created Railway users
-    # who never had a cloud session token).
-    email = current_user.get("email", "")
-    sync_key = getattr(config, "PLAN_SYNC_KEY", "")
-    if email and sync_key and config.CLOUD_URL and _HAS_REQUESTS:
+    # ── 2. Email-based plan fallback ──────────────────────────────────
+    if not synced:
+        email = current_user.get("email", "")
+        if email and sync_key and config.CLOUD_URL and _HAS_REQUESTS:
+            try:
+                params = urllib.parse.urlencode({"email": email, "key": sync_key})
+                r = _requests.get(
+                    f"{config.CLOUD_URL.rstrip('/')}/api/plan?{params}",
+                    timeout=8,
+                )
+                if r.ok:
+                    data = r.json()
+                    plan = data.get("plan", "free")
+                    database.update_last_cloud_sync(current_user["id"], plan)
+                    synced = True
+                    source = "cloud"
+            except Exception:
+                pass
+
+    # ── 3. Session validation (kicked by another login?) ──────────────
+    session_valid = True  # optimistic default — keeps app usable offline
+    if token and sync_key and config.CLOUD_URL and _HAS_REQUESTS:
         try:
-            import urllib.parse
-            params = urllib.parse.urlencode({"email": email, "key": sync_key})
-            r = _requests.get(
-                f"{config.CLOUD_URL.rstrip('/')}/api/plan?{params}",
-                timeout=8,
+            qs = urllib.parse.urlencode({"session_key": token, "key": sync_key})
+            r  = _requests.post(
+                f"{config.CLOUD_URL.rstrip('/')}/api/session/validate?{qs}",
+                timeout=5,
             )
             if r.ok:
-                data = r.json()
-                plan = data.get("plan", "free")
-                database.update_last_cloud_sync(current_user["id"], plan)
-                return {"plan": plan, "source": "cloud", "synced": True}
+                session_valid = r.json().get("valid", True)
         except Exception:
-            pass
+            pass  # Railway unreachable — stay optimistic
 
-    # Cloud unreachable or no cloud token → return local plan
-    return {"plan": current_user["plan"], "source": "local", "synced": False}
+    return {
+        "plan":          plan,
+        "source":        source,
+        "synced":        synced,
+        "session_valid": session_valid,
+    }
 
 
 # ─── Stripe checkout proxy ────────────────────────────────────────────────────

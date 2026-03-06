@@ -118,7 +118,7 @@ def logout(request: Request):
     return {"ok": True}
 
 
-# ─── Plan sync (email-based, no session needed) ──────────────────
+# ─── Plan sync + session enforcement ─────────────────────────────
 
 PLAN_SYNC_KEY = os.environ.get("PLAN_SYNC_KEY", "StructIQ-plan-sync-2026")
 
@@ -135,6 +135,48 @@ def get_plan_by_email(email: str, key: str):
     if not user:
         return {"plan": "free", "found": False}
     return {"plan": user["plan"], "email": user["email"], "found": True}
+
+
+# ─── Global session enforcement endpoints ────────────────────────
+
+@app.post("/api/session/register")
+def session_register(email: str, session_key: str, key: str):
+    """
+    Called by the desktop app on every login.
+    Registers the session globally — enforces plan session limits.
+    Pro/free: kicks oldest session (1 device at a time).
+    Enterprise: allows up to 3 simultaneous sessions; rejects 4th.
+    """
+    if not key or key != PLAN_SYNC_KEY:
+        raise HTTPException(403, "Forbidden")
+    user = database.get_user_by_email(email)
+    if not user:
+        raise HTTPException(404, "User not found")
+    result = database.register_cloud_session(user["id"], session_key, user["plan"])
+    if not result["ok"]:
+        raise HTTPException(429, detail=result.get("message", "Session limit reached"))
+    return {"ok": True, "plan": user["plan"]}
+
+
+@app.post("/api/session/validate")
+def session_validate(session_key: str, key: str):
+    """
+    Called periodically by the desktop app to confirm session is still active.
+    Returns {"valid": false} if another login has kicked this session out.
+    """
+    if not key or key != PLAN_SYNC_KEY:
+        raise HTTPException(403, "Forbidden")
+    valid = database.validate_cloud_session(session_key)
+    return {"valid": valid}
+
+
+@app.post("/api/session/revoke")
+def session_revoke(session_key: str, key: str):
+    """Called by the desktop app on logout to free up the session slot."""
+    if not key or key != PLAN_SYNC_KEY:
+        raise HTTPException(403, "Forbidden")
+    database.revoke_cloud_session(session_key)
+    return {"ok": True}
 
 
 # ─── License check (called by desktop app on startup) ────────────
