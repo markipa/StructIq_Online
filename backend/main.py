@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Dict, List, Optional
+from datetime import datetime
 from etabs_api import actions
 import database
 import config
@@ -68,7 +69,69 @@ def get_current_user(request: Request) -> dict:
     user = database.get_user_by_token(token)
     if user is None:
         raise HTTPException(status_code=401, detail="Invalid or expired session")
+    # Developer override: admin emails always get enterprise plan + skip grace period
+    if user.get("email", "").lower() in [e.lower() for e in config.ADMIN_EMAILS]:
+        user = dict(user)
+        user["plan"] = "enterprise"
+        user["last_cloud_sync"] = None   # never triggers grace period check
     return user
+
+
+# ─── Plan enforcement ─────────────────────────────────────────────────────────
+
+PLAN_LEVEL = {"free": 0, "pro": 1, "enterprise": 2}
+
+
+def require_plan(min_plan: str = "free"):
+    """
+    Dependency factory: checks offline grace period + plan level.
+    Usage:  Depends(require_plan("pro"))
+    Returns 402 if grace period expired, 403 if plan too low.
+    """
+    def _dep(current_user: dict = Depends(get_current_user)):
+        # ── Offline grace period ──────────────────────────────────────────
+        last_sync_str = current_user.get("last_cloud_sync")
+        if last_sync_str:
+            try:
+                last_sync_dt = datetime.fromisoformat(last_sync_str)
+                days_offline = (datetime.utcnow() - last_sync_dt).days
+                if days_offline > config.OFFLINE_GRACE_DAYS:
+                    raise HTTPException(
+                        status_code=402,
+                        detail={
+                            "code": "grace_expired",
+                            "days": days_offline,
+                            "message": (
+                                f"License verification overdue "
+                                f"({days_offline} days offline). "
+                                "Connect to the internet and restart the app."
+                            ),
+                        },
+                    )
+            except HTTPException:
+                raise
+            except Exception:
+                pass  # Malformed date — be lenient
+
+        # ── Plan level check ─────────────────────────────────────────────
+        user_plan  = current_user.get("plan", "free")
+        user_level = PLAN_LEVEL.get(user_plan, 0)
+        need_level = PLAN_LEVEL.get(min_plan, 0)
+        if user_level < need_level:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "code": "plan_required",
+                    "required": min_plan,
+                    "current": user_plan,
+                    "message": (
+                        f"This feature requires a {min_plan.upper()} plan. "
+                        f"You are on the {user_plan.upper()} plan."
+                    ),
+                },
+            )
+        return current_user
+    return _dep
 
 
 # ─── Auth request/response models ────────────────────────────────────────────
@@ -245,6 +308,7 @@ def generate_load_combinations(
     live_case: str = Query(default="LL", description="Name of live load case in ETABS"),
     comb1_name: str = Query(default="Web_Comb_1"),
     comb2_name: str = Query(default="Web_Comb_2"),
+    _u: dict = Depends(require_plan("pro")),
 ):
     res = actions.generate_load_combinations(
         dead_case=dead_case,
@@ -279,7 +343,10 @@ class BatchGenerateRequest(BaseModel):
     combinations: List[ComboDefinition]
 
 @app.post("/api/load-combinations/generate-batch")
-def generate_combinations_batch(request: BatchGenerateRequest):
+def generate_combinations_batch(
+    request: BatchGenerateRequest,
+    _u: dict = Depends(require_plan("pro")),
+):
     """Generate multiple load combinations from a grid-style definition."""
     res = actions.generate_combinations_batch(
         [c.model_dump() for c in request.combinations]
@@ -309,6 +376,7 @@ def check_torsion():
 def get_joint_reactions(
     names: str = Query(default=None, description="Comma-separated list of combo/case names to fetch (omit for all)"),
     load_type: str = Query(default="combo", description="Source type: 'combo' (default) or 'case'"),
+    _u: dict = Depends(require_plan("pro")),
 ):
     """
     Returns individual joint/support/spring reactions from ETABS with XYZ coordinates.

@@ -18,3 +18,11 @@ APP_VERSION = "1.0.0"
 # How many days the app works without reaching the cloud server
 # (in case engineer has no internet temporarily)
 OFFLINE_GRACE_DAYS = 3
+
+# ── Developer / admin accounts ────────────────────────────────────
+# These emails always receive ENTERPRISE plan regardless of what is
+# stored in the database. Add any developer or admin email here.
+ADMIN_EMAILS = [
+    "mmi.structural@gmail.com",
+    "m_j_ipa@yahoo.com",
+]

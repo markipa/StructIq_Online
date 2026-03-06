@@ -101,6 +101,23 @@ def update_user_plan(user_id: int, plan: str):
     with _conn() as c:
         c.execute("UPDATE users SET plan = ? WHERE id = ?", (plan, user_id))
 
+def update_user_plan_by_email(email: str, plan: str) -> bool:
+    """Returns True if a user was found and updated, False otherwise."""
+    with _conn() as c:
+        cur = c.execute(
+            "UPDATE users SET plan = ? WHERE email = ?",
+            (plan, email.lower().strip()),
+        )
+        return cur.rowcount > 0
+
+def get_all_users() -> list:
+    """Return all users (no passwords/salts) ordered by registration date."""
+    with _conn() as c:
+        rows = c.execute(
+            "SELECT id, email, name, plan, is_active, created_at FROM users ORDER BY id"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
 
 # ─── Session CRUD ────────────────────────────────────────────────
 

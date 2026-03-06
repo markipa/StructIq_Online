@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>StructIQ — Structural Analysis</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/app/styles.css?v=32" />
+  <link rel="stylesheet" href="/app/styles.css?v=35" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
 <body>
@@ -70,7 +70,7 @@
         Base Reactions
       </a>
 
-      <a href="#" class="nav-item" data-target="joint-panel">
+      <a href="#" class="nav-item" data-target="joint-panel" data-plan="pro">
         <svg class="nav-icon" width="16" height="16" viewBox="0 0 18 18" fill="none"
              stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="5"  cy="10" r="2.8"/>
@@ -79,11 +79,12 @@
           <line x1="1" y1="17.5" x2="17" y2="17.5"/>
         </svg>
         Joint Reactions
+        <span class="nav-plan-badge">PRO</span>
       </a>
 
       <span class="nav-label" style="margin-top:12px">DESIGN</span>
 
-      <a href="#" class="nav-item" data-target="combos-panel">
+      <a href="#" class="nav-item" data-target="combos-panel" data-plan="pro">
         <svg class="nav-icon" width="16" height="16" viewBox="0 0 18 18" fill="none"
              stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
           <rect x="2"  y="2"  width="6" height="6" rx="1"/>
@@ -92,6 +93,7 @@
           <rect x="10" y="10" width="6" height="6" rx="1"/>
         </svg>
         Load Combinations
+        <span class="nav-plan-badge">PRO</span>
       </a>
     </nav>
 
@@ -837,6 +839,73 @@
 <!-- Toast -->
 <div id="toast" class="toast"></div>
 
+<!-- ══════════════════ UPGRADE MODAL ══════════════════ -->
+<div id="upgrade-modal" class="modal-overlay hidden">
+  <div class="modal-box upgrade-box">
+    <div class="modal-header">
+      <div class="modal-title">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="7" width="10" height="8" rx="1.5"/>
+          <path d="M5 7V5a3 3 0 0 1 6 0v2"/>
+        </svg>
+        PRO Feature
+      </div>
+      <button id="btn-upgrade-close" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="upgrade-body">
+      <div class="upgrade-badge">PRO</div>
+      <p class="upgrade-feat-name" id="upgrade-feat-name">This feature</p>
+      <p class="upgrade-desc">requires the <strong>PRO</strong> plan.</p>
+      <p class="upgrade-contact">
+        Contact us to upgrade your account:<br>
+        <strong>mmi.structural@gmail.com</strong>
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button id="btn-upgrade-dismiss" class="btn btn-primary btn-full">Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ GRACE PERIOD MODAL ══════════════════ -->
+<div id="grace-modal" class="modal-overlay hidden">
+  <div class="modal-box grace-box">
+    <div class="modal-header">
+      <div class="modal-title grace-title">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 2L14.5 13H1.5Z"/>
+          <line x1="8" y1="6" x2="8" y2="10"/>
+          <circle cx="8" cy="12.5" r="0.6" fill="currentColor" stroke="none"/>
+        </svg>
+        License Verification Required
+      </div>
+      <button id="btn-grace-close" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="upgrade-body">
+      <p class="grace-msg" id="grace-msg"></p>
+      <p class="upgrade-contact">
+        Please connect to the internet and<br>
+        <strong>restart the app</strong> to re-verify your subscription.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button id="btn-grace-dismiss" class="btn btn-primary btn-full">OK</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════ LOGIN OVERLAY ══════════════════ -->
 <div id="auth-overlay" class="auth-overlay">
   <div class="auth-brand-panel">
@@ -915,6 +984,6 @@
   </div>
 </div>
 
-<script src="/app/app.js?v=34"></script>
+<script src="/app/app.js?v=35"></script>
 </body>
 </html>

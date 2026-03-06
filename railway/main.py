@@ -57,6 +57,11 @@ class UpdatePlanRequest(BaseModel):
     plan: str
     admin_secret: str
 
+class SetPlanByEmailRequest(BaseModel):
+    email: str
+    plan: str
+    admin_secret: str
+
 
 # ─── Auth routes ─────────────────────────────────────────────────
 
@@ -122,14 +127,46 @@ def license_check(request: Request):
     }
 
 
-# ─── Admin: manually upgrade a user plan ─────────────────────────
+# ─── Admin endpoints (protected by ADMIN_SECRET) ─────────────────
+
+def _check_admin(secret: str):
+    """Raise 403 if secret doesn't match the Railway env var."""
+    expected = os.environ.get("ADMIN_SECRET", "change-me-in-railway")
+    if secret != expected:
+        raise HTTPException(403, "Invalid admin secret")
+
+VALID_PLANS = ("free", "pro", "enterprise")
+
+
+@app.get("/admin/users")
+def list_users(secret: str = ""):
+    """List all registered users. Pass ?secret=YOUR_ADMIN_SECRET"""
+    _check_admin(secret)
+    users = database.get_all_users()
+    return {"count": len(users), "users": users}
+
+
+@app.post("/admin/set-plan")
+def set_plan_by_email(body: SetPlanByEmailRequest):
+    """
+    Upgrade or downgrade a user by email.
+    Body: { email, plan, admin_secret }
+    Plans: free | pro | enterprise
+    """
+    _check_admin(body.admin_secret)
+    if body.plan not in VALID_PLANS:
+        raise HTTPException(400, f"Invalid plan. Choose from: {VALID_PLANS}")
+    updated = database.update_user_plan_by_email(body.email, body.plan)
+    if not updated:
+        raise HTTPException(404, f"No user found with email: {body.email}")
+    return {"ok": True, "email": body.email, "plan": body.plan}
+
 
 @app.post("/api/admin/update-plan")
 def update_plan(body: UpdatePlanRequest):
-    secret = os.environ.get("ADMIN_SECRET", "change-me-in-railway")
-    if body.admin_secret != secret:
-        raise HTTPException(403, "Invalid admin secret")
-    if body.plan not in ("free", "pro", "enterprise"):
+    """Legacy: upgrade by user_id. Prefer /admin/set-plan (uses email)."""
+    _check_admin(body.admin_secret)
+    if body.plan not in VALID_PLANS:
         raise HTTPException(400, "Invalid plan")
     database.update_user_plan(body.user_id, body.plan)
     return {"ok": True, "user_id": body.user_id, "plan": body.plan}

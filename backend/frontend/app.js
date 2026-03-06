@@ -60,8 +60,9 @@ function renderUserPill(user) {
   // Name
   document.getElementById('user-pill-name').textContent = user.name || user.email;
 
-  // Plan badge
-  updatePlanBadge(user.plan || 'free');
+  // Plan badge + nav locks
+  currentUserPlan = user.plan || 'free';
+  updatePlanBadge(currentUserPlan);
 }
 
 /** Update just the plan badge chip (called by renderUserPill + syncCloudPlan). */
@@ -72,6 +73,9 @@ function updatePlanBadge(plan) {
   planEl.className = 'user-pill-plan';
   if (plan === 'pro')        planEl.classList.add('plan-pro');
   if (plan === 'enterprise') planEl.classList.add('plan-enterprise');
+  // Keep global plan state in sync and refresh nav locks
+  currentUserPlan = plan;
+  updateNavLocks(plan);
 }
 
 /**
@@ -129,6 +133,38 @@ let reactionsActiveForces = new Set(['FX','FY','FZ','MX','MY','MZ']);
 let reactionsAllCombos      = [];         // master list of available picker names
 let reactionsSelectedCombos = new Set();  // which items are checked (empty = all)
 let reactionsLoadType       = 'combo';    // 'combo' | 'case'
+
+// ── Plan / license state ──
+const PLAN_LEVEL = { free: 0, pro: 1, enterprise: 2 };
+let currentUserPlan = 'free';
+
+/** True if the current user's plan meets or exceeds `required`. */
+function userHasPlan(required) {
+  return (PLAN_LEVEL[currentUserPlan] || 0) >= (PLAN_LEVEL[required] || 0);
+}
+
+/** Show/hide the PRO lock styling on nav items based on current plan. */
+function updateNavLocks(plan) {
+  document.querySelectorAll('.nav-item[data-plan]').forEach(item => {
+    const required = item.dataset.plan || 'free';
+    const locked   = !userHasPlan(required);
+    item.classList.toggle('locked', locked);
+  });
+}
+
+/** Show the upgrade-required modal for a named feature. */
+function showUpgradeModal(featureName) {
+  document.getElementById('upgrade-feat-name').textContent = featureName || 'This feature';
+  document.getElementById('upgrade-modal').classList.remove('hidden');
+}
+
+/** Show the grace-period-expired modal. */
+function showGraceModal(days, msg) {
+  const message = msg ||
+    `Your license has not been verified for ${days} days (grace period: ${config.OFFLINE_GRACE_DAYS} days).`;
+  document.getElementById('grace-msg').textContent = message;
+  document.getElementById('grace-modal').classList.remove('hidden');
+}
 
 // ── Force component color palette (used by Plotly chart) ──
 const FORCE_COLORS = {
@@ -234,6 +270,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', e => {
       e.preventDefault();
+      // Plan gate: show upgrade modal if feature requires a higher plan
+      const requiredPlan = btn.dataset.plan || 'free';
+      if (!userHasPlan(requiredPlan)) {
+        const label = btn.textContent.trim().replace(/PRO/g, '').trim();
+        showUpgradeModal(label);
+        return;
+      }
       document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
@@ -244,6 +287,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
+
+  // Upgrade modal close
+  ['btn-upgrade-close', 'btn-upgrade-dismiss'].forEach(id =>
+    document.getElementById(id).addEventListener('click', () =>
+      document.getElementById('upgrade-modal').classList.add('hidden')));
+
+  // Grace modal close
+  ['btn-grace-close', 'btn-grace-dismiss'].forEach(id =>
+    document.getElementById(id).addEventListener('click', () =>
+      document.getElementById('grace-modal').classList.add('hidden')));
 
   // Core buttons
   document.getElementById('btn-reconnect').addEventListener('click', checkStatus);
@@ -662,7 +715,18 @@ async function apiCall(endpoint, method = 'GET') {
   if (!res.ok) {
     if (res.status === 401) { localStorage.removeItem(AUTH_KEY); showAuthOverlay(); return; }
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `HTTP ${res.status}`);
+    if (res.status === 402) {
+      const d = typeof err.detail === 'object' ? err.detail : {};
+      showGraceModal(d.days || '?', d.message || 'License verification required.');
+      throw new Error('grace_expired');
+    }
+    if (res.status === 403) {
+      const d = typeof err.detail === 'object' ? err.detail : {};
+      const feat = d.required ? d.required.charAt(0).toUpperCase() + d.required.slice(1) + ' feature' : 'This feature';
+      showUpgradeModal(feat);
+      throw new Error('plan_required');
+    }
+    throw new Error(typeof err.detail === 'string' ? err.detail : `HTTP ${res.status}`);
   }
   return res.json();
 }
@@ -2018,6 +2082,15 @@ async function lcGenerateBatch() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ combinations })
     });
+    if (res.status === 402) {
+      const d = (await res.json().catch(() => ({}))).detail || {};
+      showGraceModal(d.days || '?', d.message || 'License verification required.');
+      return;
+    }
+    if (res.status === 403) {
+      showUpgradeModal('Load Combinations');
+      return;
+    }
     const data = await res.json();
     statusEl.classList.remove('hidden', 'ok', 'err');
     if (data.status === 'success') {

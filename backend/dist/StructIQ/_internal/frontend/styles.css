@@ -1923,3 +1923,80 @@ body {
 
 .user-logout-btn:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
 .combo-picker-item:hover span   { color: var(--blue); }
+
+/* ================================================================
+   Plan / License enforcement  (v35)
+   ================================================================ */
+
+/* PRO badge inside nav items */
+.nav-plan-badge {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  color: #fff;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+/* Dim locked nav items */
+.nav-item.locked { opacity: 0.55; }
+.nav-item.locked:hover { opacity: 0.75; }
+
+/* Upgrade modal */
+.upgrade-box,
+.grace-box   { max-width: 380px; }
+
+.upgrade-body {
+  padding: 20px 24px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.upgrade-badge {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 4px 14px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.upgrade-feat-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--t1);
+  margin: 0;
+}
+
+.upgrade-desc {
+  font-size: var(--fs-base);
+  color: var(--t2);
+  margin: 0;
+}
+
+.upgrade-contact {
+  font-size: var(--fs-md);
+  color: var(--t2);
+  margin: 8px 0 0;
+  line-height: 1.65;
+}
+
+/* Grace modal warning title */
+.grace-title { color: var(--amber); }
+
+.grace-msg {
+  font-size: var(--fs-base);
+  font-weight: 500;
+  color: var(--amber);
+  margin: 0;
+}
