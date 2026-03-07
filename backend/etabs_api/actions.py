@@ -476,6 +476,86 @@ def get_joint_reactions(names: Optional[List[str]] = None, load_type: str = "com
         return {"error": f"Failed to retrieve joint reactions: {str(e)}"}
 
 
+def get_frame_sections():
+    """Returns all frame section names and their key properties from the active ETABS model."""
+    SapModel = get_active_etabs()
+    if not SapModel:
+        return {"error": "ETABS is not currently running."}
+    try:
+        ret = SapModel.PropFrame.GetNameList()
+        if ret[-1] != 0:
+            return {"error": "Failed to retrieve section list from ETABS."}
+        names = list(ret[1]) if ret[1] else []
+        sections = []
+        for name in names:
+            sec = {"name": name, "type": "Unknown", "material": "", "b": None, "h": None, "area": None, "I33": None, "I22": None}
+            # Computed section properties (area, moment of inertia, etc.)
+            try:
+                props = SapModel.PropFrame.GetSectProps(name)
+                # (Area, As2, As3, I22, I33, J, S22, S33, Z22, Z33, R22, R33, retcode)
+                if props[-1] == 0:
+                    sec["area"] = round(float(props[0]), 6)
+                    sec["I22"]  = round(float(props[3]), 6)
+                    sec["I33"]  = round(float(props[4]), 6)
+            except Exception:
+                pass
+            # Rectangular section: try GetRectangle
+            try:
+                rect = SapModel.PropFrame.GetRectangle(name)
+                # (material, t3=depth, t2=width, color, notes, guid, retcode)
+                if rect[-1] == 0:
+                    sec["type"]     = "Rectangular"
+                    sec["material"] = rect[0]
+                    sec["h"]        = round(float(rect[1]), 6)  # t3 = depth
+                    sec["b"]        = round(float(rect[2]), 6)  # t2 = width
+            except Exception:
+                pass
+            sections.append(sec)
+        # Get available materials for the Add Beam dialog
+        try:
+            mat_ret = SapModel.PropMaterial.GetNameList()
+            materials = list(mat_ret[1]) if mat_ret[-1] == 0 else []
+        except Exception:
+            materials = []
+        return {"status": "success", "sections": sections, "materials": materials}
+    except Exception as e:
+        return {"error": f"Failed to get frame sections: {str(e)}"}
+
+
+def set_rectangular_section_dims(name: str, b: float, h: float):
+    """Modifies width (b) and depth (h) of an existing rectangular frame section in ETABS."""
+    SapModel = get_active_etabs()
+    if not SapModel:
+        return {"error": "ETABS is not currently running."}
+    try:
+        rect = SapModel.PropFrame.GetRectangle(name)
+        if rect[-1] != 0:
+            return {"error": f"'{name}' is not a rectangular section or was not found."}
+        material = rect[0]
+        ret = SapModel.PropFrame.SetRectangle(name, material, h, b)
+        if ret != 0:
+            return {"error": f"ETABS rejected the section update (code {ret})."}
+        area = round(b * h, 6)
+        return {"status": "success", "message": f"Section '{name}' updated: b={b}, h={h}, A≈{area}", "area": area}
+    except Exception as e:
+        return {"error": f"Failed to modify section: {str(e)}"}
+
+
+def add_rectangular_section(name: str, material: str, b: float, h: float):
+    """Creates a new rectangular frame section in ETABS."""
+    SapModel = get_active_etabs()
+    if not SapModel:
+        return {"error": "ETABS is not currently running."}
+    try:
+        ret = SapModel.PropFrame.SetRectangle(name, material, h, b)
+        if ret != 0:
+            return {"error": f"ETABS rejected section creation (code {ret})."}
+        area = round(b * h, 6)
+        return {"status": "success", "message": f"Section '{name}' created ({material}, b={b}×h={h}, A={area})", "area": area}
+    except Exception as e:
+        return {"error": f"Failed to add section: {str(e)}"}
+
+
 def get_base_reactions(combo_name: Optional[str] = None, load_type: str = "combo"):
     """
     Returns real base reactions from ETABS.

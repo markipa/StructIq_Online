@@ -2116,3 +2116,197 @@ body {
   color: var(--amber);
   margin: 0;
 }
+
+/* ================================================================
+   BEAM SECTIONS PANEL
+   ================================================================ */
+
+/* ── Panel header: allow controls to sit on one row, title group shrinks ── */
+#sections-panel .panel-header {
+  align-items: center;
+  flex-wrap: wrap;
+  row-gap: 10px;
+}
+#sections-panel .panel-title-group {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+#sections-panel .panel-title { font-size: var(--fs-xl); }
+#sections-panel .header-controls { flex-shrink: 0; flex-wrap: wrap; }
+
+/* ── Visibility helpers scoped to sections panel ── */
+#sections-empty.hidden  { display: none; }
+#sections-table.hidden  { display: none; }
+
+/* ── Table wrapper ── */
+.sec-table-wrap {
+  flex: 1;
+  overflow: auto;
+  padding: 0 24px 24px;
+}
+
+/* ── Sections table ── */
+.sec-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+.sec-table thead th {
+  position: sticky; top: 0;
+  background: var(--bg-header);
+  padding: 8px 10px;
+  text-align: left;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--t2);
+  border-bottom: 1px solid var(--bdr-sm);
+  white-space: nowrap;
+}
+.sec-table thead th.num { text-align: right; }
+.sec-table tbody tr {
+  border-bottom: 1px solid var(--bdr-xs);
+  transition: background .12s;
+}
+.sec-table tbody tr:hover { background: var(--bg-hover); }
+.sec-table tbody td {
+  padding: 8px 10px;
+  color: var(--t1);
+  vertical-align: middle;
+}
+.sec-table tbody td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.sec-name-cell { font-weight: 600; color: var(--blue); }
+
+/* ── Section Edit modal ── */
+.sec-edit-box {
+  max-width: 560px;
+  width: 100%;
+}
+
+.sec-edit-body {
+  display: flex;
+  gap: 24px;
+  padding: 20px 24px;
+}
+
+/* SVG section preview */
+.sec-preview-wrap {
+  width: 130px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-subtle);
+  border: 1px solid var(--bdr-sm);
+  border-radius: var(--r-md);
+}
+.sec-preview-svg {
+  width: 110px;
+  height: 150px;
+}
+
+/* Fields column */
+.sec-edit-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+}
+
+.sec-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sec-field-lbl {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--t2);
+}
+.sec-field-inp {
+  height: var(--h-input);
+  padding: 0 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--bdr-md);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-base);
+  color: var(--t1);
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color .15s, box-shadow .15s;
+}
+.sec-field-inp:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--bdr-focus);
+}
+
+/* Scale row */
+.sec-scale-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.sec-scale-row .sec-field-inp { flex: 1; }
+.sec-scale-hint {
+  font-size: var(--fs-xs);
+  color: var(--t3);
+  margin-top: 2px;
+}
+
+/* Computed area preview row */
+.sec-area-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-subtle);
+  border: 1px solid var(--bdr-sm);
+  border-radius: var(--r-sm);
+  padding: 8px 12px;
+  margin-top: 2px;
+}
+.sec-area-lbl {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--t2);
+}
+.sec-area-val {
+  font-size: var(--fs-base);
+  font-weight: 700;
+  color: var(--blue);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Modal footer */
+.sec-edit-footer {
+  border-top: 1px solid var(--bdr-sm);
+  padding: 14px 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ── AutoGenerate result box ── */
+.sec-ag-result {
+  background: var(--blue-dim);
+  border: 1px solid var(--blue-border);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sec-ag-result.hidden { display: none; }
+.sec-ag-result-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: var(--fs-sm);
+}
+.sec-ag-result-lbl { color: var(--t2); }
+.sec-ag-result strong { color: var(--t1); font-variant-numeric: tabular-nums; }

@@ -2266,3 +2266,364 @@ function lcApplyTemplate(template, rowEl) {
     lcStyleFactor(inp);
   });
 }
+
+
+// ================================================================
+//  BEAM SECTIONS MODULE
+// ================================================================
+
+let secSections = [];     // cached sections from last import
+let secMaterials = [];    // available materials
+let secEditOrig  = null;  // {b, h} when edit modal opened
+
+function fmt6(v) {
+  if (v == null || isNaN(v)) return '—';
+  return v.toFixed(6).replace(/\.?0+$/, '') || '0';
+}
+
+function secUpdateAreaPreview() {
+  const b = parseFloat(document.getElementById('sec-edit-b').value) || 0;
+  const h = parseFloat(document.getElementById('sec-edit-h').value) || 0;
+  const area = b * h;
+  document.getElementById('sec-edit-area-preview').textContent = area > 0 ? fmt6(area) + ' m²' : '—';
+  secUpdatePreviewSvg(b, h);
+}
+
+function secAddUpdateAreaPreview() {
+  const b = parseFloat(document.getElementById('sec-add-b').value) || 0;
+  const h = parseFloat(document.getElementById('sec-add-h').value) || 0;
+  const area = b * h;
+  document.getElementById('sec-add-area-preview').textContent = area > 0 ? fmt6(area) + ' m²' : '—';
+}
+
+function secAgUpdateAreaPreview() {
+  const b = parseFloat(document.getElementById('sec-ag-span').value) || 0;
+  // not applicable here
+}
+
+function secUpdatePreviewSvg(b, h) {
+  const svgEl = document.getElementById('sec-preview-svg');
+  const rectEl = document.getElementById('sec-prev-rect');
+  if (!svgEl || !rectEl) return;
+  const aspect = h > 0 && b > 0 ? h / b : 2;
+  const maxW = 80, maxH = 120;
+  let rw, rh;
+  if (aspect >= maxH / maxW) { rh = maxH; rw = maxH / aspect; }
+  else { rw = maxW; rh = maxW * aspect; }
+  const x = (120 - rw) / 2, y = (160 - rh) / 2;
+  rectEl.setAttribute('x', x);
+  rectEl.setAttribute('y', y);
+  rectEl.setAttribute('width', rw);
+  rectEl.setAttribute('height', rh);
+}
+
+function secRenderTable(sections) {
+  const tbody  = document.getElementById('sections-tbody');
+  const table  = document.getElementById('sections-table');
+  const empty  = document.getElementById('sections-empty');
+  tbody.innerHTML = '';
+  if (!sections || !sections.length) {
+    table.classList.add('hidden');
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  table.classList.remove('hidden');
+  sections.forEach(sec => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="sec-name-cell">${sec.name}</td>
+      <td>${sec.type}</td>
+      <td>${sec.material || '—'}</td>
+      <td class="num">${sec.b != null ? sec.b : '—'}</td>
+      <td class="num">${sec.h != null ? sec.h : '—'}</td>
+      <td class="num">${sec.area != null ? fmt6(sec.area) : '—'}</td>
+      <td class="num">${sec.I33 != null ? sec.I33.toExponential(3) : '—'}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm sec-edit-btn" data-name="${sec.name}" title="Edit dimensions">
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"
+               stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9.5 2.5l2 2L4 12H2v-2z"/>
+          </svg>
+          Edit
+        </button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.sec-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => secOpenEditModal(btn.dataset.name));
+  });
+}
+
+function secOpenEditModal(name) {
+  const sec = secSections.find(s => s.name === name);
+  if (!sec) return;
+  document.getElementById('sec-edit-title').textContent = `Edit — ${name}`;
+  document.getElementById('sec-edit-name').value = name;
+  document.getElementById('sec-edit-b').value = sec.b ?? '';
+  document.getElementById('sec-edit-h').value = sec.h ?? '';
+  document.getElementById('sec-edit-scale').value = 100;
+  secEditOrig = { b: sec.b, h: sec.h };
+  secUpdateAreaPreview();
+  document.getElementById('sec-edit-modal').classList.remove('hidden');
+}
+
+function secCloseEditModal() {
+  document.getElementById('sec-edit-modal').classList.add('hidden');
+  secEditOrig = null;
+}
+
+async function secSaveEdit() {
+  const name = document.getElementById('sec-edit-name').value;
+  const b    = parseFloat(document.getElementById('sec-edit-b').value);
+  const h    = parseFloat(document.getElementById('sec-edit-h').value);
+  if (!name || isNaN(b) || isNaN(h) || b <= 0 || h <= 0) {
+    showToast('Enter valid positive values for b and h.', 'error'); return;
+  }
+  const btn = document.getElementById('btn-sec-edit-save');
+  btn.disabled = true;
+  try {
+    const res = await authFetch('/api/sections/modify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, b, h }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.detail || 'Failed to save.', 'error'); return; }
+    showToast(data.message || 'Section updated in ETABS.', 'success');
+    secCloseEditModal();
+    // Refresh local cache
+    const idx = secSections.findIndex(s => s.name === name);
+    if (idx !== -1) {
+      secSections[idx].b    = b;
+      secSections[idx].h    = h;
+      secSections[idx].area = b * h;
+    }
+    secRenderTable(secSections);
+  } catch (e) {
+    showToast('Network error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Apply area scale to b and h (uniform √scale)
+function secApplyScale() {
+  const pct = parseFloat(document.getElementById('sec-edit-scale').value);
+  if (isNaN(pct) || pct <= 0) { showToast('Enter a valid scale percentage.', 'error'); return; }
+  const origB = parseFloat(document.getElementById('sec-edit-b').value) || (secEditOrig && secEditOrig.b) || 0;
+  const origH = parseFloat(document.getElementById('sec-edit-h').value) || (secEditOrig && secEditOrig.h) || 0;
+  const factor = Math.sqrt(pct / 100);
+  document.getElementById('sec-edit-b').value = (origB * factor).toFixed(4);
+  document.getElementById('sec-edit-h').value = (origH * factor).toFixed(4);
+  secUpdateAreaPreview();
+}
+
+// ── Import from ETABS ──────────────────────────────────────────────────────────
+async function secImport() {
+  const btn = document.getElementById('btn-import-sections');
+  btn.disabled = true;
+  try {
+    const res  = await authFetch('/api/sections');
+    const data = await res.json();
+    if (!res.ok) { showToast(data.detail || 'Failed to import sections.', 'error'); return; }
+    secSections  = data.sections || [];
+    secMaterials = data.materials || [];
+    secRenderTable(secSections);
+    secPopulateMaterials();
+    showToast(`Loaded ${secSections.length} section(s) from ETABS.`, 'success');
+  } catch (e) {
+    showToast('Network error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function secPopulateMaterials() {
+  ['sec-add-material', 'sec-ag-material'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = '';
+    secMaterials.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = m;
+      sel.appendChild(opt);
+    });
+    if (!secMaterials.length) {
+      const opt = document.createElement('option');
+      opt.value = 'Concrete'; opt.textContent = 'Concrete';
+      sel.appendChild(opt);
+    }
+  });
+}
+
+// ── Add Beam modal ─────────────────────────────────────────────────────────────
+function secOpenAddModal() {
+  secPopulateMaterials();
+  document.getElementById('sec-add-name').value = '';
+  document.getElementById('sec-add-b').value    = '';
+  document.getElementById('sec-add-h').value    = '';
+  document.getElementById('sec-add-area-preview').textContent = '—';
+  document.getElementById('sec-add-modal').classList.remove('hidden');
+}
+
+async function secSaveAdd() {
+  const name     = document.getElementById('sec-add-name').value.trim();
+  const material = document.getElementById('sec-add-material').value;
+  const b        = parseFloat(document.getElementById('sec-add-b').value);
+  const h        = parseFloat(document.getElementById('sec-add-h').value);
+  if (!name) { showToast('Enter a section name.', 'error'); return; }
+  if (isNaN(b) || isNaN(h) || b <= 0 || h <= 0) { showToast('Enter valid dimensions.', 'error'); return; }
+  const btn = document.getElementById('btn-sec-add-save');
+  btn.disabled = true;
+  try {
+    const res  = await authFetch('/api/sections/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, material, b, h }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.detail || 'Failed to create section.', 'error'); return; }
+    showToast(data.message || 'Section created in ETABS.', 'success');
+    document.getElementById('sec-add-modal').classList.add('hidden');
+    // Append locally
+    secSections.push({ name, type: 'Rectangular', material, b, h, area: b * h, I33: null, I22: null });
+    secRenderTable(secSections);
+  } catch (e) {
+    showToast('Network error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── AutoGenerate modal ─────────────────────────────────────────────────────────
+let secAgResult = null;  // {b, h} from calculation
+
+function secOpenAutogenModal() {
+  secPopulateMaterials();
+  document.getElementById('sec-ag-name').value     = '';
+  document.getElementById('sec-ag-span').value     = '';
+  document.getElementById('sec-ag-load').value     = '';
+  document.getElementById('sec-ag-strength').value = '';
+  document.getElementById('sec-ag-result').classList.add('hidden');
+  document.getElementById('btn-sec-ag-create').disabled = true;
+  secAgResult = null;
+  document.getElementById('sec-autogen-modal').classList.remove('hidden');
+}
+
+function secAgCalculate() {
+  const L  = parseFloat(document.getElementById('sec-ag-span').value);
+  const w  = parseFloat(document.getElementById('sec-ag-load').value);    // kN/m
+  const fc = parseFloat(document.getElementById('sec-ag-strength').value); // MPa
+  if (isNaN(L) || isNaN(w) || isNaN(fc) || L <= 0 || w <= 0 || fc <= 0) {
+    showToast('Enter valid span, load, and strength values.', 'error'); return;
+  }
+  // Simple rule-of-thumb for rectangular RC beam:
+  // h ≈ L/12 (deflection), b ≈ h/2, then check Mu
+  // Mu = wL²/8 (kN·m), required bd² ≈ Mu/(0.138 fc) [m³], assume b=h/2
+  const Mu    = (w * L * L) / 8;          // kN·m
+  const fc_kN = fc * 1000;                // kN/m²
+  const bd2   = (Mu * 1000) / (0.138 * fc_kN); // m³  (Mu in kN·m → ×1000 = kN·m... keep consistent)
+  // Actually: Mu in N·mm, fc in N/mm². Convert: Mu = w[kN/m]×L²/8 → kN·m → ×10⁶ N·mm
+  // Required bd²: Mu/(0.138 fc) [N·mm·mm⁻²] = mm³
+  const Mu_Nmm = Mu * 1e6;               // N·mm
+  const bd2_mm3 = Mu_Nmm / (0.138 * fc); // mm³  (fc in N/mm²)
+  // Assume b = h/2 → h³/2 = bd2 → h = (2·bd2)^(1/3)
+  let h_mm = Math.pow(2 * bd2_mm3, 1 / 3);
+  let b_mm = h_mm / 2;
+  // Round up to nearest 50mm
+  h_mm = Math.ceil(h_mm / 50) * 50;
+  b_mm = Math.ceil(b_mm / 50) * 50;
+  // Minimum depth check: L/12
+  const h_min = Math.ceil((L * 1000 / 12) / 50) * 50;
+  if (h_mm < h_min) { h_mm = h_min; b_mm = Math.ceil((h_mm / 2) / 50) * 50; }
+  const b_m = b_mm / 1000, h_m = h_mm / 1000;
+  secAgResult = { b: b_m, h: h_m };
+  const resultEl = document.getElementById('sec-ag-result');
+  resultEl.classList.remove('hidden');
+  resultEl.innerHTML = `
+    <div class="sec-ag-result-row">
+      <span class="sec-ag-result-lbl">Recommended b</span>
+      <strong>${b_mm} mm (${b_m} m)</strong>
+    </div>
+    <div class="sec-ag-result-row">
+      <span class="sec-ag-result-lbl">Recommended h</span>
+      <strong>${h_mm} mm (${h_m} m)</strong>
+    </div>
+    <div class="sec-ag-result-row">
+      <span class="sec-ag-result-lbl">Area</span>
+      <strong>${fmt6(b_m * h_m)} m²</strong>
+    </div>
+    <div class="sec-ag-result-row">
+      <span class="sec-ag-result-lbl">Mu</span>
+      <strong>${Mu.toFixed(1)} kN·m</strong>
+    </div>`;
+  document.getElementById('btn-sec-ag-create').disabled = false;
+}
+
+async function secAgCreate() {
+  if (!secAgResult) return;
+  const name     = document.getElementById('sec-ag-name').value.trim();
+  const material = document.getElementById('sec-ag-material').value;
+  if (!name) { showToast('Enter a section name.', 'error'); return; }
+  const { b, h } = secAgResult;
+  const btn = document.getElementById('btn-sec-ag-create');
+  btn.disabled = true;
+  try {
+    const res  = await authFetch('/api/sections/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, material, b, h }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.detail || 'Failed to create section.', 'error'); return; }
+    showToast(data.message || 'Section created in ETABS.', 'success');
+    document.getElementById('sec-autogen-modal').classList.add('hidden');
+    secSections.push({ name, type: 'Rectangular', material, b, h, area: b * h, I33: null, I22: null });
+    secRenderTable(secSections);
+  } catch (e) {
+    showToast('Network error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── Wire up event listeners ────────────────────────────────────────────────────
+(function initSections() {
+  // Main toolbar buttons
+  document.getElementById('btn-import-sections').addEventListener('click', secImport);
+  document.getElementById('btn-add-section').addEventListener('click', secOpenAddModal);
+  document.getElementById('btn-autogen-section').addEventListener('click', secOpenAutogenModal);
+
+  // Edit modal
+  document.getElementById('btn-sec-edit-close').addEventListener('click', secCloseEditModal);
+  document.getElementById('btn-sec-edit-cancel').addEventListener('click', secCloseEditModal);
+  document.getElementById('btn-sec-edit-save').addEventListener('click', secSaveEdit);
+  document.getElementById('btn-sec-apply-scale').addEventListener('click', secApplyScale);
+  document.getElementById('sec-edit-b').addEventListener('input', secUpdateAreaPreview);
+  document.getElementById('sec-edit-h').addEventListener('input', secUpdateAreaPreview);
+
+  // Add beam modal
+  document.getElementById('btn-sec-add-close').addEventListener('click', () =>
+    document.getElementById('sec-add-modal').classList.add('hidden'));
+  document.getElementById('btn-sec-add-cancel').addEventListener('click', () =>
+    document.getElementById('sec-add-modal').classList.add('hidden'));
+  document.getElementById('btn-sec-add-save').addEventListener('click', secSaveAdd);
+  document.getElementById('sec-add-b').addEventListener('input', secAddUpdateAreaPreview);
+  document.getElementById('sec-add-h').addEventListener('input', secAddUpdateAreaPreview);
+
+  // AutoGenerate modal
+  document.getElementById('btn-sec-autogen-close').addEventListener('click', () =>
+    document.getElementById('sec-autogen-modal').classList.add('hidden'));
+  document.getElementById('btn-sec-ag-cancel').addEventListener('click', () =>
+    document.getElementById('sec-autogen-modal').classList.add('hidden'));
+  document.getElementById('btn-sec-ag-calc').addEventListener('click', secAgCalculate);
+  document.getElementById('btn-sec-ag-create').addEventListener('click', secAgCreate);
+
+  // Close modals on overlay click
+  ['sec-edit-modal', 'sec-add-modal', 'sec-autogen-modal'].forEach(id => {
+    document.getElementById(id).addEventListener('click', e => {
+      if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
+    });
+  });
+})();

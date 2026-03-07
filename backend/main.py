@@ -539,6 +539,48 @@ def get_joint_reactions(
     return res
 
 
+class SectionModifyRequest(BaseModel):
+    name: str
+    b: float
+    h: float
+
+class SectionAddRequest(BaseModel):
+    name: str
+    material: str
+    b: float
+    h: float
+
+@app.get("/api/sections")
+def get_sections(_u: dict = Depends(require_plan("pro"))):
+    """Returns all frame sections from ETABS with dimensions and computed properties."""
+    res = actions.get_frame_sections()
+    if "error" in res:
+        raise HTTPException(status_code=500, detail=res["error"])
+    return res
+
+@app.post("/api/sections/modify")
+def modify_section(
+    request: SectionModifyRequest,
+    _u: dict = Depends(require_plan("pro")),
+):
+    """Modify width and depth of an existing rectangular frame section."""
+    res = actions.set_rectangular_section_dims(request.name, request.b, request.h)
+    if "error" in res:
+        raise HTTPException(status_code=500, detail=res["error"])
+    return res
+
+@app.post("/api/sections/add")
+def add_section(
+    request: SectionAddRequest,
+    _u: dict = Depends(require_plan("pro")),
+):
+    """Create a new rectangular frame section in ETABS."""
+    res = actions.add_rectangular_section(request.name, request.material, request.b, request.h)
+    if "error" in res:
+        raise HTTPException(status_code=500, detail=res["error"])
+    return res
+
+
 @app.get("/api/results/reactions")
 def get_reactions(
     combo: str = Query(default=None, description="Filter by a specific load combination or case name"),
