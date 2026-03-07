@@ -2214,17 +2214,19 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 14px;
   color: var(--t3);
   text-align: center;
-  padding: 40px 24px;
+  padding: 48px 24px 40px;
   background: var(--bg-card);
   border: 1px solid var(--bdr-sm);
   border-radius: var(--r-md);
 }
 .rcb-table-empty p { font-size: var(--fs-sm); color: var(--t2); line-height: 1.6; }
 .rcb-table-empty strong { color: var(--t1); }
+
+#rcb-table-wrap.hidden { display: none; }
 
 .rcb-table-wrap {
   flex: 1;
