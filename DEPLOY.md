@@ -45,11 +45,12 @@ StructIQ/
 |---|---|---|
 | `ADMIN_SECRET` | Yes | Protects `/admin/*` endpoints |
 | `PLAN_SYNC_KEY` | Yes | Shared secret between desktop app and Railway |
-| `STRIPE_SECRET_KEY` | Yes (for payments) | Stripe secret key (`sk_live_...`) |
-| `STRIPE_PUBLISHABLE_KEY` | Yes (for payments) | Stripe publishable key (`pk_live_...`) |
-| `STRIPE_WEBHOOK_SECRET` | Yes (for payments) | Stripe webhook signing secret (`whsec_...`) |
-| `STRIPE_PRICE_MONTHLY` | Optional | Monthly price ID (default: `price_1T7x...`) |
-| `STRIPE_PRICE_YEARLY` | Optional | Yearly price ID (default: `price_1T7x...`) |
+| `LS_API_KEY` | Yes (for payments) | Lemon Squeezy API key |
+| `LS_WEBHOOK_SECRET` | Yes (for payments) | Lemon Squeezy webhook signing secret |
+| `LS_STORE_ID` | Yes (for payments) | Your Lemon Squeezy store ID |
+| `LS_VARIANT_MONTHLY` | Yes (for payments) | Variant ID for monthly PRO plan |
+| `LS_VARIANT_YEARLY` | Yes (for payments) | Variant ID for yearly PRO plan |
+| `BASE_URL` | Optional | Override Railway URL for redirect links |
 | `PORT` | Auto | Set by Railway automatically |
 
 6. Railway gives you a URL like:
@@ -61,15 +62,16 @@ StructIQ/
 
 ---
 
-## Step 2 — Configure Stripe Webhooks
+## Step 2 — Configure Lemon Squeezy Webhooks
 
-1. In Stripe Dashboard → **Webhooks** → **Add endpoint**
+1. In Lemon Squeezy Dashboard → **Settings** → **Webhooks** → **Add webhook**
 2. URL: `https://your-url.railway.app/stripe/webhook`
-3. Events to listen for:
-   - `checkout.session.completed`
-   - `customer.subscription.deleted`
-   - `customer.subscription.paused`
-4. Copy the **Signing Secret** → add as `STRIPE_WEBHOOK_SECRET` in Railway
+3. Events to enable:
+   - `subscription_created`
+   - `subscription_updated`
+   - `subscription_cancelled`
+   - `subscription_expired`
+4. Copy the **Signing Secret** → add as `LS_WEBHOOK_SECRET` in Railway
 
 ---
 
@@ -229,9 +231,11 @@ Then point `config.py` → `CLOUD_URL = "http://localhost:9000"`.
 |---|---|
 | `ADMIN_SECRET` | Keep this secret; used for all `/admin/*` calls |
 | `PLAN_SYNC_KEY` | Must match `PLAN_SYNC_KEY` in `config.py` |
-| `STRIPE_SECRET_KEY` | From Stripe Dashboard |
-| `STRIPE_PUBLISHABLE_KEY` | From Stripe Dashboard |
-| `STRIPE_WEBHOOK_SECRET` | From Stripe Webhook settings |
+| `LS_API_KEY` | From Lemon Squeezy → Settings → API |
+| `LS_WEBHOOK_SECRET` | From Lemon Squeezy → Settings → Webhooks |
+| `LS_STORE_ID` | Your store ID (shown in LS dashboard URL) |
+| `LS_VARIANT_MONTHLY` | Variant ID for the monthly PRO product |
+| `LS_VARIANT_YEARLY` | Variant ID for the yearly PRO product |
 
 ### Local app (`config.py` or environment)
 | Variable | Notes |

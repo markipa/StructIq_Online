@@ -344,7 +344,7 @@ def cloud_sync(request: Request, current_user: dict = Depends(get_current_user))
     }
 
 
-# ─── Stripe checkout proxy ────────────────────────────────────────────────────
+# ─── Billing checkout proxy ───────────────────────────────────────────────────
 
 class StripeCheckoutRequest(BaseModel):
     interval: str   # "monthly" | "yearly"
@@ -355,7 +355,7 @@ def stripe_checkout(
     current_user: dict = Depends(get_current_user),
 ):
     """
-    Proxy Stripe checkout through the Railway cloud server.
+    Proxy billing checkout through the Railway cloud server (Lemon Squeezy).
     Authenticated locally — passes the user's email to Railway.
     Uses a direct requests call (not _cloud_post) so errors are surfaced.
     """

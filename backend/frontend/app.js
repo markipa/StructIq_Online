@@ -204,12 +204,12 @@ function showGraceModal(days, msg) {
   document.getElementById('grace-modal').classList.remove('hidden');
 }
 
-/** Open a Stripe Checkout session for the selected interval (monthly | yearly). */
+/** Open a Lemon Squeezy Checkout session for the selected interval (monthly | yearly). */
 async function openStripeCheckout(interval) {
   const btn = document.getElementById('btn-subscribe');
 
   // Disable button while we create the session
-  if (btn) { btn.disabled = true; btn.textContent = 'Opening Stripe…'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Opening checkout…'; }
 
   try {
     // Route through local backend — it proxies to Railway and handles auth.
@@ -222,16 +222,16 @@ async function openStripeCheckout(interval) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Failed to create checkout session');
 
-    // Open Stripe Checkout in the user's default browser
+    // Open Lemon Squeezy Checkout in the user's default browser
     if (data.checkout_url) {
       window.open(data.checkout_url, '_blank');
       document.getElementById('upgrade-modal').classList.add('hidden');
-      showToast('Stripe Checkout opened in your browser!', 'success');
+      showToast('Checkout opened in your browser!', 'success');
     }
   } catch (err) {
     showToast('Could not start checkout: ' + err.message, 'error');
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Subscribe with Stripe'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Subscribe Now'; }
   }
 }
 

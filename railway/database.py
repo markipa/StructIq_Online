@@ -35,9 +35,11 @@ def init_db():
                 plan                   TEXT    NOT NULL DEFAULT 'free',
                 is_active              INTEGER NOT NULL DEFAULT 1,
                 created_at             TEXT    NOT NULL DEFAULT (datetime('now')),
-                stripe_customer_id     TEXT,
-                stripe_subscription_id TEXT,
-                subscription_interval  TEXT
+                ls_customer_id         TEXT,
+                ls_subscription_id     TEXT,
+                subscription_interval  TEXT,
+                expiration_date        TEXT,
+                last_access            TEXT
             );
             CREATE TABLE IF NOT EXISTS sessions (
                 token      TEXT    PRIMARY KEY,
@@ -54,11 +56,18 @@ def init_db():
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             );
         """)
-        # Migrate existing DBs — add new columns if missing
+        # Migrate existing DBs — add / rename columns if missing
         for col_sql in [
-            "ALTER TABLE users ADD COLUMN stripe_customer_id TEXT",
-            "ALTER TABLE users ADD COLUMN stripe_subscription_id TEXT",
+            # New installs
+            "ALTER TABLE users ADD COLUMN ls_customer_id TEXT",
+            "ALTER TABLE users ADD COLUMN ls_subscription_id TEXT",
             "ALTER TABLE users ADD COLUMN subscription_interval TEXT",
+            # Rename old Stripe columns for existing deployments
+            "ALTER TABLE users RENAME COLUMN stripe_customer_id TO ls_customer_id",
+            "ALTER TABLE users RENAME COLUMN stripe_subscription_id TO ls_subscription_id",
+            # License manager columns
+            "ALTER TABLE users ADD COLUMN expiration_date TEXT",
+            "ALTER TABLE users ADD COLUMN last_access TEXT",
         ]:
             try:
                 c.execute(col_sql)
@@ -141,22 +150,22 @@ def update_user_plan_by_email(email: str, plan: str) -> bool:
         )
         return cur.rowcount > 0
 
-def update_stripe_customer(user_id: int, customer_id: str):
+def update_ls_customer(user_id: int, customer_id: str):
     with _conn() as c:
-        c.execute("UPDATE users SET stripe_customer_id = ? WHERE id = ?",
+        c.execute("UPDATE users SET ls_customer_id = ? WHERE id = ?",
                   (customer_id, user_id))
 
-def update_stripe_subscription(email: str, subscription_id: str, interval: str):
+def update_ls_subscription(email: str, subscription_id: str, interval: str):
     with _conn() as c:
         c.execute(
-            "UPDATE users SET stripe_subscription_id = ?, subscription_interval = ? WHERE email = ?",
+            "UPDATE users SET ls_subscription_id = ?, subscription_interval = ? WHERE email = ?",
             (subscription_id, interval, email.lower().strip()),
         )
 
-def get_user_by_stripe_customer(customer_id: str) -> Optional[dict]:
+def get_user_by_ls_customer(customer_id: str) -> Optional[dict]:
     with _conn() as c:
         row = c.execute(
-            "SELECT * FROM users WHERE stripe_customer_id = ?", (customer_id,)
+            "SELECT * FROM users WHERE ls_customer_id = ?", (customer_id,)
         ).fetchone()
         return _safe(row)
 
@@ -164,9 +173,35 @@ def get_all_users() -> list:
     """Return all users (no passwords/salts) ordered by registration date."""
     with _conn() as c:
         rows = c.execute(
-            "SELECT id, email, name, plan, is_active, created_at FROM users ORDER BY id"
+            "SELECT id, email, name, plan, is_active, created_at, "
+            "expiration_date, last_access, ls_subscription_id, subscription_interval "
+            "FROM users ORDER BY id"
         ).fetchall()
         return [dict(r) for r in rows]
+
+def set_expiration(email: str, expiration_date: Optional[str]):
+    """Set or clear expiration date for a user (None = never expires)."""
+    with _conn() as c:
+        c.execute(
+            "UPDATE users SET expiration_date = ? WHERE email = ?",
+            (expiration_date or None, email.lower().strip()),
+        )
+
+def set_user_active(email: str, is_active: int):
+    """Enable (1) or disable (0) a user account."""
+    with _conn() as c:
+        c.execute(
+            "UPDATE users SET is_active = ? WHERE email = ?",
+            (is_active, email.lower().strip()),
+        )
+
+def update_last_access(user_id: int):
+    """Stamp last_access with current UTC time (called on every login)."""
+    with _conn() as c:
+        c.execute(
+            "UPDATE users SET last_access = datetime('now') WHERE id = ?",
+            (user_id,),
+        )
 
 
 # ─── Session CRUD ────────────────────────────────────────────────
