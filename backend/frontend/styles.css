@@ -2226,7 +2226,8 @@ body {
 .rcb-table-empty p { font-size: var(--fs-sm); color: var(--t2); line-height: 1.6; }
 .rcb-table-empty strong { color: var(--t1); }
 
-#rcb-table-wrap.hidden { display: none; }
+#rcb-table-empty.hidden { display: none; }
+#rcb-table-wrap.hidden  { display: none; }
 
 .rcb-table-wrap {
   flex: 1;
