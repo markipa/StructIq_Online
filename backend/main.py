@@ -553,3 +553,44 @@ def get_reactions(
     if "error" in res:
         raise HTTPException(status_code=500, detail=res["error"])
     return res
+
+
+# ─── RC Beam Section Generator endpoints ────────────────────────────────────
+
+class WriteBeamSectionsRequest(BaseModel):
+    sections: List[dict]
+
+@app.get("/api/rc-beam/materials")
+def rc_beam_get_materials(
+    _u: dict = Depends(require_plan("pro")),
+):
+    """Return all material names defined in the active ETABS model."""
+    res = actions.get_frame_materials()
+    if "error" in res:
+        raise HTTPException(status_code=500, detail=res["error"])
+    return res
+
+
+@app.get("/api/rc-beam/sections")
+def rc_beam_import_sections(
+    _u: dict = Depends(require_plan("pro")),
+):
+    """Import all rectangular frame sections from the active ETABS model."""
+    res = actions.get_rc_beam_sections()
+    if "error" in res:
+        raise HTTPException(status_code=500, detail=res["error"])
+    return res
+
+
+@app.post("/api/rc-beam/write")
+def rc_beam_write_sections(
+    request: WriteBeamSectionsRequest,
+    _u: dict = Depends(require_plan("pro")),
+):
+    """Create or update rectangular RC beam sections in ETABS."""
+    if not request.sections:
+        raise HTTPException(status_code=400, detail="No sections provided.")
+    res = actions.write_rc_beam_sections(request.sections)
+    if "error" in res:
+        raise HTTPException(status_code=500, detail=res["error"])
+    return res

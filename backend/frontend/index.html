@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml"  href="/app/favicon.svg">
   <link rel="icon" type="image/x-icon"   href="/favicon.ico">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/app/styles.css?v=37" />
+  <link rel="stylesheet" href="/app/styles.css?v=42" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
 <body>
@@ -96,6 +96,24 @@
           <rect x="10" y="10" width="6" height="6" rx="1"/>
         </svg>
         Load Combinations
+        <span class="nav-plan-badge">PRO</span>
+      </a>
+
+      <span class="nav-label" style="margin-top:12px">RC SECTIONS</span>
+
+      <a href="#" class="nav-item" data-target="rcbeam-panel" data-plan="pro">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 18 18" fill="none"
+             stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="6" width="14" height="8" rx="1"/>
+          <line x1="5"  y1="6"  x2="5"  y2="14"/>
+          <line x1="9"  y1="6"  x2="9"  y2="14"/>
+          <line x1="13" y1="6"  x2="13" y2="14"/>
+          <circle cx="5"  cy="8"  r="1" fill="currentColor" stroke="none"/>
+          <circle cx="13" cy="8"  r="1" fill="currentColor" stroke="none"/>
+          <circle cx="5"  cy="12" r="1" fill="currentColor" stroke="none"/>
+          <circle cx="13" cy="12" r="1" fill="currentColor" stroke="none"/>
+        </svg>
+        RCSGen Beam
         <span class="nav-plan-badge">PRO</span>
       </a>
     </nav>
@@ -808,7 +826,419 @@
 
     </section>
 
+    <!-- ───── RC BEAM SECTION GENERATOR ───── -->
+    <section id="rcbeam-panel" class="panel">
+
+      <!-- Panel header + toolbar -->
+      <div class="panel-header rcb-header">
+        <div class="panel-title-group">
+          <h1 class="panel-title">RC Beam Section Generator</h1>
+          <span class="panel-sub">Design rectangular concrete beam sections and sync with ETABS</span>
+        </div>
+        <div class="header-controls rcb-toolbar">
+
+          <button id="rcb-btn-import-mat" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 2v9M4 7l4 4 4-4"/>
+              <rect x="2" y="13" width="12" height="1.5" rx="0.75"/>
+            </svg>
+            Import Material
+          </button>
+
+          <button id="rcb-btn-clear" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 4h12M6 4V2h4v2M5 4v9a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V4"/>
+            </svg>
+            Clear
+          </button>
+
+          <button id="rcb-btn-autogen" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="8" r="6"/>
+              <line x1="8" y1="5" x2="8" y2="11"/>
+              <line x1="5" y1="8" x2="11" y2="8"/>
+            </svg>
+            Add Beam
+          </button>
+
+          <button id="rcb-btn-autogen-range" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="1" y="4" width="4" height="4" rx="0.75"/>
+              <rect x="6" y="4" width="4" height="4" rx="0.75"/>
+              <rect x="11" y="4" width="4" height="4" rx="0.75"/>
+              <rect x="1" y="10" width="4" height="4" rx="0.75"/>
+              <rect x="6" y="10" width="4" height="4" rx="0.75"/>
+              <rect x="11" y="10" width="4" height="4" rx="0.75"/>
+            </svg>
+            AutoGenerate
+          </button>
+
+          <button id="rcb-btn-import-sec" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="12" height="12" rx="1.5"/>
+              <line x1="2"  y1="6"  x2="14" y2="6"/>
+              <line x1="6"  y1="6"  x2="6"  y2="14"/>
+            </svg>
+            Import Section
+          </button>
+
+          <button id="rcb-btn-write" class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 11V2M4 7l4-4 4 4"/>
+              <rect x="2" y="12" width="12" height="2" rx="1"/>
+            </svg>
+            Write to ETABS
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Main layout: material sidebar + table -->
+      <div class="rcb-layout">
+
+        <!-- Left: material list -->
+        <div class="rcb-mat-panel">
+          <div class="rcb-mat-header">Materials</div>
+          <ul class="rcb-mat-list" id="rcb-mat-list">
+            <li class="rcb-mat-empty">Click "Import Material"</li>
+          </ul>
+        </div>
+
+        <!-- Right: section table -->
+        <div class="rcb-table-outer">
+          <div class="rcb-table-empty" id="rcb-table-empty">
+            <svg width="56" height="56" viewBox="0 0 64 64" fill="none"
+                 stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+              <rect x="6"  y="6"  width="52" height="8"  rx="2" opacity=".25"/>
+              <rect x="6"  y="18" width="52" height="9"  rx="2" opacity=".18"/>
+              <rect x="6"  y="31" width="52" height="9"  rx="2" opacity=".12"/>
+              <rect x="6"  y="44" width="52" height="9"  rx="2" opacity=".07"/>
+            </svg>
+            <p>Click <strong>Import Section</strong> to load from ETABS,<br>use <strong>Add Beam</strong> or <strong>AutoGenerate</strong> to create sections</p>
+          </div>
+          <div class="rcb-table-wrap hidden" id="rcb-table-wrap">
+            <table class="data-table rcb-table" id="rcb-table">
+              <thead>
+                <tr>
+                  <th class="rcb-th-num">#</th>
+                  <th class="rcb-th-name">Property Name</th>
+                  <th>Concrete Strength</th>
+                  <th>Fy (Main)</th>
+                  <th>Fy (Ties)</th>
+                  <th>Depth (mm)</th>
+                  <th>Width (mm)</th>
+                  <th>Bar Dia.</th>
+                  <th>Top (cc)</th>
+                  <th>Bot (cc)</th>
+                  <th>NBar_Top (i)</th>
+                  <th>NBar_Top (j)</th>
+                  <th>NBar_Bot (i)</th>
+                  <th>NBar_Bot (j)</th>
+                  <th>Torsion</th>
+                  <th>I22</th>
+                  <th>I33</th>
+                  <th class="rcb-th-del"></th>
+                </tr>
+              </thead>
+              <tbody id="rcb-tbody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /.rcb-layout -->
+
+      <!-- Status bar -->
+      <div class="rcb-statusbar">
+        <span class="rcb-count" id="rcb-count">0 sections</span>
+        <button id="rcb-btn-add-row" class="btn btn-ghost btn-xs">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="6" y1="2" x2="6" y2="10"/>
+            <line x1="2" y1="6" x2="10" y2="6"/>
+          </svg>
+          Add Row
+        </button>
+        <button id="rcb-btn-add-copy" class="btn btn-ghost btn-xs">
+          <svg width="11" height="11" viewBox="0 0 14 14" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="4" width="8" height="8" rx="1"/>
+            <path d="M2 10V2h8"/>
+          </svg>
+          Add Copy
+        </button>
+      </div>
+
+    </section><!-- /#rcbeam-panel -->
+
   </main>
+</div>
+
+<!-- ══════════════════ RC BEAM — IMPORT SECTION PICKER ══════════════════ -->
+<div id="rcb-import-modal" class="modal-overlay hidden">
+  <div class="modal-box rcb-import-box">
+
+    <div class="modal-header" style="padding:16px 20px 14px">
+      <div>
+        <div class="modal-title">Import Sections from ETABS</div>
+        <div class="rcb-import-subtitle" id="rcb-import-subtitle">Loading…</div>
+      </div>
+      <button id="rcb-import-close" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Search + bulk-select toolbar -->
+    <div class="rcb-import-toolbar">
+      <input id="rcb-import-search" type="search" class="rcb-import-search"
+             placeholder="Search sections…" autocomplete="off"/>
+      <button id="rcb-import-all"    class="btn btn-ghost btn-xs">All</button>
+      <button id="rcb-import-none"   class="btn btn-ghost btn-xs">None</button>
+      <button id="rcb-import-invert" class="btn btn-ghost btn-xs">Invert</button>
+    </div>
+
+    <!-- Scrollable checklist -->
+    <div class="rcb-import-list" id="rcb-import-list"></div>
+
+    <!-- Footer -->
+    <div class="rcb-import-footer">
+      <span class="rcb-import-count" id="rcb-import-count">0 selected</span>
+      <div style="display:flex;gap:8px">
+        <button id="rcb-import-cancel"  class="btn btn-ghost">Cancel</button>
+        <button id="rcb-import-confirm" class="btn btn-primary">Import Selected</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════ RC BEAM — AUTOGENERATE MODAL ══════════════════ -->
+<div id="rcb-autogen-modal" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title">Add Beam Section</div>
+      <button id="rcb-autogen-close" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/>
+          <line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="upgrade-body" style="padding:20px 24px">
+      <div class="rcb-gen-grid">
+
+        <div class="rcb-gen-row">
+          <label class="rcb-gen-label">Property Name</label>
+          <input id="rcb-gen-name" type="text" class="rcb-gen-input"
+                 placeholder="Auto — e.g. G-300x500" autocomplete="off"/>
+        </div>
+
+        <div class="rcb-gen-row">
+          <label class="rcb-gen-label">Concrete Strength</label>
+          <select id="rcb-gen-conc" class="rcb-gen-input">
+            <option value="">— select material —</option>
+          </select>
+        </div>
+
+        <div class="rcb-gen-row">
+          <label class="rcb-gen-label">Fy (Main)</label>
+          <select id="rcb-gen-fym" class="rcb-gen-input">
+            <option value="">— select material —</option>
+          </select>
+        </div>
+
+        <div class="rcb-gen-row">
+          <label class="rcb-gen-label">Fy (Ties)</label>
+          <select id="rcb-gen-fyt" class="rcb-gen-input">
+            <option value="">— select material —</option>
+          </select>
+        </div>
+
+        <div class="rcb-gen-2col">
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Depth (mm)</label>
+            <input id="rcb-gen-depth" type="number" class="rcb-gen-input" value="500" min="1"/>
+          </div>
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Width (mm)</label>
+            <input id="rcb-gen-width" type="number" class="rcb-gen-input" value="300" min="1"/>
+          </div>
+        </div>
+
+        <div class="rcb-gen-2col">
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Bar Dia. (mm)</label>
+            <input id="rcb-gen-bardia" type="number" class="rcb-gen-input" value="25" min="0"/>
+          </div>
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Top cc (mm)</label>
+            <input id="rcb-gen-topcc" type="number" class="rcb-gen-input" value="40" min="0"/>
+          </div>
+        </div>
+
+        <div class="rcb-gen-2col">
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Bot cc (mm)</label>
+            <input id="rcb-gen-botcc" type="number" class="rcb-gen-input" value="40" min="0"/>
+          </div>
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Torsion Mod</label>
+            <input id="rcb-gen-torsion" type="number" class="rcb-gen-input" value="0.01" step="0.001" min="0"/>
+          </div>
+        </div>
+
+        <div class="rcb-gen-2col">
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">I22 Modifier</label>
+            <input id="rcb-gen-i22" type="number" class="rcb-gen-input" value="0.35" step="0.01" min="0"/>
+          </div>
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">I33 Modifier</label>
+            <input id="rcb-gen-i33" type="number" class="rcb-gen-input" value="0.35" step="0.01" min="0"/>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="rcb-autogen-confirm" class="btn btn-primary">Add Section</button>
+      <button id="rcb-autogen-cancel" class="btn btn-ghost">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ RC BEAM — AUTOGENERATE (RANGE) MODAL ══════════════════ -->
+<div id="rcb-agr-modal" class="modal-overlay hidden">
+  <div class="modal-box rcb-agr-box">
+
+    <div class="modal-header" style="padding:14px 20px 12px">
+      <div class="modal-title">AutoGenerate Beam Sections</div>
+      <button id="rcb-agr-close" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="rcb-agr-body">
+
+      <!-- ① Material Properties -->
+      <div class="rcb-agr-group">
+        <div class="rcb-agr-group-title">Material Properties</div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Concrete Strength, f<sub>c</sub></label>
+          <select id="rcbr-conc" class="rcb-agr-ctrl"><option value="">— Select Material —</option></select>
+        </div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Rebar Yield Strength, f<sub>y</sub></label>
+          <select id="rcbr-fym" class="rcb-agr-ctrl"><option value="">— Select Material —</option></select>
+        </div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Ties Yield Strength, f<sub>y</sub></label>
+          <select id="rcbr-fyt" class="rcb-agr-ctrl"><option value="">— Select Material —</option></select>
+        </div>
+      </div>
+
+      <!-- ② Reinforcement Details -->
+      <div class="rcb-agr-group">
+        <div class="rcb-agr-group-title">Reinforcement Details</div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Concrete Cover (Top)</label>
+          <input id="rcbr-topcc" type="number" class="rcb-agr-ctrl" value="40" min="0"/>
+        </div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Concrete Cover (Bot)</label>
+          <input id="rcbr-botcc" type="number" class="rcb-agr-ctrl" value="40" min="0"/>
+        </div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Bar Diameter</label>
+          <select id="rcbr-bardia" class="rcb-agr-ctrl">
+            <option>10</option><option>12</option><option>16</option>
+            <option>20</option><option selected>25</option><option>28</option>
+            <option>32</option><option>36</option><option>40</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ③ Beam Dimension -->
+      <div class="rcb-agr-group">
+        <div class="rcb-agr-group-title">Beam Dimension</div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Minimum Beam Width</label>
+          <input id="rcbr-min-w" type="number" class="rcb-agr-ctrl" placeholder="mm" min="1"/>
+        </div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Maximum Beam Width</label>
+          <input id="rcbr-max-w" type="number" class="rcb-agr-ctrl" placeholder="mm" min="1"/>
+        </div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Minimum Beam Depth</label>
+          <input id="rcbr-min-d" type="number" class="rcb-agr-ctrl" placeholder="mm" min="1"/>
+        </div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Maximum Beam Depth</label>
+          <input id="rcbr-max-d" type="number" class="rcb-agr-ctrl" placeholder="mm" min="1"/>
+        </div>
+        <div class="rcb-agr-row rcb-agr-inc-row">
+          <label class="rcb-agr-inc-label">
+            <input type="checkbox" id="rcbr-chk-w" class="rcb-agr-chk"/>
+            Width Increment
+          </label>
+          <select id="rcbr-inc-w" class="rcb-agr-ctrl" disabled>
+            <option>25</option><option>50</option><option>75</option>
+            <option selected>100</option><option>150</option><option>200</option>
+            <option>250</option><option>300</option>
+          </select>
+        </div>
+        <div class="rcb-agr-row rcb-agr-inc-row">
+          <label class="rcb-agr-inc-label">
+            <input type="checkbox" id="rcbr-chk-d" class="rcb-agr-chk"/>
+            Depth Increment
+          </label>
+          <select id="rcbr-inc-d" class="rcb-agr-ctrl" disabled>
+            <option>25</option><option>50</option><option>75</option>
+            <option selected>100</option><option>150</option><option>200</option>
+            <option>250</option><option>300</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ④ Stiffness Modifiers -->
+      <div class="rcb-agr-group">
+        <div class="rcb-agr-group-title">Stiffness Modifiers</div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Torsion Constant</label>
+          <input id="rcbr-torsion" type="number" class="rcb-agr-ctrl" value="0.01" step="0.001" min="0"/>
+        </div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Moment of Inertia, I22</label>
+          <input id="rcbr-i22" type="number" class="rcb-agr-ctrl" value="0.35" step="0.01" min="0"/>
+        </div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Moment of Inertia, I33</label>
+          <input id="rcbr-i33" type="number" class="rcb-agr-ctrl" value="0.35" step="0.01" min="0"/>
+        </div>
+      </div>
+
+    </div><!-- /.rcb-agr-body -->
+
+    <div class="modal-footer">
+      <button id="rcb-agr-confirm" class="btn btn-primary">Generate</button>
+      <button id="rcb-agr-cancel"  class="btn btn-ghost">Cancel</button>
+    </div>
+
+  </div>
 </div>
 
 <!-- Autocomplete popup -->
@@ -1051,6 +1481,6 @@
   </div>
 </div>
 
-<script src="/app/app.js?v=36"></script>
+<script src="/app/app.js?v=40"></script>
 </body>
 </html>

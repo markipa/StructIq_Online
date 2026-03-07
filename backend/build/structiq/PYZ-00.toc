@@ -17,12 +17,12 @@
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\_compression.py',
    'PYMODULE'),
   ('_distutils_hack',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\_distutils_hack\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\_distutils_hack\\__init__.py',
    'PYMODULE'),
   ('_distutils_hack.override',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\_distutils_hack\\override.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\_distutils_hack\\override.py',
    'PYMODULE'),
   ('_py_abc',
    'C:\\Users\\Mark '
@@ -49,184 +49,184 @@
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\_threading_local.py',
    'PYMODULE'),
   ('annotated_doc',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\annotated_doc\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\annotated_doc\\__init__.py',
    'PYMODULE'),
   ('annotated_doc.main',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\annotated_doc\\main.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\annotated_doc\\main.py',
    'PYMODULE'),
   ('annotated_types',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\annotated_types\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\annotated_types\\__init__.py',
    'PYMODULE'),
   ('anyio',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\__init__.py',
    'PYMODULE'),
   ('anyio._backends',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\_backends\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\_backends\\__init__.py',
    'PYMODULE'),
   ('anyio._backends._asyncio',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py',
    'PYMODULE'),
   ('anyio._backends._trio',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\_backends\\_trio.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\_backends\\_trio.py',
    'PYMODULE'),
   ('anyio._core',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\_core\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\_core\\__init__.py',
    'PYMODULE'),
   ('anyio._core._asyncio_selector_thread',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\_core\\_asyncio_selector_thread.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\_core\\_asyncio_selector_thread.py',
    'PYMODULE'),
   ('anyio._core._contextmanagers',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\_core\\_contextmanagers.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\_core\\_contextmanagers.py',
    'PYMODULE'),
   ('anyio._core._eventloop',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\_core\\_eventloop.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\_core\\_eventloop.py',
    'PYMODULE'),
   ('anyio._core._exceptions',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\_core\\_exceptions.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\_core\\_exceptions.py',
    'PYMODULE'),
   ('anyio._core._fileio',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\_core\\_fileio.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\_core\\_fileio.py',
    'PYMODULE'),
   ('anyio._core._resources',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\_core\\_resources.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\_core\\_resources.py',
    'PYMODULE'),
   ('anyio._core._signals',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\_core\\_signals.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\_core\\_signals.py',
    'PYMODULE'),
   ('anyio._core._sockets',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\_core\\_sockets.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\_core\\_sockets.py',
    'PYMODULE'),
   ('anyio._core._streams',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\_core\\_streams.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\_core\\_streams.py',
    'PYMODULE'),
   ('anyio._core._subprocesses',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\_core\\_subprocesses.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\_core\\_subprocesses.py',
    'PYMODULE'),
   ('anyio._core._synchronization',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\_core\\_synchronization.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\_core\\_synchronization.py',
    'PYMODULE'),
   ('anyio._core._tasks',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\_core\\_tasks.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\_core\\_tasks.py',
    'PYMODULE'),
   ('anyio._core._tempfile',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\_core\\_tempfile.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\_core\\_tempfile.py',
    'PYMODULE'),
   ('anyio._core._testing',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\_core\\_testing.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\_core\\_testing.py',
    'PYMODULE'),
   ('anyio._core._typedattr',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\_core\\_typedattr.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\_core\\_typedattr.py',
    'PYMODULE'),
   ('anyio.abc',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\abc\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\abc\\__init__.py',
    'PYMODULE'),
   ('anyio.abc._eventloop',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\abc\\_eventloop.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\abc\\_eventloop.py',
    'PYMODULE'),
   ('anyio.abc._resources',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\abc\\_resources.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\abc\\_resources.py',
    'PYMODULE'),
   ('anyio.abc._sockets',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\abc\\_sockets.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\abc\\_sockets.py',
    'PYMODULE'),
   ('anyio.abc._streams',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\abc\\_streams.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\abc\\_streams.py',
    'PYMODULE'),
   ('anyio.abc._subprocesses',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\abc\\_subprocesses.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\abc\\_subprocesses.py',
    'PYMODULE'),
   ('anyio.abc._tasks',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\abc\\_tasks.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\abc\\_tasks.py',
    'PYMODULE'),
   ('anyio.abc._testing',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\abc\\_testing.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\abc\\_testing.py',
    'PYMODULE'),
   ('anyio.from_thread',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\from_thread.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\from_thread.py',
    'PYMODULE'),
   ('anyio.functools',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\functools.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\functools.py',
    'PYMODULE'),
   ('anyio.lowlevel',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\lowlevel.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\lowlevel.py',
    'PYMODULE'),
   ('anyio.pytest_plugin',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\pytest_plugin.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\pytest_plugin.py',
    'PYMODULE'),
   ('anyio.streams',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\streams\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\streams\\__init__.py',
    'PYMODULE'),
   ('anyio.streams.buffered',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\streams\\buffered.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\streams\\buffered.py',
    'PYMODULE'),
   ('anyio.streams.file',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\streams\\file.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\streams\\file.py',
    'PYMODULE'),
   ('anyio.streams.memory',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\streams\\memory.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\streams\\memory.py',
    'PYMODULE'),
   ('anyio.streams.stapled',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\streams\\stapled.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\streams\\stapled.py',
    'PYMODULE'),
   ('anyio.streams.text',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\streams\\text.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\streams\\text.py',
    'PYMODULE'),
   ('anyio.streams.tls',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\streams\\tls.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\streams\\tls.py',
    'PYMODULE'),
   ('anyio.to_interpreter',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\to_interpreter.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\to_interpreter.py',
    'PYMODULE'),
   ('anyio.to_process',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\to_process.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\to_process.py',
    'PYMODULE'),
   ('anyio.to_thread',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\anyio\\to_thread.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\anyio\\to_thread.py',
    'PYMODULE'),
   ('argparse',
    'C:\\Users\\Mark '
@@ -385,104 +385,104 @@
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\calendar.py',
    'PYMODULE'),
   ('certifi',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\certifi\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\certifi\\__init__.py',
    'PYMODULE'),
   ('certifi.core',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\certifi\\core.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\certifi\\core.py',
    'PYMODULE'),
   ('charset_normalizer',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\charset_normalizer\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\charset_normalizer\\__init__.py',
    'PYMODULE'),
   ('charset_normalizer.api',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\charset_normalizer\\api.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\charset_normalizer\\api.py',
    'PYMODULE'),
   ('charset_normalizer.constant',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\charset_normalizer\\constant.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\charset_normalizer\\constant.py',
    'PYMODULE'),
   ('charset_normalizer.legacy',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\charset_normalizer\\legacy.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\charset_normalizer\\legacy.py',
    'PYMODULE'),
   ('charset_normalizer.models',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\charset_normalizer\\models.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\charset_normalizer\\models.py',
    'PYMODULE'),
   ('charset_normalizer.utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\charset_normalizer\\utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\charset_normalizer\\utils.py',
    'PYMODULE'),
   ('charset_normalizer.version',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\charset_normalizer\\version.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\charset_normalizer\\version.py',
    'PYMODULE'),
   ('click',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\click\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click\\__init__.py',
    'PYMODULE'),
   ('click._compat',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\click\\_compat.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click\\_compat.py',
    'PYMODULE'),
   ('click._termui_impl',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\click\\_termui_impl.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click\\_termui_impl.py',
    'PYMODULE'),
   ('click._textwrap',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\click\\_textwrap.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click\\_textwrap.py',
    'PYMODULE'),
   ('click._utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\click\\_utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click\\_utils.py',
    'PYMODULE'),
   ('click._winconsole',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\click\\_winconsole.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click\\_winconsole.py',
    'PYMODULE'),
   ('click.core',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\click\\core.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click\\core.py',
    'PYMODULE'),
   ('click.decorators',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\click\\decorators.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click\\decorators.py',
    'PYMODULE'),
   ('click.exceptions',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\click\\exceptions.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click\\exceptions.py',
    'PYMODULE'),
   ('click.formatting',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\click\\formatting.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click\\formatting.py',
    'PYMODULE'),
   ('click.globals',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\click\\globals.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click\\globals.py',
    'PYMODULE'),
   ('click.parser',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\click\\parser.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click\\parser.py',
    'PYMODULE'),
   ('click.shell_completion',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\click\\shell_completion.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click\\shell_completion.py',
    'PYMODULE'),
   ('click.termui',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\click\\termui.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click\\termui.py',
    'PYMODULE'),
   ('click.types',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\click\\types.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click\\types.py',
    'PYMODULE'),
   ('click.utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\click\\utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\click\\utils.py',
    'PYMODULE'),
   ('cmd',
    'C:\\Users\\Mark '
@@ -497,596 +497,596 @@
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\codeop.py',
    'PYMODULE'),
   ('colorama',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\colorama\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\colorama\\__init__.py',
    'PYMODULE'),
   ('colorama.ansi',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\colorama\\ansi.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\colorama\\ansi.py',
    'PYMODULE'),
   ('colorama.ansitowin32',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\colorama\\ansitowin32.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\colorama\\ansitowin32.py',
    'PYMODULE'),
   ('colorama.initialise',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\colorama\\initialise.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\colorama\\initialise.py',
    'PYMODULE'),
   ('colorama.win32',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\colorama\\win32.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\colorama\\win32.py',
    'PYMODULE'),
   ('colorama.winterm',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\colorama\\winterm.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\colorama\\winterm.py',
    'PYMODULE'),
   ('colorsys',
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\colorsys.py',
    'PYMODULE'),
   ('comtypes',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\__init__.py',
    'PYMODULE'),
   ('comtypes.GUID',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\GUID.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\GUID.py',
    'PYMODULE'),
   ('comtypes._comobject',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\_comobject.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\_comobject.py',
    'PYMODULE'),
   ('comtypes._memberspec',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\_memberspec.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\_memberspec.py',
    'PYMODULE'),
   ('comtypes._meta',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\_meta.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\_meta.py',
    'PYMODULE'),
   ('comtypes._npsupport',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\_npsupport.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\_npsupport.py',
    'PYMODULE'),
   ('comtypes._post_coinit',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\_post_coinit\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\_post_coinit\\__init__.py',
    'PYMODULE'),
   ('comtypes._post_coinit._cominterface_meta_patcher',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\_post_coinit\\_cominterface_meta_patcher.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\_post_coinit\\_cominterface_meta_patcher.py',
    'PYMODULE'),
   ('comtypes._post_coinit.activeobj',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\_post_coinit\\activeobj.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\_post_coinit\\activeobj.py',
    'PYMODULE'),
   ('comtypes._post_coinit.bstr',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\_post_coinit\\bstr.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\_post_coinit\\bstr.py',
    'PYMODULE'),
   ('comtypes._post_coinit.instancemethod',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\_post_coinit\\instancemethod.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\_post_coinit\\instancemethod.py',
    'PYMODULE'),
   ('comtypes._post_coinit.misc',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\_post_coinit\\misc.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\_post_coinit\\misc.py',
    'PYMODULE'),
   ('comtypes._post_coinit.unknwn',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\_post_coinit\\unknwn.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\_post_coinit\\unknwn.py',
    'PYMODULE'),
   ('comtypes._safearray',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\_safearray.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\_safearray.py',
    'PYMODULE'),
   ('comtypes._tlib_version_checker',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\_tlib_version_checker.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\_tlib_version_checker.py',
    'PYMODULE'),
   ('comtypes._vtbl',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\_vtbl.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\_vtbl.py',
    'PYMODULE'),
   ('comtypes.automation',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\automation.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\automation.py',
    'PYMODULE'),
   ('comtypes.clear_cache',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\clear_cache.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\clear_cache.py',
    'PYMODULE'),
   ('comtypes.client',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\client\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\client\\__init__.py',
    'PYMODULE'),
   ('comtypes.client._activeobj',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\client\\_activeobj.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\client\\_activeobj.py',
    'PYMODULE'),
   ('comtypes.client._code_cache',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\client\\_code_cache.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\client\\_code_cache.py',
    'PYMODULE'),
   ('comtypes.client._constants',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\client\\_constants.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\client\\_constants.py',
    'PYMODULE'),
   ('comtypes.client._create',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\client\\_create.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\client\\_create.py',
    'PYMODULE'),
   ('comtypes.client._events',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\client\\_events.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\client\\_events.py',
    'PYMODULE'),
   ('comtypes.client._generate',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\client\\_generate.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\client\\_generate.py',
    'PYMODULE'),
   ('comtypes.client._managing',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\client\\_managing.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\client\\_managing.py',
    'PYMODULE'),
   ('comtypes.client.dynamic',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\client\\dynamic.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\client\\dynamic.py',
    'PYMODULE'),
   ('comtypes.client.lazybind',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\client\\lazybind.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\client\\lazybind.py',
    'PYMODULE'),
   ('comtypes.connectionpoints',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\connectionpoints.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\connectionpoints.py',
    'PYMODULE'),
   ('comtypes.errorinfo',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\errorinfo.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\errorinfo.py',
    'PYMODULE'),
   ('comtypes.gen',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\gen\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\gen\\__init__.py',
    'PYMODULE'),
   ('comtypes.git',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\git.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\git.py',
    'PYMODULE'),
   ('comtypes.hresult',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\hresult.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\hresult.py',
    'PYMODULE'),
   ('comtypes.logutil',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\logutil.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\logutil.py',
    'PYMODULE'),
   ('comtypes.malloc',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\malloc.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\malloc.py',
    'PYMODULE'),
   ('comtypes.messageloop',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\messageloop.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\messageloop.py',
    'PYMODULE'),
   ('comtypes.patcher',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\patcher.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\patcher.py',
    'PYMODULE'),
   ('comtypes.persist',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\persist.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\persist.py',
    'PYMODULE'),
   ('comtypes.safearray',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\safearray.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\safearray.py',
    'PYMODULE'),
   ('comtypes.server',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\server\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\server\\__init__.py',
    'PYMODULE'),
   ('comtypes.server.automation',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\server\\automation.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\server\\automation.py',
    'PYMODULE'),
   ('comtypes.server.connectionpoints',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\server\\connectionpoints.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\server\\connectionpoints.py',
    'PYMODULE'),
   ('comtypes.server.inprocserver',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\server\\inprocserver.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\server\\inprocserver.py',
    'PYMODULE'),
   ('comtypes.server.localserver',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\server\\localserver.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\server\\localserver.py',
    'PYMODULE'),
   ('comtypes.server.register',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\server\\register.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\server\\register.py',
    'PYMODULE'),
   ('comtypes.server.w_getopt',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\server\\w_getopt.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\server\\w_getopt.py',
    'PYMODULE'),
   ('comtypes.shelllink',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\shelllink.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\shelllink.py',
    'PYMODULE'),
   ('comtypes.stream',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\stream.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\stream.py',
    'PYMODULE'),
   ('comtypes.test',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\__init__.py',
    'PYMODULE'),
   ('comtypes.test.TestComServer',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\TestComServer.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\TestComServer.py',
    'PYMODULE'),
   ('comtypes.test.TestDispServer',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\TestDispServer.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\TestDispServer.py',
    'PYMODULE'),
   ('comtypes.test.find_memleak',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\find_memleak.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\find_memleak.py',
    'PYMODULE'),
   ('comtypes.test.gdi_helper',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\gdi_helper.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\gdi_helper.py',
    'PYMODULE'),
   ('comtypes.test.monikers_helper',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\monikers_helper.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\monikers_helper.py',
    'PYMODULE'),
   ('comtypes.test.runtests',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\runtests.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\runtests.py',
    'PYMODULE'),
   ('comtypes.test.setup',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\setup.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\setup.py',
    'PYMODULE'),
   ('comtypes.test.test_BSTR',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_BSTR.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_BSTR.py',
    'PYMODULE'),
   ('comtypes.test.test_DISPPARAMS',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_DISPPARAMS.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_DISPPARAMS.py',
    'PYMODULE'),
   ('comtypes.test.test_GUID',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_GUID.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_GUID.py',
    'PYMODULE'),
   ('comtypes.test.test_QueryService',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_QueryService.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_QueryService.py',
    'PYMODULE'),
   ('comtypes.test.test_agilent',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_agilent.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_agilent.py',
    'PYMODULE'),
   ('comtypes.test.test_avmc',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_avmc.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_avmc.py',
    'PYMODULE'),
   ('comtypes.test.test_basic',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_basic.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_basic.py',
    'PYMODULE'),
   ('comtypes.test.test_bctx',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_bctx.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_bctx.py',
    'PYMODULE'),
   ('comtypes.test.test_casesensitivity',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_casesensitivity.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_casesensitivity.py',
    'PYMODULE'),
   ('comtypes.test.test_classfactory',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_classfactory.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_classfactory.py',
    'PYMODULE'),
   ('comtypes.test.test_clear_cache',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_clear_cache.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_clear_cache.py',
    'PYMODULE'),
   ('comtypes.test.test_client',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_client.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_client.py',
    'PYMODULE'),
   ('comtypes.test.test_client_dynamic',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_client_dynamic.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_client_dynamic.py',
    'PYMODULE'),
   ('comtypes.test.test_client_regenerate_modules',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_client_regenerate_modules.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_client_regenerate_modules.py',
    'PYMODULE'),
   ('comtypes.test.test_collections',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_collections.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_collections.py',
    'PYMODULE'),
   ('comtypes.test.test_comobject',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_comobject.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_comobject.py',
    'PYMODULE'),
   ('comtypes.test.test_comserver',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_comserver.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_comserver.py',
    'PYMODULE'),
   ('comtypes.test.test_connectionpoints',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_connectionpoints.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_connectionpoints.py',
    'PYMODULE'),
   ('comtypes.test.test_createwrappers',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_createwrappers.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_createwrappers.py',
    'PYMODULE'),
   ('comtypes.test.test_dict',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_dict.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_dict.py',
    'PYMODULE'),
   ('comtypes.test.test_dispifc_records',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_dispifc_records.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_dispifc_records.py',
    'PYMODULE'),
   ('comtypes.test.test_dispifc_safearrays',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_dispifc_safearrays.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_dispifc_safearrays.py',
    'PYMODULE'),
   ('comtypes.test.test_dispinterface',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_dispinterface.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_dispinterface.py',
    'PYMODULE'),
   ('comtypes.test.test_dyndispatch',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_dyndispatch.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_dyndispatch.py',
    'PYMODULE'),
   ('comtypes.test.test_errorinfo',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_errorinfo.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_errorinfo.py',
    'PYMODULE'),
   ('comtypes.test.test_eventinterface',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_eventinterface.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_eventinterface.py',
    'PYMODULE'),
   ('comtypes.test.test_excel',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_excel.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_excel.py',
    'PYMODULE'),
   ('comtypes.test.test_findgendir',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_findgendir.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_findgendir.py',
    'PYMODULE'),
   ('comtypes.test.test_getactiveobj',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_getactiveobj.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_getactiveobj.py',
    'PYMODULE'),
   ('comtypes.test.test_git',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_git.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_git.py',
    'PYMODULE'),
   ('comtypes.test.test_hresult',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_hresult.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_hresult.py',
    'PYMODULE'),
   ('comtypes.test.test_ienum',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_ienum.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_ienum.py',
    'PYMODULE'),
   ('comtypes.test.test_imfattributes',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_imfattributes.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_imfattributes.py',
    'PYMODULE'),
   ('comtypes.test.test_inout_args',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_inout_args.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_inout_args.py',
    'PYMODULE'),
   ('comtypes.test.test_logutil',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_logutil.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_logutil.py',
    'PYMODULE'),
   ('comtypes.test.test_malloc',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_malloc.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_malloc.py',
    'PYMODULE'),
   ('comtypes.test.test_messageloop',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_messageloop.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_messageloop.py',
    'PYMODULE'),
   ('comtypes.test.test_midl_safearray_create',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_midl_safearray_create.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_midl_safearray_create.py',
    'PYMODULE'),
   ('comtypes.test.test_moniker',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_moniker.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_moniker.py',
    'PYMODULE'),
   ('comtypes.test.test_msscript',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_msscript.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_msscript.py',
    'PYMODULE'),
   ('comtypes.test.test_npsupport',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_npsupport.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_npsupport.py',
    'PYMODULE'),
   ('comtypes.test.test_outparam',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_outparam.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_outparam.py',
    'PYMODULE'),
   ('comtypes.test.test_persist',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_persist.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_persist.py',
    'PYMODULE'),
   ('comtypes.test.test_pump_events',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_pump_events.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_pump_events.py',
    'PYMODULE'),
   ('comtypes.test.test_puredispatch',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_puredispatch.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_puredispatch.py',
    'PYMODULE'),
   ('comtypes.test.test_recordinfo',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_recordinfo.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_recordinfo.py',
    'PYMODULE'),
   ('comtypes.test.test_rot',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_rot.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_rot.py',
    'PYMODULE'),
   ('comtypes.test.test_safearray',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_safearray.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_safearray.py',
    'PYMODULE'),
   ('comtypes.test.test_sapi',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_sapi.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_sapi.py',
    'PYMODULE'),
   ('comtypes.test.test_server',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_server.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_server.py',
    'PYMODULE'),
   ('comtypes.test.test_server_automation',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_server_automation.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_server_automation.py',
    'PYMODULE'),
   ('comtypes.test.test_server_register',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_server_register.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_server_register.py',
    'PYMODULE'),
   ('comtypes.test.test_shelllink',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_shelllink.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_shelllink.py',
    'PYMODULE'),
   ('comtypes.test.test_showevents',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_showevents.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_showevents.py',
    'PYMODULE'),
   ('comtypes.test.test_storage',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_storage.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_storage.py',
    'PYMODULE'),
   ('comtypes.test.test_stream',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_stream.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_stream.py',
    'PYMODULE'),
   ('comtypes.test.test_subinterface',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_subinterface.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_subinterface.py',
    'PYMODULE'),
   ('comtypes.test.test_typeannotator',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_typeannotator.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_typeannotator.py',
    'PYMODULE'),
   ('comtypes.test.test_typeinfo',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_typeinfo.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_typeinfo.py',
    'PYMODULE'),
   ('comtypes.test.test_typeinfo_create',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_typeinfo_create.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_typeinfo_create.py',
    'PYMODULE'),
   ('comtypes.test.test_urlhistory',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_urlhistory.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_urlhistory.py',
    'PYMODULE'),
   ('comtypes.test.test_util',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_util.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_util.py',
    'PYMODULE'),
   ('comtypes.test.test_variant',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_variant.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_variant.py',
    'PYMODULE'),
   ('comtypes.test.test_variant_outparam',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_variant_outparam.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_variant_outparam.py',
    'PYMODULE'),
   ('comtypes.test.test_viewobject',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_viewobject.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_viewobject.py',
    'PYMODULE'),
   ('comtypes.test.test_w_getopt',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_w_getopt.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_w_getopt.py',
    'PYMODULE'),
   ('comtypes.test.test_win32com_interop',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_win32com_interop.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_win32com_interop.py',
    'PYMODULE'),
   ('comtypes.test.test_word',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\test_word.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\test_word.py',
    'PYMODULE'),
   ('comtypes.test.time_structs_helper',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\test\\time_structs_helper.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\test\\time_structs_helper.py',
    'PYMODULE'),
   ('comtypes.tools',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\tools\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\tools\\__init__.py',
    'PYMODULE'),
   ('comtypes.tools.codegenerator',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\tools\\codegenerator\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\tools\\codegenerator\\__init__.py',
    'PYMODULE'),
   ('comtypes.tools.codegenerator.codegenerator',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\tools\\codegenerator\\codegenerator.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\tools\\codegenerator\\codegenerator.py',
    'PYMODULE'),
   ('comtypes.tools.codegenerator.comments',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\tools\\codegenerator\\comments.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\tools\\codegenerator\\comments.py',
    'PYMODULE'),
   ('comtypes.tools.codegenerator.heads',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\tools\\codegenerator\\heads.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\tools\\codegenerator\\heads.py',
    'PYMODULE'),
   ('comtypes.tools.codegenerator.helpers',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\tools\\codegenerator\\helpers.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\tools\\codegenerator\\helpers.py',
    'PYMODULE'),
   ('comtypes.tools.codegenerator.modulenamer',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\tools\\codegenerator\\modulenamer.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\tools\\codegenerator\\modulenamer.py',
    'PYMODULE'),
   ('comtypes.tools.codegenerator.namespaces',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\tools\\codegenerator\\namespaces.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\tools\\codegenerator\\namespaces.py',
    'PYMODULE'),
   ('comtypes.tools.codegenerator.packing',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\tools\\codegenerator\\packing.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\tools\\codegenerator\\packing.py',
    'PYMODULE'),
   ('comtypes.tools.codegenerator.typeannotator',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\tools\\codegenerator\\typeannotator.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\tools\\codegenerator\\typeannotator.py',
    'PYMODULE'),
   ('comtypes.tools.tlbparser',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\tools\\tlbparser.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\tools\\tlbparser.py',
    'PYMODULE'),
   ('comtypes.tools.typedesc',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\tools\\typedesc.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\tools\\typedesc.py',
    'PYMODULE'),
   ('comtypes.tools.typedesc_base',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\tools\\typedesc_base.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\tools\\typedesc_base.py',
    'PYMODULE'),
   ('comtypes.typeinfo',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\typeinfo.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\typeinfo.py',
    'PYMODULE'),
   ('comtypes.util',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\util.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\util.py',
    'PYMODULE'),
   ('comtypes.viewobject',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\comtypes\\viewobject.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\comtypes\\viewobject.py',
    'PYMODULE'),
   ('concurrent',
    'C:\\Users\\Mark '
@@ -1283,196 +1283,196 @@
    'Ipa\\Documents\\Claude\\StructIQ\\backend\\etabs_api\\connection.py',
    'PYMODULE'),
   ('fastapi',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\__init__.py',
    'PYMODULE'),
   ('fastapi.__main__',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\__main__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\__main__.py',
    'PYMODULE'),
   ('fastapi._compat',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\_compat\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\_compat\\__init__.py',
    'PYMODULE'),
   ('fastapi._compat.shared',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\_compat\\shared.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\_compat\\shared.py',
    'PYMODULE'),
   ('fastapi._compat.v2',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\_compat\\v2.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\_compat\\v2.py',
    'PYMODULE'),
   ('fastapi.applications',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\applications.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\applications.py',
    'PYMODULE'),
   ('fastapi.background',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\background.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\background.py',
    'PYMODULE'),
   ('fastapi.cli',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\cli.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\cli.py',
    'PYMODULE'),
   ('fastapi.concurrency',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\concurrency.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\concurrency.py',
    'PYMODULE'),
   ('fastapi.datastructures',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\datastructures.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\datastructures.py',
    'PYMODULE'),
   ('fastapi.dependencies',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\dependencies\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\dependencies\\__init__.py',
    'PYMODULE'),
   ('fastapi.dependencies.models',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\dependencies\\models.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\dependencies\\models.py',
    'PYMODULE'),
   ('fastapi.dependencies.utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\dependencies\\utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\dependencies\\utils.py',
    'PYMODULE'),
   ('fastapi.encoders',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\encoders.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\encoders.py',
    'PYMODULE'),
   ('fastapi.exception_handlers',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\exception_handlers.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\exception_handlers.py',
    'PYMODULE'),
   ('fastapi.exceptions',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\exceptions.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\exceptions.py',
    'PYMODULE'),
   ('fastapi.logger',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\logger.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\logger.py',
    'PYMODULE'),
   ('fastapi.middleware',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\middleware\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\middleware\\__init__.py',
    'PYMODULE'),
   ('fastapi.middleware.asyncexitstack',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\middleware\\asyncexitstack.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\middleware\\asyncexitstack.py',
    'PYMODULE'),
   ('fastapi.middleware.cors',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\middleware\\cors.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\middleware\\cors.py',
    'PYMODULE'),
   ('fastapi.middleware.gzip',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\middleware\\gzip.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\middleware\\gzip.py',
    'PYMODULE'),
   ('fastapi.middleware.httpsredirect',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\middleware\\httpsredirect.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\middleware\\httpsredirect.py',
    'PYMODULE'),
   ('fastapi.middleware.trustedhost',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\middleware\\trustedhost.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\middleware\\trustedhost.py',
    'PYMODULE'),
   ('fastapi.middleware.wsgi',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\middleware\\wsgi.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\middleware\\wsgi.py',
    'PYMODULE'),
   ('fastapi.openapi',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\openapi\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\openapi\\__init__.py',
    'PYMODULE'),
   ('fastapi.openapi.constants',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\openapi\\constants.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\openapi\\constants.py',
    'PYMODULE'),
   ('fastapi.openapi.docs',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\openapi\\docs.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\openapi\\docs.py',
    'PYMODULE'),
   ('fastapi.openapi.models',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\openapi\\models.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\openapi\\models.py',
    'PYMODULE'),
   ('fastapi.openapi.utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\openapi\\utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\openapi\\utils.py',
    'PYMODULE'),
   ('fastapi.param_functions',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\param_functions.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\param_functions.py',
    'PYMODULE'),
   ('fastapi.params',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\params.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\params.py',
    'PYMODULE'),
   ('fastapi.requests',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\requests.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\requests.py',
    'PYMODULE'),
   ('fastapi.responses',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\responses.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\responses.py',
    'PYMODULE'),
   ('fastapi.routing',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\routing.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\routing.py',
    'PYMODULE'),
   ('fastapi.security',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\security\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\security\\__init__.py',
    'PYMODULE'),
   ('fastapi.security.api_key',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\security\\api_key.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\security\\api_key.py',
    'PYMODULE'),
   ('fastapi.security.base',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\security\\base.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\security\\base.py',
    'PYMODULE'),
   ('fastapi.security.http',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\security\\http.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\security\\http.py',
    'PYMODULE'),
   ('fastapi.security.oauth2',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\security\\oauth2.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\security\\oauth2.py',
    'PYMODULE'),
   ('fastapi.security.open_id_connect_url',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\security\\open_id_connect_url.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\security\\open_id_connect_url.py',
    'PYMODULE'),
   ('fastapi.security.utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\security\\utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\security\\utils.py',
    'PYMODULE'),
   ('fastapi.sse',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\sse.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\sse.py',
    'PYMODULE'),
   ('fastapi.staticfiles',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\staticfiles.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\staticfiles.py',
    'PYMODULE'),
   ('fastapi.templating',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\templating.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\templating.py',
    'PYMODULE'),
   ('fastapi.testclient',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\testclient.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\testclient.py',
    'PYMODULE'),
   ('fastapi.types',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\types.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\types.py',
    'PYMODULE'),
   ('fastapi.utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\utils.py',
    'PYMODULE'),
   ('fastapi.websockets',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\fastapi\\websockets.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\fastapi\\websockets.py',
    'PYMODULE'),
   ('fnmatch',
    'C:\\Users\\Mark '
@@ -1507,48 +1507,48 @@
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\gzip.py',
    'PYMODULE'),
   ('h11',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\h11\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\h11\\__init__.py',
    'PYMODULE'),
   ('h11._abnf',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\h11\\_abnf.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\h11\\_abnf.py',
    'PYMODULE'),
   ('h11._connection',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\h11\\_connection.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\h11\\_connection.py',
    'PYMODULE'),
   ('h11._events',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\h11\\_events.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\h11\\_events.py',
    'PYMODULE'),
   ('h11._headers',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\h11\\_headers.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\h11\\_headers.py',
    'PYMODULE'),
   ('h11._readers',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\h11\\_readers.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\h11\\_readers.py',
    'PYMODULE'),
   ('h11._receivebuffer',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\h11\\_receivebuffer.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\h11\\_receivebuffer.py',
    'PYMODULE'),
   ('h11._state',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\h11\\_state.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\h11\\_state.py',
    'PYMODULE'),
   ('h11._util',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\h11\\_util.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\h11\\_util.py',
    'PYMODULE'),
   ('h11._version',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\h11\\_version.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\h11\\_version.py',
    'PYMODULE'),
   ('h11._writers',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\h11\\_writers.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\h11\\_writers.py',
    'PYMODULE'),
   ('hashlib',
    'C:\\Users\\Mark '
@@ -1587,28 +1587,28 @@
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\http\\server.py',
    'PYMODULE'),
   ('idna',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\idna\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\idna\\__init__.py',
    'PYMODULE'),
   ('idna.core',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\idna\\core.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\idna\\core.py',
    'PYMODULE'),
   ('idna.idnadata',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\idna\\idnadata.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\idna\\idnadata.py',
    'PYMODULE'),
   ('idna.intranges',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\idna\\intranges.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\idna\\intranges.py',
    'PYMODULE'),
   ('idna.package_data',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\idna\\package_data.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\idna\\package_data.py',
    'PYMODULE'),
   ('idna.uts46data',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\idna\\uts46data.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\idna\\uts46data.py',
    'PYMODULE'),
   ('importlib',
    'C:\\Users\\Mark '
@@ -1854,64 +1854,64 @@
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\opcode.py',
    'PYMODULE'),
   ('packaging',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\packaging\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\packaging\\__init__.py',
    'PYMODULE'),
   ('packaging._elffile',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\packaging\\_elffile.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\packaging\\_elffile.py',
    'PYMODULE'),
   ('packaging._manylinux',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\packaging\\_manylinux.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\packaging\\_manylinux.py',
    'PYMODULE'),
   ('packaging._musllinux',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\packaging\\_musllinux.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\packaging\\_musllinux.py',
    'PYMODULE'),
   ('packaging._parser',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\packaging\\_parser.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\packaging\\_parser.py',
    'PYMODULE'),
   ('packaging._structures',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\packaging\\_structures.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\packaging\\_structures.py',
    'PYMODULE'),
   ('packaging._tokenizer',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\packaging\\_tokenizer.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\packaging\\_tokenizer.py',
    'PYMODULE'),
   ('packaging.licenses',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\packaging\\licenses\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\packaging\\licenses\\__init__.py',
    'PYMODULE'),
   ('packaging.licenses._spdx',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\packaging\\licenses\\_spdx.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\packaging\\licenses\\_spdx.py',
    'PYMODULE'),
   ('packaging.markers',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\packaging\\markers.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\packaging\\markers.py',
    'PYMODULE'),
   ('packaging.requirements',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\packaging\\requirements.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\packaging\\requirements.py',
    'PYMODULE'),
   ('packaging.specifiers',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\packaging\\specifiers.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\packaging\\specifiers.py',
    'PYMODULE'),
   ('packaging.tags',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\packaging\\tags.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\packaging\\tags.py',
    'PYMODULE'),
   ('packaging.utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\packaging\\utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\packaging\\utils.py',
    'PYMODULE'),
   ('packaging.version',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\packaging\\version.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\packaging\\version.py',
    'PYMODULE'),
   ('pathlib',
    'C:\\Users\\Mark '
@@ -1942,432 +1942,432 @@
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\py_compile.py',
    'PYMODULE'),
   ('pydantic',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\__init__.py',
    'PYMODULE'),
   ('pydantic._internal',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\__init__.py',
    'PYMODULE'),
   ('pydantic._internal._config',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_config.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_config.py',
    'PYMODULE'),
   ('pydantic._internal._core_metadata',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_core_metadata.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_core_metadata.py',
    'PYMODULE'),
   ('pydantic._internal._core_utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_core_utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_core_utils.py',
    'PYMODULE'),
   ('pydantic._internal._dataclasses',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_dataclasses.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_dataclasses.py',
    'PYMODULE'),
   ('pydantic._internal._decorators',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_decorators.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_decorators.py',
    'PYMODULE'),
   ('pydantic._internal._decorators_v1',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_decorators_v1.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_decorators_v1.py',
    'PYMODULE'),
   ('pydantic._internal._discriminated_union',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_discriminated_union.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_discriminated_union.py',
    'PYMODULE'),
   ('pydantic._internal._docs_extraction',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_docs_extraction.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_docs_extraction.py',
    'PYMODULE'),
   ('pydantic._internal._fields',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_fields.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_fields.py',
    'PYMODULE'),
   ('pydantic._internal._forward_ref',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_forward_ref.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_forward_ref.py',
    'PYMODULE'),
   ('pydantic._internal._generate_schema',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_generate_schema.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_generate_schema.py',
    'PYMODULE'),
   ('pydantic._internal._generics',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_generics.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_generics.py',
    'PYMODULE'),
   ('pydantic._internal._git',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_git.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_git.py',
    'PYMODULE'),
   ('pydantic._internal._import_utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_import_utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_import_utils.py',
    'PYMODULE'),
   ('pydantic._internal._internal_dataclass',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_internal_dataclass.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_internal_dataclass.py',
    'PYMODULE'),
   ('pydantic._internal._known_annotated_metadata',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_known_annotated_metadata.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_known_annotated_metadata.py',
    'PYMODULE'),
   ('pydantic._internal._mock_val_ser',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_mock_val_ser.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_mock_val_ser.py',
    'PYMODULE'),
   ('pydantic._internal._model_construction',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_model_construction.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_model_construction.py',
    'PYMODULE'),
   ('pydantic._internal._namespace_utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_namespace_utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_namespace_utils.py',
    'PYMODULE'),
   ('pydantic._internal._repr',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_repr.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_repr.py',
    'PYMODULE'),
   ('pydantic._internal._schema_gather',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_schema_gather.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_schema_gather.py',
    'PYMODULE'),
   ('pydantic._internal._schema_generation_shared',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_schema_generation_shared.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_schema_generation_shared.py',
    'PYMODULE'),
   ('pydantic._internal._serializers',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_serializers.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_serializers.py',
    'PYMODULE'),
   ('pydantic._internal._signature',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_signature.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_signature.py',
    'PYMODULE'),
   ('pydantic._internal._typing_extra',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_typing_extra.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_typing_extra.py',
    'PYMODULE'),
   ('pydantic._internal._utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_utils.py',
    'PYMODULE'),
   ('pydantic._internal._validate_call',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_validate_call.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_validate_call.py',
    'PYMODULE'),
   ('pydantic._internal._validators',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_validators.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_internal\\_validators.py',
    'PYMODULE'),
   ('pydantic._migration',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\_migration.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\_migration.py',
    'PYMODULE'),
   ('pydantic.alias_generators',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\alias_generators.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\alias_generators.py',
    'PYMODULE'),
   ('pydantic.aliases',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\aliases.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\aliases.py',
    'PYMODULE'),
   ('pydantic.annotated_handlers',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\annotated_handlers.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\annotated_handlers.py',
    'PYMODULE'),
   ('pydantic.class_validators',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\class_validators.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\class_validators.py',
    'PYMODULE'),
   ('pydantic.color',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\color.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\color.py',
    'PYMODULE'),
   ('pydantic.config',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\config.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\config.py',
    'PYMODULE'),
   ('pydantic.dataclasses',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\dataclasses.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\dataclasses.py',
    'PYMODULE'),
   ('pydantic.datetime_parse',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\datetime_parse.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\datetime_parse.py',
    'PYMODULE'),
   ('pydantic.decorator',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\decorator.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\decorator.py',
    'PYMODULE'),
   ('pydantic.deprecated',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\deprecated\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\deprecated\\__init__.py',
    'PYMODULE'),
   ('pydantic.deprecated.class_validators',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\deprecated\\class_validators.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\deprecated\\class_validators.py',
    'PYMODULE'),
   ('pydantic.deprecated.config',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\deprecated\\config.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\deprecated\\config.py',
    'PYMODULE'),
   ('pydantic.deprecated.copy_internals',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\deprecated\\copy_internals.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\deprecated\\copy_internals.py',
    'PYMODULE'),
   ('pydantic.deprecated.decorator',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\deprecated\\decorator.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\deprecated\\decorator.py',
    'PYMODULE'),
   ('pydantic.deprecated.json',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\deprecated\\json.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\deprecated\\json.py',
    'PYMODULE'),
   ('pydantic.deprecated.parse',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\deprecated\\parse.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\deprecated\\parse.py',
    'PYMODULE'),
   ('pydantic.deprecated.tools',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\deprecated\\tools.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\deprecated\\tools.py',
    'PYMODULE'),
   ('pydantic.env_settings',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\env_settings.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\env_settings.py',
    'PYMODULE'),
   ('pydantic.error_wrappers',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\error_wrappers.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\error_wrappers.py',
    'PYMODULE'),
   ('pydantic.errors',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\errors.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\errors.py',
    'PYMODULE'),
   ('pydantic.experimental',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\experimental\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\experimental\\__init__.py',
    'PYMODULE'),
   ('pydantic.experimental.arguments_schema',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\experimental\\arguments_schema.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\experimental\\arguments_schema.py',
    'PYMODULE'),
   ('pydantic.experimental.missing_sentinel',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\experimental\\missing_sentinel.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\experimental\\missing_sentinel.py',
    'PYMODULE'),
   ('pydantic.experimental.pipeline',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\experimental\\pipeline.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\experimental\\pipeline.py',
    'PYMODULE'),
   ('pydantic.fields',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\fields.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\fields.py',
    'PYMODULE'),
   ('pydantic.functional_serializers',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\functional_serializers.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\functional_serializers.py',
    'PYMODULE'),
   ('pydantic.functional_validators',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\functional_validators.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\functional_validators.py',
    'PYMODULE'),
   ('pydantic.generics',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\generics.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\generics.py',
    'PYMODULE'),
   ('pydantic.json',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\json.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\json.py',
    'PYMODULE'),
   ('pydantic.json_schema',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\json_schema.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\json_schema.py',
    'PYMODULE'),
   ('pydantic.main',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\main.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\main.py',
    'PYMODULE'),
   ('pydantic.mypy',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\mypy.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\mypy.py',
    'PYMODULE'),
   ('pydantic.networks',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\networks.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\networks.py',
    'PYMODULE'),
   ('pydantic.parse',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\parse.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\parse.py',
    'PYMODULE'),
   ('pydantic.plugin',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\plugin\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\plugin\\__init__.py',
    'PYMODULE'),
   ('pydantic.plugin._loader',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\plugin\\_loader.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\plugin\\_loader.py',
    'PYMODULE'),
   ('pydantic.plugin._schema_validator',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\plugin\\_schema_validator.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\plugin\\_schema_validator.py',
    'PYMODULE'),
   ('pydantic.root_model',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\root_model.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\root_model.py',
    'PYMODULE'),
   ('pydantic.schema',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\schema.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\schema.py',
    'PYMODULE'),
   ('pydantic.tools',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\tools.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\tools.py',
    'PYMODULE'),
   ('pydantic.type_adapter',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\type_adapter.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\type_adapter.py',
    'PYMODULE'),
   ('pydantic.types',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\types.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\types.py',
    'PYMODULE'),
   ('pydantic.typing',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\typing.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\typing.py',
    'PYMODULE'),
   ('pydantic.utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\utils.py',
    'PYMODULE'),
   ('pydantic.v1',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\__init__.py',
    'PYMODULE'),
   ('pydantic.v1._hypothesis_plugin',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\_hypothesis_plugin.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\_hypothesis_plugin.py',
    'PYMODULE'),
   ('pydantic.v1.annotated_types',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\annotated_types.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\annotated_types.py',
    'PYMODULE'),
   ('pydantic.v1.class_validators',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\class_validators.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\class_validators.py',
    'PYMODULE'),
   ('pydantic.v1.color',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\color.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\color.py',
    'PYMODULE'),
   ('pydantic.v1.config',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\config.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\config.py',
    'PYMODULE'),
   ('pydantic.v1.dataclasses',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\dataclasses.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\dataclasses.py',
    'PYMODULE'),
   ('pydantic.v1.datetime_parse',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\datetime_parse.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\datetime_parse.py',
    'PYMODULE'),
   ('pydantic.v1.decorator',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\decorator.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\decorator.py',
    'PYMODULE'),
   ('pydantic.v1.env_settings',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\env_settings.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\env_settings.py',
    'PYMODULE'),
   ('pydantic.v1.error_wrappers',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\error_wrappers.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\error_wrappers.py',
    'PYMODULE'),
   ('pydantic.v1.errors',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\errors.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\errors.py',
    'PYMODULE'),
   ('pydantic.v1.fields',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\fields.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\fields.py',
    'PYMODULE'),
   ('pydantic.v1.generics',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\generics.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\generics.py',
    'PYMODULE'),
   ('pydantic.v1.json',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\json.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\json.py',
    'PYMODULE'),
   ('pydantic.v1.main',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\main.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\main.py',
    'PYMODULE'),
   ('pydantic.v1.mypy',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\mypy.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\mypy.py',
    'PYMODULE'),
   ('pydantic.v1.networks',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\networks.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\networks.py',
    'PYMODULE'),
   ('pydantic.v1.parse',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\parse.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\parse.py',
    'PYMODULE'),
   ('pydantic.v1.schema',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\schema.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\schema.py',
    'PYMODULE'),
   ('pydantic.v1.tools',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\tools.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\tools.py',
    'PYMODULE'),
   ('pydantic.v1.types',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\types.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\types.py',
    'PYMODULE'),
   ('pydantic.v1.typing',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\typing.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\typing.py',
    'PYMODULE'),
   ('pydantic.v1.utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\utils.py',
    'PYMODULE'),
   ('pydantic.v1.validators',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\validators.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\validators.py',
    'PYMODULE'),
   ('pydantic.v1.version',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\v1\\version.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\v1\\version.py',
    'PYMODULE'),
   ('pydantic.validate_call_decorator',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\validate_call_decorator.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\validate_call_decorator.py',
    'PYMODULE'),
   ('pydantic.validators',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\validators.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\validators.py',
    'PYMODULE'),
   ('pydantic.version',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\version.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\version.py',
    'PYMODULE'),
   ('pydantic.warnings',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic\\warnings.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic\\warnings.py',
    'PYMODULE'),
   ('pydantic_core',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic_core\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic_core\\__init__.py',
    'PYMODULE'),
   ('pydantic_core.core_schema',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\pydantic_core\\core_schema.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\pydantic_core\\core_schema.py',
    'PYMODULE'),
   ('pydoc',
    'C:\\Users\\Mark '
@@ -2394,72 +2394,72 @@
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\random.py',
    'PYMODULE'),
   ('requests',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\requests\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\requests\\__init__.py',
    'PYMODULE'),
   ('requests.__version__',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\requests\\__version__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\requests\\__version__.py',
    'PYMODULE'),
   ('requests._internal_utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\requests\\_internal_utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\requests\\_internal_utils.py',
    'PYMODULE'),
   ('requests.adapters',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\requests\\adapters.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\requests\\adapters.py',
    'PYMODULE'),
   ('requests.api',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\requests\\api.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\requests\\api.py',
    'PYMODULE'),
   ('requests.auth',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\requests\\auth.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\requests\\auth.py',
    'PYMODULE'),
   ('requests.certs',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\requests\\certs.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\requests\\certs.py',
    'PYMODULE'),
   ('requests.compat',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\requests\\compat.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\requests\\compat.py',
    'PYMODULE'),
   ('requests.cookies',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\requests\\cookies.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\requests\\cookies.py',
    'PYMODULE'),
   ('requests.exceptions',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\requests\\exceptions.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\requests\\exceptions.py',
    'PYMODULE'),
   ('requests.hooks',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\requests\\hooks.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\requests\\hooks.py',
    'PYMODULE'),
   ('requests.models',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\requests\\models.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\requests\\models.py',
    'PYMODULE'),
   ('requests.packages',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\requests\\packages.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\requests\\packages.py',
    'PYMODULE'),
   ('requests.sessions',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\requests\\sessions.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\requests\\sessions.py',
    'PYMODULE'),
   ('requests.status_codes',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\requests\\status_codes.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\requests\\status_codes.py',
    'PYMODULE'),
   ('requests.structures',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\requests\\structures.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\requests\\structures.py',
    'PYMODULE'),
   ('requests.utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\requests\\utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\requests\\utils.py',
    'PYMODULE'),
   ('rlcompleter',
    'C:\\Users\\Mark '
@@ -2478,544 +2478,544 @@
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\selectors.py',
    'PYMODULE'),
   ('setuptools',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\__init__.py',
    'PYMODULE'),
   ('setuptools._core_metadata',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_core_metadata.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_core_metadata.py',
    'PYMODULE'),
   ('setuptools._discovery',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_discovery.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_discovery.py',
    'PYMODULE'),
   ('setuptools._distutils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\__init__.py',
    'PYMODULE'),
   ('setuptools._distutils._log',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\_log.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\_log.py',
    'PYMODULE'),
   ('setuptools._distutils._modified',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\_modified.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\_modified.py',
    'PYMODULE'),
   ('setuptools._distutils._msvccompiler',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\_msvccompiler.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\_msvccompiler.py',
    'PYMODULE'),
   ('setuptools._distutils.archive_util',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\archive_util.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\archive_util.py',
    'PYMODULE'),
   ('setuptools._distutils.ccompiler',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\ccompiler.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\ccompiler.py',
    'PYMODULE'),
   ('setuptools._distutils.cmd',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\cmd.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\cmd.py',
    'PYMODULE'),
   ('setuptools._distutils.command',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\command\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\command\\__init__.py',
    'PYMODULE'),
   ('setuptools._distutils.command.bdist',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\command\\bdist.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\command\\bdist.py',
    'PYMODULE'),
   ('setuptools._distutils.command.build',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\command\\build.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\command\\build.py',
    'PYMODULE'),
   ('setuptools._distutils.command.build_ext',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\command\\build_ext.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\command\\build_ext.py',
    'PYMODULE'),
   ('setuptools._distutils.command.sdist',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\command\\sdist.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\command\\sdist.py',
    'PYMODULE'),
   ('setuptools._distutils.compat',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\compat\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\compat\\__init__.py',
    'PYMODULE'),
   ('setuptools._distutils.compat.numpy',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\compat\\numpy.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\compat\\numpy.py',
    'PYMODULE'),
   ('setuptools._distutils.compat.py39',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\compat\\py39.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\compat\\py39.py',
    'PYMODULE'),
   ('setuptools._distutils.compilers', '-', 'PYMODULE'),
   ('setuptools._distutils.compilers.C', '-', 'PYMODULE'),
   ('setuptools._distutils.compilers.C.base',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\compilers\\C\\base.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\compilers\\C\\base.py',
    'PYMODULE'),
   ('setuptools._distutils.compilers.C.errors',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\compilers\\C\\errors.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\compilers\\C\\errors.py',
    'PYMODULE'),
   ('setuptools._distutils.compilers.C.msvc',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\compilers\\C\\msvc.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\compilers\\C\\msvc.py',
    'PYMODULE'),
   ('setuptools._distutils.core',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\core.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\core.py',
    'PYMODULE'),
   ('setuptools._distutils.debug',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\debug.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\debug.py',
    'PYMODULE'),
   ('setuptools._distutils.dir_util',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\dir_util.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\dir_util.py',
    'PYMODULE'),
   ('setuptools._distutils.dist',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\dist.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\dist.py',
    'PYMODULE'),
   ('setuptools._distutils.errors',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\errors.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\errors.py',
    'PYMODULE'),
   ('setuptools._distutils.extension',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\extension.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\extension.py',
    'PYMODULE'),
   ('setuptools._distutils.fancy_getopt',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\fancy_getopt.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\fancy_getopt.py',
    'PYMODULE'),
   ('setuptools._distutils.file_util',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\file_util.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\file_util.py',
    'PYMODULE'),
   ('setuptools._distutils.filelist',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\filelist.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\filelist.py',
    'PYMODULE'),
   ('setuptools._distutils.log',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\log.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\log.py',
    'PYMODULE'),
   ('setuptools._distutils.spawn',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\spawn.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\spawn.py',
    'PYMODULE'),
   ('setuptools._distutils.sysconfig',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\sysconfig.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\sysconfig.py',
    'PYMODULE'),
   ('setuptools._distutils.text_file',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\text_file.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\text_file.py',
    'PYMODULE'),
   ('setuptools._distutils.util',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\util.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\util.py',
    'PYMODULE'),
   ('setuptools._distutils.version',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\version.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\version.py',
    'PYMODULE'),
   ('setuptools._distutils.versionpredicate',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\versionpredicate.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_distutils\\versionpredicate.py',
    'PYMODULE'),
   ('setuptools._entry_points',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_entry_points.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_entry_points.py',
    'PYMODULE'),
   ('setuptools._imp',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_imp.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_imp.py',
    'PYMODULE'),
   ('setuptools._importlib',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_importlib.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_importlib.py',
    'PYMODULE'),
   ('setuptools._itertools',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_itertools.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_itertools.py',
    'PYMODULE'),
   ('setuptools._normalization',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_normalization.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_normalization.py',
    'PYMODULE'),
   ('setuptools._path',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_path.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_path.py',
    'PYMODULE'),
   ('setuptools._reqs',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_reqs.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_reqs.py',
    'PYMODULE'),
   ('setuptools._shutil',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_shutil.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_shutil.py',
    'PYMODULE'),
   ('setuptools._static',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_static.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_static.py',
    'PYMODULE'),
   ('setuptools._vendor', '-', 'PYMODULE'),
   ('setuptools._vendor.backports',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\backports\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\backports\\__init__.py',
    'PYMODULE'),
   ('setuptools._vendor.backports.tarfile',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\backports\\tarfile\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\backports\\tarfile\\__init__.py',
    'PYMODULE'),
   ('setuptools._vendor.backports.tarfile.compat',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\backports\\tarfile\\compat\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\backports\\tarfile\\compat\\__init__.py',
    'PYMODULE'),
   ('setuptools._vendor.backports.tarfile.compat.py38',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\backports\\tarfile\\compat\\py38.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\backports\\tarfile\\compat\\py38.py',
    'PYMODULE'),
   ('setuptools._vendor.importlib_metadata',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\__init__.py',
    'PYMODULE'),
   ('setuptools._vendor.importlib_metadata._adapters',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\_adapters.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\_adapters.py',
    'PYMODULE'),
   ('setuptools._vendor.importlib_metadata._collections',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\_collections.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\_collections.py',
    'PYMODULE'),
   ('setuptools._vendor.importlib_metadata._compat',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\_compat.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\_compat.py',
    'PYMODULE'),
   ('setuptools._vendor.importlib_metadata._functools',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\_functools.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\_functools.py',
    'PYMODULE'),
   ('setuptools._vendor.importlib_metadata._itertools',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\_itertools.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\_itertools.py',
    'PYMODULE'),
   ('setuptools._vendor.importlib_metadata._meta',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\_meta.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\_meta.py',
    'PYMODULE'),
   ('setuptools._vendor.importlib_metadata._text',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\_text.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\_text.py',
    'PYMODULE'),
   ('setuptools._vendor.importlib_metadata._typing',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\_typing.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\_typing.py',
    'PYMODULE'),
   ('setuptools._vendor.importlib_metadata.compat',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\compat\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\compat\\__init__.py',
    'PYMODULE'),
   ('setuptools._vendor.importlib_metadata.compat.py311',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\compat\\py311.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\compat\\py311.py',
    'PYMODULE'),
   ('setuptools._vendor.importlib_metadata.compat.py39',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\compat\\py39.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata\\compat\\py39.py',
    'PYMODULE'),
   ('setuptools._vendor.jaraco', '-', 'PYMODULE'),
   ('setuptools._vendor.jaraco.context',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\jaraco\\context\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\jaraco\\context\\__init__.py',
    'PYMODULE'),
   ('setuptools._vendor.jaraco.functools',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\jaraco\\functools\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\jaraco\\functools\\__init__.py',
    'PYMODULE'),
   ('setuptools._vendor.jaraco.text',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\jaraco\\text\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\jaraco\\text\\__init__.py',
    'PYMODULE'),
   ('setuptools._vendor.more_itertools',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\more_itertools\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\more_itertools\\__init__.py',
    'PYMODULE'),
   ('setuptools._vendor.more_itertools.more',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\more_itertools\\more.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\more_itertools\\more.py',
    'PYMODULE'),
   ('setuptools._vendor.more_itertools.recipes',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\more_itertools\\recipes.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\more_itertools\\recipes.py',
    'PYMODULE'),
   ('setuptools._vendor.packaging',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\__init__.py',
    'PYMODULE'),
   ('setuptools._vendor.packaging._elffile',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\_elffile.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\_elffile.py',
    'PYMODULE'),
   ('setuptools._vendor.packaging._manylinux',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\_manylinux.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\_manylinux.py',
    'PYMODULE'),
   ('setuptools._vendor.packaging._musllinux',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\_musllinux.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\_musllinux.py',
    'PYMODULE'),
   ('setuptools._vendor.packaging._parser',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\_parser.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\_parser.py',
    'PYMODULE'),
   ('setuptools._vendor.packaging._structures',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\_structures.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\_structures.py',
    'PYMODULE'),
   ('setuptools._vendor.packaging._tokenizer',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\_tokenizer.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\_tokenizer.py',
    'PYMODULE'),
   ('setuptools._vendor.packaging.markers',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\markers.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\markers.py',
    'PYMODULE'),
   ('setuptools._vendor.packaging.requirements',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\requirements.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\requirements.py',
    'PYMODULE'),
   ('setuptools._vendor.packaging.specifiers',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\specifiers.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\specifiers.py',
    'PYMODULE'),
   ('setuptools._vendor.packaging.tags',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\tags.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\tags.py',
    'PYMODULE'),
   ('setuptools._vendor.packaging.utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\utils.py',
    'PYMODULE'),
   ('setuptools._vendor.packaging.version',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\version.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\packaging\\version.py',
    'PYMODULE'),
   ('setuptools._vendor.tomli',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\tomli\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\tomli\\__init__.py',
    'PYMODULE'),
   ('setuptools._vendor.tomli._parser',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\tomli\\_parser.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\tomli\\_parser.py',
    'PYMODULE'),
   ('setuptools._vendor.tomli._re',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\tomli\\_re.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\tomli\\_re.py',
    'PYMODULE'),
   ('setuptools._vendor.tomli._types',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\tomli\\_types.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\tomli\\_types.py',
    'PYMODULE'),
   ('setuptools._vendor.wheel',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\wheel\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\wheel\\__init__.py',
    'PYMODULE'),
   ('setuptools._vendor.wheel.macosx_libfile',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\wheel\\macosx_libfile.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\wheel\\macosx_libfile.py',
    'PYMODULE'),
   ('setuptools._vendor.wheel.wheelfile',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\wheel\\wheelfile.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\wheel\\wheelfile.py',
    'PYMODULE'),
   ('setuptools._vendor.zipp',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\zipp\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\zipp\\__init__.py',
    'PYMODULE'),
   ('setuptools._vendor.zipp._functools',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\zipp\\_functools.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\zipp\\_functools.py',
    'PYMODULE'),
   ('setuptools._vendor.zipp.compat',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\zipp\\compat\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\zipp\\compat\\__init__.py',
    'PYMODULE'),
   ('setuptools._vendor.zipp.compat.overlay',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\zipp\\compat\\overlay.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\zipp\\compat\\overlay.py',
    'PYMODULE'),
   ('setuptools._vendor.zipp.compat.py310',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\zipp\\compat\\py310.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\zipp\\compat\\py310.py',
    'PYMODULE'),
   ('setuptools._vendor.zipp.compat.py313',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\zipp\\compat\\py313.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\zipp\\compat\\py313.py',
    'PYMODULE'),
   ('setuptools._vendor.zipp.glob',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\zipp\\glob.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\_vendor\\zipp\\glob.py',
    'PYMODULE'),
   ('setuptools.archive_util',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\archive_util.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\archive_util.py',
    'PYMODULE'),
   ('setuptools.command',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\command\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\command\\__init__.py',
    'PYMODULE'),
   ('setuptools.command._requirestxt',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\command\\_requirestxt.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\command\\_requirestxt.py',
    'PYMODULE'),
   ('setuptools.command.bdist_egg',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\command\\bdist_egg.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\command\\bdist_egg.py',
    'PYMODULE'),
   ('setuptools.command.bdist_wheel',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\command\\bdist_wheel.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\command\\bdist_wheel.py',
    'PYMODULE'),
   ('setuptools.command.build',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\command\\build.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\command\\build.py',
    'PYMODULE'),
   ('setuptools.command.egg_info',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\command\\egg_info.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\command\\egg_info.py',
    'PYMODULE'),
   ('setuptools.command.sdist',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\command\\sdist.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\command\\sdist.py',
    'PYMODULE'),
   ('setuptools.command.setopt',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\command\\setopt.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\command\\setopt.py',
    'PYMODULE'),
   ('setuptools.compat',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\compat\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\compat\\__init__.py',
    'PYMODULE'),
   ('setuptools.compat.py310',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\compat\\py310.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\compat\\py310.py',
    'PYMODULE'),
   ('setuptools.compat.py311',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\compat\\py311.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\compat\\py311.py',
    'PYMODULE'),
   ('setuptools.compat.py39',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\compat\\py39.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\compat\\py39.py',
    'PYMODULE'),
   ('setuptools.config',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\config\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\config\\__init__.py',
    'PYMODULE'),
   ('setuptools.config._apply_pyprojecttoml',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\config\\_apply_pyprojecttoml.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\config\\_apply_pyprojecttoml.py',
    'PYMODULE'),
   ('setuptools.config._validate_pyproject',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\config\\_validate_pyproject\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\config\\_validate_pyproject\\__init__.py',
    'PYMODULE'),
   ('setuptools.config._validate_pyproject.error_reporting',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\config\\_validate_pyproject\\error_reporting.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\config\\_validate_pyproject\\error_reporting.py',
    'PYMODULE'),
   ('setuptools.config._validate_pyproject.extra_validations',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\config\\_validate_pyproject\\extra_validations.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\config\\_validate_pyproject\\extra_validations.py',
    'PYMODULE'),
   ('setuptools.config._validate_pyproject.fastjsonschema_exceptions',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\config\\_validate_pyproject\\fastjsonschema_exceptions.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\config\\_validate_pyproject\\fastjsonschema_exceptions.py',
    'PYMODULE'),
   ('setuptools.config._validate_pyproject.fastjsonschema_validations',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\config\\_validate_pyproject\\fastjsonschema_validations.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\config\\_validate_pyproject\\fastjsonschema_validations.py',
    'PYMODULE'),
   ('setuptools.config._validate_pyproject.formats',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\config\\_validate_pyproject\\formats.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\config\\_validate_pyproject\\formats.py',
    'PYMODULE'),
   ('setuptools.config.expand',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\config\\expand.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\config\\expand.py',
    'PYMODULE'),
   ('setuptools.config.pyprojecttoml',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\config\\pyprojecttoml.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\config\\pyprojecttoml.py',
    'PYMODULE'),
   ('setuptools.config.setupcfg',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\config\\setupcfg.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\config\\setupcfg.py',
    'PYMODULE'),
   ('setuptools.depends',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\depends.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\depends.py',
    'PYMODULE'),
   ('setuptools.discovery',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\discovery.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\discovery.py',
    'PYMODULE'),
   ('setuptools.dist',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\dist.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\dist.py',
    'PYMODULE'),
   ('setuptools.errors',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\errors.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\errors.py',
    'PYMODULE'),
   ('setuptools.extension',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\extension.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\extension.py',
    'PYMODULE'),
   ('setuptools.glob',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\glob.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\glob.py',
    'PYMODULE'),
   ('setuptools.installer',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\installer.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\installer.py',
    'PYMODULE'),
   ('setuptools.logging',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\logging.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\logging.py',
    'PYMODULE'),
   ('setuptools.monkey',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\monkey.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\monkey.py',
    'PYMODULE'),
   ('setuptools.msvc',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\msvc.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\msvc.py',
    'PYMODULE'),
   ('setuptools.unicode_utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\unicode_utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\unicode_utils.py',
    'PYMODULE'),
   ('setuptools.version',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\version.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\version.py',
    'PYMODULE'),
   ('setuptools.warnings',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\warnings.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\warnings.py',
    'PYMODULE'),
   ('setuptools.wheel',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\wheel.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\wheel.py',
    'PYMODULE'),
   ('setuptools.windows_support',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\setuptools\\windows_support.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\setuptools\\windows_support.py',
    'PYMODULE'),
   ('shlex',
    'C:\\Users\\Mark '
@@ -3066,140 +3066,140 @@
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\ssl.py',
    'PYMODULE'),
   ('starlette',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\__init__.py',
    'PYMODULE'),
   ('starlette._exception_handler',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\_exception_handler.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\_exception_handler.py',
    'PYMODULE'),
   ('starlette._utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\_utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\_utils.py',
    'PYMODULE'),
   ('starlette.applications',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\applications.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\applications.py',
    'PYMODULE'),
   ('starlette.authentication',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\authentication.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\authentication.py',
    'PYMODULE'),
   ('starlette.background',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\background.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\background.py',
    'PYMODULE'),
   ('starlette.concurrency',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\concurrency.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\concurrency.py',
    'PYMODULE'),
   ('starlette.config',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\config.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\config.py',
    'PYMODULE'),
   ('starlette.convertors',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\convertors.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\convertors.py',
    'PYMODULE'),
   ('starlette.datastructures',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\datastructures.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\datastructures.py',
    'PYMODULE'),
   ('starlette.endpoints',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\endpoints.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\endpoints.py',
    'PYMODULE'),
   ('starlette.exceptions',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\exceptions.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\exceptions.py',
    'PYMODULE'),
   ('starlette.formparsers',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\formparsers.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\formparsers.py',
    'PYMODULE'),
   ('starlette.middleware',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\middleware\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\middleware\\__init__.py',
    'PYMODULE'),
   ('starlette.middleware.authentication',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\middleware\\authentication.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\middleware\\authentication.py',
    'PYMODULE'),
   ('starlette.middleware.base',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py',
    'PYMODULE'),
   ('starlette.middleware.cors',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\middleware\\cors.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\middleware\\cors.py',
    'PYMODULE'),
   ('starlette.middleware.errors',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\middleware\\errors.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\middleware\\errors.py',
    'PYMODULE'),
   ('starlette.middleware.exceptions',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\middleware\\exceptions.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\middleware\\exceptions.py',
    'PYMODULE'),
   ('starlette.middleware.gzip',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\middleware\\gzip.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\middleware\\gzip.py',
    'PYMODULE'),
   ('starlette.middleware.httpsredirect',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\middleware\\httpsredirect.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\middleware\\httpsredirect.py',
    'PYMODULE'),
   ('starlette.middleware.sessions',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\middleware\\sessions.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\middleware\\sessions.py',
    'PYMODULE'),
   ('starlette.middleware.trustedhost',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\middleware\\trustedhost.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\middleware\\trustedhost.py',
    'PYMODULE'),
   ('starlette.middleware.wsgi',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\middleware\\wsgi.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\middleware\\wsgi.py',
    'PYMODULE'),
   ('starlette.requests',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\requests.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\requests.py',
    'PYMODULE'),
   ('starlette.responses',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\responses.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\responses.py',
    'PYMODULE'),
   ('starlette.routing',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\routing.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\routing.py',
    'PYMODULE'),
   ('starlette.schemas',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\schemas.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\schemas.py',
    'PYMODULE'),
   ('starlette.staticfiles',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\staticfiles.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\staticfiles.py',
    'PYMODULE'),
   ('starlette.status',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\status.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\status.py',
    'PYMODULE'),
   ('starlette.templating',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\templating.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\templating.py',
    'PYMODULE'),
   ('starlette.testclient',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\testclient.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\testclient.py',
    'PYMODULE'),
   ('starlette.types',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\types.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\types.py',
    'PYMODULE'),
   ('starlette.websockets',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\starlette\\websockets.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\starlette\\websockets.py',
    'PYMODULE'),
   ('statistics',
    'C:\\Users\\Mark '
@@ -3274,20 +3274,20 @@
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\typing.py',
    'PYMODULE'),
   ('typing_extensions',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\typing_extensions.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\typing_extensions.py',
    'PYMODULE'),
   ('typing_inspection',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\typing_inspection\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\typing_inspection\\__init__.py',
    'PYMODULE'),
   ('typing_inspection.introspection',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\typing_inspection\\introspection.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\typing_inspection\\introspection.py',
    'PYMODULE'),
   ('typing_inspection.typing_objects',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\typing_inspection\\typing_objects.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\typing_inspection\\typing_objects.py',
    'PYMODULE'),
   ('unittest',
    'C:\\Users\\Mark '
@@ -3358,312 +3358,312 @@
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\urllib\\response.py',
    'PYMODULE'),
   ('urllib3',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\__init__.py',
    'PYMODULE'),
   ('urllib3._base_connection',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\_base_connection.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\_base_connection.py',
    'PYMODULE'),
   ('urllib3._collections',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\_collections.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\_collections.py',
    'PYMODULE'),
   ('urllib3._request_methods',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\_request_methods.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\_request_methods.py',
    'PYMODULE'),
   ('urllib3._version',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\_version.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\_version.py',
    'PYMODULE'),
   ('urllib3.connection',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\connection.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\connection.py',
    'PYMODULE'),
   ('urllib3.connectionpool',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\connectionpool.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\connectionpool.py',
    'PYMODULE'),
   ('urllib3.contrib',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\contrib\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\contrib\\__init__.py',
    'PYMODULE'),
   ('urllib3.contrib.emscripten',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\contrib\\emscripten\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\contrib\\emscripten\\__init__.py',
    'PYMODULE'),
   ('urllib3.contrib.emscripten.connection',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\contrib\\emscripten\\connection.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\contrib\\emscripten\\connection.py',
    'PYMODULE'),
   ('urllib3.contrib.emscripten.fetch',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\contrib\\emscripten\\fetch.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\contrib\\emscripten\\fetch.py',
    'PYMODULE'),
   ('urllib3.contrib.emscripten.request',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\contrib\\emscripten\\request.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\contrib\\emscripten\\request.py',
    'PYMODULE'),
   ('urllib3.contrib.emscripten.response',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\contrib\\emscripten\\response.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\contrib\\emscripten\\response.py',
    'PYMODULE'),
   ('urllib3.contrib.pyopenssl',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\contrib\\pyopenssl.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\contrib\\pyopenssl.py',
    'PYMODULE'),
   ('urllib3.contrib.socks',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\contrib\\socks.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\contrib\\socks.py',
    'PYMODULE'),
   ('urllib3.exceptions',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\exceptions.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\exceptions.py',
    'PYMODULE'),
   ('urllib3.fields',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\fields.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\fields.py',
    'PYMODULE'),
   ('urllib3.filepost',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\filepost.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\filepost.py',
    'PYMODULE'),
   ('urllib3.http2',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\http2\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\http2\\__init__.py',
    'PYMODULE'),
   ('urllib3.http2.connection',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\http2\\connection.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\http2\\connection.py',
    'PYMODULE'),
   ('urllib3.http2.probe',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\http2\\probe.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\http2\\probe.py',
    'PYMODULE'),
   ('urllib3.poolmanager',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\poolmanager.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\poolmanager.py',
    'PYMODULE'),
   ('urllib3.response',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\response.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\response.py',
    'PYMODULE'),
   ('urllib3.util',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\util\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\util\\__init__.py',
    'PYMODULE'),
   ('urllib3.util.connection',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\util\\connection.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\util\\connection.py',
    'PYMODULE'),
   ('urllib3.util.proxy',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\util\\proxy.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\util\\proxy.py',
    'PYMODULE'),
   ('urllib3.util.request',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\util\\request.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\util\\request.py',
    'PYMODULE'),
   ('urllib3.util.response',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\util\\response.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\util\\response.py',
    'PYMODULE'),
   ('urllib3.util.retry',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\util\\retry.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\util\\retry.py',
    'PYMODULE'),
   ('urllib3.util.ssl_',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\util\\ssl_.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\util\\ssl_.py',
    'PYMODULE'),
   ('urllib3.util.ssl_match_hostname',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\util\\ssl_match_hostname.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\util\\ssl_match_hostname.py',
    'PYMODULE'),
   ('urllib3.util.ssltransport',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\util\\ssltransport.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\util\\ssltransport.py',
    'PYMODULE'),
   ('urllib3.util.timeout',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\util\\timeout.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\util\\timeout.py',
    'PYMODULE'),
   ('urllib3.util.url',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\util\\url.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\util\\url.py',
    'PYMODULE'),
   ('urllib3.util.util',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\util\\util.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\util\\util.py',
    'PYMODULE'),
   ('urllib3.util.wait',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\urllib3\\util\\wait.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\urllib3\\util\\wait.py',
    'PYMODULE'),
   ('uuid',
    'C:\\Users\\Mark '
    'Ipa\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\uuid.py',
    'PYMODULE'),
   ('uvicorn',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\__init__.py',
    'PYMODULE'),
   ('uvicorn.__main__',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\__main__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\__main__.py',
    'PYMODULE'),
   ('uvicorn._compat',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\_compat.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\_compat.py',
    'PYMODULE'),
   ('uvicorn._subprocess',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\_subprocess.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\_subprocess.py',
    'PYMODULE'),
   ('uvicorn._types',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\_types.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\_types.py',
    'PYMODULE'),
   ('uvicorn.config',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\config.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\config.py',
    'PYMODULE'),
   ('uvicorn.importer',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\importer.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\importer.py',
    'PYMODULE'),
   ('uvicorn.lifespan',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\lifespan\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\lifespan\\__init__.py',
    'PYMODULE'),
   ('uvicorn.lifespan.off',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\lifespan\\off.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\lifespan\\off.py',
    'PYMODULE'),
   ('uvicorn.lifespan.on',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\lifespan\\on.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\lifespan\\on.py',
    'PYMODULE'),
   ('uvicorn.logging',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\logging.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\logging.py',
    'PYMODULE'),
   ('uvicorn.loops',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\loops\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\loops\\__init__.py',
    'PYMODULE'),
   ('uvicorn.loops.asyncio',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\loops\\asyncio.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\loops\\asyncio.py',
    'PYMODULE'),
   ('uvicorn.loops.auto',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\loops\\auto.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\loops\\auto.py',
    'PYMODULE'),
   ('uvicorn.loops.uvloop',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\loops\\uvloop.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\loops\\uvloop.py',
    'PYMODULE'),
   ('uvicorn.main',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\main.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\main.py',
    'PYMODULE'),
   ('uvicorn.middleware',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\middleware\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\middleware\\__init__.py',
    'PYMODULE'),
   ('uvicorn.middleware.asgi2',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\middleware\\asgi2.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\middleware\\asgi2.py',
    'PYMODULE'),
   ('uvicorn.middleware.message_logger',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\middleware\\message_logger.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\middleware\\message_logger.py',
    'PYMODULE'),
   ('uvicorn.middleware.proxy_headers',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\middleware\\proxy_headers.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\middleware\\proxy_headers.py',
    'PYMODULE'),
   ('uvicorn.middleware.wsgi',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\middleware\\wsgi.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\middleware\\wsgi.py',
    'PYMODULE'),
   ('uvicorn.protocols',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\__init__.py',
    'PYMODULE'),
   ('uvicorn.protocols.http',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\http\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\http\\__init__.py',
    'PYMODULE'),
   ('uvicorn.protocols.http.auto',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\http\\auto.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\http\\auto.py',
    'PYMODULE'),
   ('uvicorn.protocols.http.flow_control',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\http\\flow_control.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\http\\flow_control.py',
    'PYMODULE'),
   ('uvicorn.protocols.http.h11_impl',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\http\\h11_impl.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\http\\h11_impl.py',
    'PYMODULE'),
   ('uvicorn.protocols.http.httptools_impl',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\http\\httptools_impl.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\http\\httptools_impl.py',
    'PYMODULE'),
   ('uvicorn.protocols.utils',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\utils.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\utils.py',
    'PYMODULE'),
   ('uvicorn.protocols.websockets',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\websockets\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\websockets\\__init__.py',
    'PYMODULE'),
   ('uvicorn.protocols.websockets.auto',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\websockets\\auto.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\websockets\\auto.py',
    'PYMODULE'),
   ('uvicorn.protocols.websockets.websockets_impl',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\websockets\\websockets_impl.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\websockets\\websockets_impl.py',
    'PYMODULE'),
   ('uvicorn.protocols.websockets.websockets_sansio_impl',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\websockets\\websockets_sansio_impl.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\websockets\\websockets_sansio_impl.py',
    'PYMODULE'),
   ('uvicorn.protocols.websockets.wsproto_impl',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\websockets\\wsproto_impl.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\websockets\\wsproto_impl.py',
    'PYMODULE'),
   ('uvicorn.server',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\server.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\server.py',
    'PYMODULE'),
   ('uvicorn.supervisors',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\supervisors\\__init__.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\supervisors\\__init__.py',
    'PYMODULE'),
   ('uvicorn.supervisors.basereload',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\supervisors\\basereload.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\supervisors\\basereload.py',
    'PYMODULE'),
   ('uvicorn.supervisors.multiprocess',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\supervisors\\multiprocess.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\supervisors\\multiprocess.py',
    'PYMODULE'),
   ('uvicorn.supervisors.statreload',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\supervisors\\statreload.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\supervisors\\statreload.py',
    'PYMODULE'),
   ('uvicorn.supervisors.watchfilesreload',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\supervisors\\watchfilesreload.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\supervisors\\watchfilesreload.py',
    'PYMODULE'),
   ('uvicorn.workers',
-   'C:\\Users\\Mark '
-   'Ipa\\Documents\\Claude\\StructIQ\\.venv\\Lib\\site-packages\\uvicorn\\workers.py',
+   'c:\\Users\\Mark '
+   'Ipa\\OneDrive\\AntiGravity\\Try\\.venv\\Lib\\site-packages\\uvicorn\\workers.py',
    'PYMODULE'),
   ('webbrowser',
    'C:\\Users\\Mark '
