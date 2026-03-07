@@ -710,6 +710,342 @@ def get_rc_beam_sections():
         return {"error": f"Failed to import beam sections: {str(e)}"}
 
 
+def get_rc_column_sections():
+    """
+    Import all rectangular frame sections from ETABS as column data.
+    Returns geometry, column rebar basics, and stiffness modifiers.
+    """
+    SapModel = get_active_etabs()
+    if not SapModel:
+        return {"error": "ETABS is not currently running."}
+    try:
+        # Determine model length units for conversion
+        try:
+            unit_code = SapModel.GetDatabaseUnits()
+        except Exception:
+            try:
+                unit_code = SapModel.GetPresentUnits()
+            except Exception:
+                unit_code = 6  # default: kN-m
+
+        # Get all frame section names
+        ret = SapModel.PropFrame.GetNameList()
+        if not ret or len(ret) < 2:
+            return {"error": "No frame sections found in ETABS model."}
+        all_names = list(ret[1])
+
+        sections = []
+        num = 1
+        for name in all_names:
+            try:
+                # Check if rectangular section
+                r = SapModel.PropFrame.GetRectangle(name)
+                if not r or int(r[-1]) != 0:
+                    continue
+
+                sMat     = str(r[1])
+                t3       = float(r[2])   # depth in model units
+                t2       = float(r[3])   # width in model units
+                depth_mm = round(_length_to_mm(t3, unit_code))
+                width_mm = round(_length_to_mm(t2, unit_code))
+
+                # Stiffness modifiers [area, S22, S33, torsion, I22, I33, mass, weight]
+                torsion_mod, i22_mod, i33_mod = 0.01, 0.70, 0.70
+                try:
+                    mr = SapModel.PropFrame.GetModifiers(name)
+                    if mr and int(mr[-1]) == 0:
+                        mods = None
+                        for item in mr[:-1]:
+                            if hasattr(item, '__iter__') and not isinstance(item, str):
+                                mods = list(item)
+                                break
+                        if mods and len(mods) >= 6:
+                            torsion_mod = round(float(mods[3]), 4)
+                            i22_mod     = round(float(mods[4]), 4)
+                            i33_mod     = round(float(mods[5]), 4)
+                except Exception:
+                    pass
+
+                # GetRebarColumn — positional parse (type-based filtering is
+                # unreliable because comtypes may return ints as floats).
+                #
+                # ETABS comtypes return order (after optional leading ''):
+                #  0: MatRebar      (str)
+                #  1: MatRebarConf  (str)
+                #  2: Pattern       (int)   1=Rect, 2=Circ
+                #  3: ConfineType   (int)   1=Ties, 2=Spiral
+                #  4: Cover         (float) model-units
+                #  5: CoverTo       (float) model-units
+                #  6: ToBeDesigned  (bool/int)
+                #  7: NumBars2Dir   (int)
+                #  8: NumBars3Dir   (int)
+                #  9: RebarSize     (str)
+                # 10: TieSize       (str)
+                # 11: TieSpacing    (float) model-units
+                # 12: NumTieBarsD2  (int)
+                # 13: NumTieBarsD3  (int)
+                fy_main, fy_ties = "", ""
+                cover_mm, tie_spacing_mm = 40, 150
+                rebar_size, tie_size = "", ""
+                nbars_3, nbars_2 = 3, 3
+                num_tie_3, num_tie_2 = 3, 3
+                to_be_designed = False
+                try:
+                    cr = SapModel.PropFrame.GetRebarColumn(name)
+                    if cr and int(cr[-1]) == 0:
+                        # Strip retcode, then strip optional leading empty string
+                        vals = list(cr[:-1])
+                        if vals and isinstance(vals[0], str) and vals[0].strip() == '':
+                            vals = vals[1:]
+
+                        if len(vals) >= 12:
+                            fy_main        = str(vals[0]) if vals[0] else ''
+                            fy_ties        = str(vals[1]) if vals[1] else ''
+                            # vals[2] = Pattern, vals[3] = ConfineType  (skip)
+                            cover_mm       = round(_length_to_mm(float(vals[4]), unit_code))
+                            # vals[5] = CoverTo  (skip)
+                            to_be_designed = bool(vals[6])
+                            nbars_2        = int(round(float(vals[7])))
+                            nbars_3        = int(round(float(vals[8])))
+                            rebar_size     = str(vals[9])  if vals[9]  else ''
+                            tie_size       = str(vals[10]) if vals[10] else ''
+                            tie_spacing_mm = round(_length_to_mm(float(vals[11]), unit_code))
+                        if len(vals) >= 14:
+                            num_tie_2 = int(round(float(vals[12])))
+                            num_tie_3 = int(round(float(vals[13])))
+                except Exception:
+                    pass
+
+                sections.append({
+                    "num":              num,
+                    "material":         sMat,
+                    "prop_name":        name,
+                    "concrete_strength": sMat,
+                    "fy_main":          fy_main,
+                    "fy_ties":          fy_ties,
+                    "depth":            depth_mm,
+                    "width":            width_mm,
+                    "cover":            cover_mm,
+                    "rebar_size":       rebar_size,
+                    "nbars_3":          nbars_3,
+                    "nbars_2":          nbars_2,
+                    "tie_size":         tie_size,
+                    "tie_spacing":      tie_spacing_mm,
+                    "num_tie_3":        num_tie_3,
+                    "num_tie_2":        num_tie_2,
+                    "to_be_designed":   to_be_designed,
+                    "torsion":          torsion_mod,
+                    "i22":              i22_mod,
+                    "i33":              i33_mod,
+                })
+                num += 1
+            except Exception:
+                continue
+
+        return {"status": "success", "sections": sections}
+
+    except Exception as e:
+        return {"error": f"Failed to import column sections: {str(e)}"}
+
+
+def write_rc_column_sections(sections: list):
+    """
+    Create or update rectangular RC column sections in ETABS.
+    Sets geometry (SetRectangle), stiffness modifiers, and rebar (SetRebarColumn).
+    """
+    SapModel = get_active_etabs()
+    if not SapModel:
+        return {"error": "ETABS is not currently running."}
+    try:
+        try:
+            unit_code = SapModel.GetDatabaseUnits()
+        except Exception:
+            try:
+                unit_code = SapModel.GetPresentUnits()
+            except Exception:
+                unit_code = 6
+
+        try:
+            if SapModel.GetModelIsLocked():
+                SapModel.SetModelIsLocked(False)
+        except Exception:
+            pass
+
+        results = []
+        for sec in sections:
+            name = str(sec.get("prop_name", "")).strip()
+            if not name:
+                continue
+
+            mat              = str(sec.get("concrete_strength") or sec.get("material", "")).strip()
+            fy_main          = str(sec.get("fy_main", "")).strip()
+            fy_ties          = str(sec.get("fy_ties", "")).strip()
+            depth_mm         = float(sec.get("depth",        500))
+            width_mm         = float(sec.get("width",        500))
+            cover_mm         = float(sec.get("cover",         40))
+            rebar_size       = str(sec.get("rebar_size",      "")).strip()
+            nbars_3          = int(sec.get("nbars_3",           3))
+            nbars_2          = int(sec.get("nbars_2",           3))
+            tie_size         = str(sec.get("tie_size",        "")).strip()
+            tie_spacing_mm   = float(sec.get("tie_spacing",  150))
+            num_tie_3        = int(sec.get("num_tie_3",         3))
+            num_tie_2        = int(sec.get("num_tie_2",         3))
+            to_be_designed   = bool(sec.get("to_be_designed", False))
+            torsion          = float(sec.get("torsion",      0.01))
+            i22              = float(sec.get("i22",          0.70))
+            i33              = float(sec.get("i33",          0.70))
+
+            t3 = _mm_to_length(depth_mm, unit_code)
+            t2 = _mm_to_length(width_mm, unit_code)
+
+            try:
+                ret = SapModel.PropFrame.SetRectangle(name, mat, t3, t2, -1, "", "")
+                if int(ret) != 0:
+                    results.append({"name": name, "status": "error",
+                                    "reason": f"SetRectangle returned {ret}"})
+                    continue
+
+                # Stiffness modifiers
+                mods = [1.0, 1.0, 1.0, torsion, i22, i33, 1.0, 1.0]
+                SapModel.PropFrame.SetModifiers(name, mods)
+
+                # Column rebar
+                if fy_main or fy_ties:
+                    try:
+                        long_mat   = fy_main or fy_ties
+                        conf_mat   = fy_ties or fy_main
+                        cover_len  = _mm_to_length(cover_mm, unit_code)
+                        # CoverTo = cover to bar center (approx cover + half bar dia, use cover*1.5)
+                        cover_to   = cover_len * 1.5
+                        spacing    = _mm_to_length(tie_spacing_mm, unit_code)
+                        # SetRebarColumn(Name, MatRebar, MatRebarConf, Pattern, ConfineType,
+                        #                Cover, CoverTo, ToBeDesigned, NumBars2Dir, NumBars3Dir,
+                        #                RebarSize, TieSize, TieSpacing, NumTieBarsD2, NumTieBarsD3)
+                        SapModel.PropFrame.SetRebarColumn(
+                            name, long_mat, conf_mat,
+                            1,          # Pattern=1 (Rectangular)
+                            1,          # ConfineType=1 (Ties)
+                            cover_len, cover_to,
+                            to_be_designed,
+                            nbars_2, nbars_3,
+                            rebar_size, tie_size, spacing,
+                            num_tie_2, num_tie_3
+                        )
+                    except Exception:
+                        pass
+
+                results.append({"name": name, "status": "success"})
+
+            except Exception as e:
+                results.append({"name": name, "status": "error", "reason": str(e)})
+
+        success = sum(1 for r in results if r["status"] == "success")
+        errors  = sum(1 for r in results if r["status"] == "error")
+
+        return {
+            "status":        "success",
+            "message":       f"Wrote {success} column section(s) to ETABS. {errors} error(s).",
+            "results":       results,
+            "success_count": success,
+            "error_count":   errors,
+        }
+
+    except Exception as e:
+        return {"error": f"Failed to write column sections: {str(e)}"}
+
+
+def debug_rc_column_raw(section_name: str):
+    """
+    Return the raw comtypes tuple from GetRebarColumn for a single section,
+    annotated with positional indices, types, and converted mm values.
+    Useful for diagnosing unit/parsing issues.
+    """
+    SapModel = get_active_etabs()
+    if not SapModel:
+        return {"error": "ETABS is not currently running."}
+    try:
+        try:
+            unit_code = SapModel.GetDatabaseUnits()
+        except Exception:
+            unit_code = 6
+
+        unit_names = {
+            1:'lb-in', 2:'lb-ft', 3:'kip-in', 4:'kip-ft',
+            5:'kN-mm', 6:'kN-m', 7:'kgf-mm', 8:'kgf-m',
+            9:'N-mm', 10:'N-m', 11:'tonf-mm', 12:'tonf-m'
+        }
+
+        # GetRectangle raw
+        rect_raw = None
+        try:
+            r = SapModel.PropFrame.GetRectangle(section_name)
+            rect_raw = {
+                "repr": repr(r)[:400],
+                "unit_code": unit_code,
+                "unit_name": unit_names.get(unit_code, f"unknown({unit_code})"),
+                "items": {str(i): {"val": repr(r[i])[:60], "type": type(r[i]).__name__}
+                          for i in range(len(r))} if hasattr(r, '__len__') else {},
+            }
+            if r and int(r[-1]) == 0:
+                rect_raw["t3_raw"]    = float(r[2])
+                rect_raw["t2_raw"]    = float(r[3])
+                rect_raw["depth_mm"]  = round(_length_to_mm(float(r[2]), unit_code))
+                rect_raw["width_mm"]  = round(_length_to_mm(float(r[3]), unit_code))
+        except Exception as e:
+            rect_raw = {"error": str(e)}
+
+        # GetRebarColumn raw
+        rebar_raw = None
+        parsed = {}
+        try:
+            cr = SapModel.PropFrame.GetRebarColumn(section_name)
+            rebar_raw = {
+                "repr": repr(cr)[:600],
+                "items": {str(i): {"val": repr(cr[i])[:80], "type": type(cr[i]).__name__}
+                          for i in range(len(cr))} if hasattr(cr, '__len__') else {},
+            }
+            if cr and int(cr[-1]) == 0:
+                vals = list(cr[:-1])
+                if vals and isinstance(vals[0], str) and vals[0].strip() == '':
+                    vals = vals[1:]
+                parsed["stripped_vals"] = [
+                    {"idx": i, "val": repr(v)[:60], "type": type(v).__name__}
+                    for i, v in enumerate(vals)
+                ]
+                if len(vals) >= 12:
+                    parsed["MatRebar"]     = str(vals[0])
+                    parsed["MatRebarConf"] = str(vals[1])
+                    parsed["Pattern"]      = repr(vals[2])
+                    parsed["ConfineType"]  = repr(vals[3])
+                    parsed["Cover_raw"]    = repr(vals[4])
+                    parsed["Cover_mm"]     = round(_length_to_mm(float(vals[4]), unit_code))
+                    parsed["CoverTo_raw"]  = repr(vals[5])
+                    parsed["ToBeDesigned"] = repr(vals[6])
+                    parsed["NumBars2"]     = int(round(float(vals[7])))
+                    parsed["NumBars3"]     = int(round(float(vals[8])))
+                    parsed["RebarSize"]    = str(vals[9])
+                    parsed["TieSize"]      = str(vals[10])
+                    parsed["TieSpacing_raw"] = repr(vals[11])
+                    parsed["TieSpacing_mm"]  = round(_length_to_mm(float(vals[11]), unit_code))
+                if len(vals) >= 14:
+                    parsed["NumTieBarsD2"] = int(round(float(vals[12])))
+                    parsed["NumTieBarsD3"] = int(round(float(vals[13])))
+        except Exception as e:
+            rebar_raw = {"error": str(e)}
+
+        return {
+            "status":     "success",
+            "section":    section_name,
+            "unit_code":  unit_code,
+            "unit_name":  unit_names.get(unit_code, f"unknown({unit_code})"),
+            "GetRectangle": rect_raw,
+            "GetRebarColumn_raw": rebar_raw,
+            "GetRebarColumn_parsed": parsed,
+        }
+    except Exception as e:
+        return {"error": f"Debug failed: {str(e)}"}
+
+
 def debug_all_frame_sections():
     """Return all frame section names and whether GetRectangle succeeds for each."""
     SapModel = get_active_etabs()

@@ -2977,3 +2977,888 @@ function initRcBeam() {
 
 // ── Bootstrap (called from main DOMContentLoaded) ─────────────────
 document.addEventListener('DOMContentLoaded', initRcBeam);
+
+
+// ═══════════════════════════════════════════════════════════════════
+//  RC COLUMN SECTION GENERATOR
+// ═══════════════════════════════════════════════════════════════════
+
+let rccMaterials        = [];   // all material names from ETABS
+let rccSections         = [];   // working rows  [{...}]
+let rccNextNum          = 1;    // auto-increment row number
+let rccSelectedIdx      = -1;   // currently selected row index (-1 = none)
+let rccImportCandidates = [];   // sections fetched but not yet committed
+let rccViewIdx          = 0;    // current section index shown in view modal
+
+// ── Helpers ──────────────────────────────────────────────────────
+
+function rccBuildMatOptions(selected = '') {
+  if (!rccMaterials.length) return '<option value="">— no materials —</option>';
+  return '<option value="">—</option>' +
+    rccMaterials.map(m =>
+      `<option value="${m}" ${m === selected ? 'selected' : ''}>${m}</option>`
+    ).join('');
+}
+
+function rccUpdateCount() {
+  const n = rccSections.length;
+  document.getElementById('rcc-count').textContent =
+    n === 1 ? '1 section' : `${n} sections`;
+}
+
+function rccToggleEmpty() {
+  const empty = document.getElementById('rcc-table-empty');
+  const wrap  = document.getElementById('rcc-table-wrap');
+  if (rccSections.length === 0) {
+    empty.classList.remove('hidden');
+    wrap.classList.add('hidden');
+  } else {
+    empty.classList.add('hidden');
+    wrap.classList.remove('hidden');
+  }
+}
+
+// ── Render / re-render the full table body ────────────────────────
+
+function rccRenderTable() {
+  const tbody = document.getElementById('rcc-tbody');
+  if (!tbody) return;
+
+  if (rccSections.length === 0) {
+    tbody.innerHTML = '';
+    rccToggleEmpty();
+    rccUpdateCount();
+    return;
+  }
+
+  tbody.innerHTML = rccSections.map((s, idx) => `
+    <tr class="rcc-row${idx === rccSelectedIdx ? ' rcc-row-selected' : ''}" data-idx="${idx}">
+      <td class="rcc-num-cell">${s.num}</td>
+      <td>
+        <input class="rcc-inp" type="text" value="${s.prop_name}"
+               data-field="prop_name" data-idx="${idx}"
+               placeholder="e.g. C-500x500"/>
+      </td>
+      <td>
+        <select class="rcc-sel" data-field="concrete_strength" data-idx="${idx}">
+          ${rccBuildMatOptions(s.concrete_strength)}
+        </select>
+      </td>
+      <td>
+        <select class="rcc-sel" data-field="fy_main" data-idx="${idx}">
+          ${rccBuildMatOptions(s.fy_main)}
+        </select>
+      </td>
+      <td>
+        <select class="rcc-sel" data-field="fy_ties" data-idx="${idx}">
+          ${rccBuildMatOptions(s.fy_ties)}
+        </select>
+      </td>
+      <td><input class="rcc-inp rcc-num" type="number" value="${s.depth}"        data-field="depth"        data-idx="${idx}" min="1"/></td>
+      <td><input class="rcc-inp rcc-num" type="number" value="${s.width}"        data-field="width"        data-idx="${idx}" min="1"/></td>
+      <td><input class="rcc-inp rcc-num" type="number" value="${s.cover}"        data-field="cover"        data-idx="${idx}" min="0"/></td>
+      <td><input class="rcc-inp rcc-num" type="number" value="${s.rebar_size}"   data-field="rebar_size"   data-idx="${idx}" min="0"/></td>
+      <td><input class="rcc-inp rcc-num" type="number" value="${s.nbars_3}"      data-field="nbars_3"      data-idx="${idx}" min="2"/></td>
+      <td><input class="rcc-inp rcc-num" type="number" value="${s.nbars_2}"      data-field="nbars_2"      data-idx="${idx}" min="2"/></td>
+      <td><input class="rcc-inp rcc-num" type="number" value="${s.tie_size}"     data-field="tie_size"     data-idx="${idx}" min="0"/></td>
+      <td><input class="rcc-inp rcc-num" type="number" value="${s.tie_spacing}"  data-field="tie_spacing"  data-idx="${idx}" min="1"/></td>
+      <td><input class="rcc-inp rcc-num" type="number" value="${s.num_tie_3}"    data-field="num_tie_3"    data-idx="${idx}" min="1"/></td>
+      <td><input class="rcc-inp rcc-num" type="number" value="${s.num_tie_2}"    data-field="num_tie_2"    data-idx="${idx}" min="1"/></td>
+      <td>
+        <input type="checkbox" class="rcc-chk" data-field="to_be_designed" data-idx="${idx}"
+               ${s.to_be_designed ? 'checked' : ''}/>
+      </td>
+      <td><input class="rcc-inp rcc-num" type="number" value="${s.torsion}"      data-field="torsion"      data-idx="${idx}" step="0.001" min="0"/></td>
+      <td><input class="rcc-inp rcc-num" type="number" value="${s.i22}"          data-field="i22"          data-idx="${idx}" step="0.01"  min="0"/></td>
+      <td><input class="rcc-inp rcc-num" type="number" value="${s.i33}"          data-field="i33"          data-idx="${idx}" step="0.01"  min="0"/></td>
+      <td>
+        <button class="rcc-del-btn" data-idx="${idx}" title="Delete row" tabindex="-1">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="2" y1="2" x2="10" y2="10"/>
+            <line x1="10" y1="2" x2="2" y2="10"/>
+          </svg>
+        </button>
+      </td>
+    </tr>`).join('');
+
+  rccToggleEmpty();
+  rccUpdateCount();
+  rccAttachRowListeners();
+}
+
+// ── Unique copy name ──────────────────────────────────────────────
+
+function rccUniqueCopyName(originalName) {
+  const base     = originalName.replace(/-\d+$/, '');
+  const existing = new Set(rccSections.map(s => s.prop_name));
+  let n = 2;
+  while (existing.has(`${base}-${n}`)) n++;
+  return `${base}-${n}`;
+}
+
+// ── Wire up row listeners ─────────────────────────────────────────
+
+function rccAttachRowListeners() {
+  const tbody = document.getElementById('rcc-tbody');
+  if (!tbody) return;
+
+  tbody.querySelectorAll('.rcc-row').forEach(row => {
+    row.addEventListener('click', e => {
+      if (e.target.closest('input, select, button')) return;
+      const idx = parseInt(row.dataset.idx);
+      rccSelectedIdx = (rccSelectedIdx === idx) ? -1 : idx;
+      tbody.querySelectorAll('.rcc-row').forEach(r =>
+        r.classList.toggle('rcc-row-selected', parseInt(r.dataset.idx) === rccSelectedIdx)
+      );
+    });
+  });
+
+  const numericFields = [
+    'depth','width','cover','rebar_size','nbars_3','nbars_2',
+    'tie_size','tie_spacing','num_tie_3','num_tie_2','torsion','i22','i33'
+  ];
+
+  tbody.querySelectorAll('.rcc-inp, .rcc-sel').forEach(el => {
+    el.addEventListener('change', e => {
+      const idx   = parseInt(e.target.dataset.idx);
+      const field = e.target.dataset.field;
+      const val   = e.target.value;
+      if (rccSections[idx] !== undefined) {
+        rccSections[idx][field] = numericFields.includes(field)
+          ? (parseFloat(val) || 0) : val;
+      }
+    });
+  });
+
+  tbody.querySelectorAll('.rcc-chk').forEach(el => {
+    el.addEventListener('change', e => {
+      const idx = parseInt(e.target.dataset.idx);
+      if (rccSections[idx] !== undefined) {
+        rccSections[idx]['to_be_designed'] = e.target.checked;
+      }
+    });
+  });
+
+  tbody.querySelectorAll('.rcc-del-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const idx = parseInt(e.currentTarget.dataset.idx);
+      rccSections.splice(idx, 1);
+      rccRenderTable();
+    });
+  });
+}
+
+// ── Material list rendering ───────────────────────────────────────
+
+function rccRenderMaterials() {
+  const ul = document.getElementById('rcc-mat-list');
+  if (!ul) return;
+  if (!rccMaterials.length) {
+    ul.innerHTML = '<li class="rcc-mat-empty">No materials found</li>';
+    return;
+  }
+  ul.innerHTML = rccMaterials.map(m =>
+    `<li class="rcc-mat-item" data-mat="${m}">${m}</li>`
+  ).join('');
+
+  ul.querySelectorAll('.rcc-mat-item').forEach(li => {
+    li.addEventListener('click', () => {
+      ul.querySelectorAll('.rcc-mat-item').forEach(x => x.classList.remove('selected'));
+      li.classList.add('selected');
+    });
+  });
+}
+
+// ── Populate Add Column modal dropdowns ───────────────────────────
+
+function rccPopulateGenDropdowns() {
+  ['rcc-gen-conc','rcc-gen-fym','rcc-gen-fyt'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— select material —</option>' +
+      rccMaterials.map(m => `<option value="${m}">${m}</option>`).join('');
+  });
+}
+
+// ── Blank row factory ─────────────────────────────────────────────
+
+function rccBlankRow(overrides = {}) {
+  return {
+    num:              rccNextNum++,
+    material:         '',
+    prop_name:        '',
+    concrete_strength:'',
+    fy_main:          '',
+    fy_ties:          '',
+    depth:            500,
+    width:            500,
+    cover:            40,
+    rebar_size:       28,
+    nbars_3:          3,
+    nbars_2:          3,
+    tie_size:         12,
+    tie_spacing:      150,
+    num_tie_3:        3,
+    num_tie_2:        3,
+    to_be_designed:   false,
+    torsion:          0.01,
+    i22:              0.70,
+    i33:              0.70,
+    ...overrides
+  };
+}
+
+// ── API calls ─────────────────────────────────────────────────────
+
+async function rccImportMaterials() {
+  const btn = document.getElementById('rcc-btn-import-mat');
+  btn.disabled = true;
+  btn.textContent = 'Loading…';
+  try {
+    const res = await authFetch('/api/rc-column/materials');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.detail || 'Failed to import materials', 'error');
+      return;
+    }
+    const data = await res.json();
+    rccMaterials = data.materials || [];
+    rccRenderMaterials();
+    rccPopulateGenDropdowns();
+    if (rccSections.length) rccRenderTable();
+    showToast(`Loaded ${rccMaterials.length} material(s)`, 'success');
+  } catch (e) {
+    showToast('Import materials failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+      stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 2v9M4 7l4 4 4-4"/><rect x="2" y="13" width="12" height="1.5" rx="0.75"/>
+    </svg> Import Material`;
+  }
+}
+
+async function rccImportSections() {
+  const btn = document.getElementById('rcc-btn-import-sec');
+  btn.disabled = true;
+  btn.textContent = 'Loading…';
+  try {
+    const res = await authFetch('/api/rc-column/sections');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.detail || 'Failed to import sections', 'error');
+      return;
+    }
+    const data = await res.json();
+    const sections = data.sections || [];
+    if (!sections.length) {
+      showToast('No rectangular frame sections found in ETABS model', 'error');
+      return;
+    }
+    rccImportCandidates = sections;
+    rccOpenImportPicker();
+  } catch (e) {
+    showToast('Import sections failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+      stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="2" width="12" height="12" rx="1.5"/>
+      <line x1="2" y1="6" x2="14" y2="6"/>
+      <line x1="6" y1="6" x2="6" y2="14"/>
+    </svg> Import Section`;
+  }
+}
+
+async function rccWriteToETABS() {
+  if (!rccSections.length) {
+    showToast('No sections to write. Add or import sections first.', 'error');
+    return;
+  }
+  const btn = document.getElementById('rcc-btn-write');
+  btn.disabled = true;
+  btn.textContent = 'Writing…';
+  try {
+    rccSyncFromDOM();
+    const res = await authFetch('/api/rc-column/write', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sections: rccSections }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.detail || 'Write to ETABS failed', 'error');
+      return;
+    }
+    const data = await res.json();
+    const ok  = data.success_count || 0;
+    const bad = data.error_count   || 0;
+    if (bad > 0) {
+      showToast(`Written: ${ok} ✓  Errors: ${bad} ✗ — check section names & materials`, 'error');
+    } else {
+      showToast(`${ok} column section(s) written to ETABS successfully`, 'success');
+    }
+  } catch (e) {
+    showToast('Write failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+      stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 11V2M4 7l4-4 4 4"/>
+      <rect x="2" y="12" width="12" height="2" rx="1"/>
+    </svg> Write to ETABS`;
+  }
+}
+
+function rccSyncFromDOM() {
+  const tbody = document.getElementById('rcc-tbody');
+  if (!tbody) return;
+  const numericFields = [
+    'depth','width','cover','rebar_size','nbars_3','nbars_2',
+    'tie_size','tie_spacing','num_tie_3','num_tie_2','torsion','i22','i33'
+  ];
+  tbody.querySelectorAll('.rcc-inp, .rcc-sel').forEach(el => {
+    const idx   = parseInt(el.dataset.idx);
+    const field = el.dataset.field;
+    if (rccSections[idx] === undefined || !field) return;
+    const val = el.value;
+    rccSections[idx][field] = numericFields.includes(field)
+      ? (parseFloat(val) || 0) : val;
+  });
+  tbody.querySelectorAll('.rcc-chk').forEach(el => {
+    const idx = parseInt(el.dataset.idx);
+    if (rccSections[idx] !== undefined) {
+      rccSections[idx]['to_be_designed'] = el.checked;
+    }
+  });
+}
+
+// ── Import picker modal ───────────────────────────────────────────
+
+function rccOpenImportPicker() {
+  const modal = document.getElementById('rcc-import-modal');
+  document.getElementById('rcc-import-search').value = '';
+  document.getElementById('rcc-import-subtitle').textContent =
+    `${rccImportCandidates.length} rectangular section(s) found`;
+  modal.classList.remove('hidden');
+  rccRenderImportList('');
+}
+
+function rccCloseImportPicker() {
+  document.getElementById('rcc-import-modal').classList.add('hidden');
+}
+
+function rccRenderImportList(filter) {
+  const list   = document.getElementById('rcc-import-list');
+  const lc     = filter.toLowerCase();
+  const visible = rccImportCandidates.filter(s =>
+    !lc || s.prop_name.toLowerCase().includes(lc)
+  );
+
+  if (!visible.length) {
+    list.innerHTML = `<div class="rcc-import-empty">No sections match "${filter}"</div>`;
+    rccUpdateImportCount();
+    return;
+  }
+
+  list.innerHTML = visible.map(s => `
+    <label class="rcc-import-item">
+      <input type="checkbox" class="rcc-import-chk" value="${s.prop_name}" checked/>
+      <span class="rcc-import-name">${s.prop_name}</span>
+      <span class="rcc-import-dim">${s.depth} × ${s.width} mm</span>
+    </label>`).join('');
+
+  list.querySelectorAll('.rcc-import-chk').forEach(chk =>
+    chk.addEventListener('change', rccUpdateImportCount)
+  );
+  rccUpdateImportCount();
+}
+
+function rccUpdateImportCount() {
+  const checked = document.querySelectorAll('#rcc-import-list .rcc-import-chk:checked').length;
+  const total   = document.querySelectorAll('#rcc-import-list .rcc-import-chk').length;
+  const countEl = document.getElementById('rcc-import-count');
+  if (countEl) countEl.textContent = `${checked} of ${total} selected`;
+}
+
+function rccConfirmImport() {
+  const checked = new Set(
+    Array.from(document.querySelectorAll('#rcc-import-list .rcc-import-chk:checked'))
+         .map(c => c.value)
+  );
+  if (!checked.size) {
+    showToast('No sections selected', 'warn');
+    return;
+  }
+  const imported = rccImportCandidates
+    .filter(s => checked.has(s.prop_name))
+    .map((s, i) => ({ ...s, num: i + 1 }));
+
+  rccSections    = imported;
+  rccNextNum     = imported.length + 1;
+  rccSelectedIdx = -1;
+  rccRenderTable();
+  rccCloseImportPicker();
+  showToast(`Imported ${imported.length} section(s) from ETABS`, 'success');
+}
+
+// ── Add Column modal ──────────────────────────────────────────────
+
+function rccOpenAddCol() {
+  rccPopulateGenDropdowns();
+  ['rcc-gen-depth','rcc-gen-width'].forEach(id => {
+    document.getElementById(id).addEventListener('input', rccUpdateGenName);
+  });
+  document.getElementById('rcc-addcol-modal').classList.remove('hidden');
+}
+
+function rccUpdateGenName() {
+  const depth = document.getElementById('rcc-gen-depth').value || '';
+  const width = document.getElementById('rcc-gen-width').value || '';
+  const nameEl = document.getElementById('rcc-gen-name');
+  if (!nameEl.dataset.userEdited) {
+    nameEl.value = depth && width ? `C-${depth}x${width}` : '';
+  }
+}
+
+function rccCloseAddCol() {
+  document.getElementById('rcc-addcol-modal').classList.add('hidden');
+  const nameEl = document.getElementById('rcc-gen-name');
+  if (nameEl) { nameEl.value = ''; delete nameEl.dataset.userEdited; }
+}
+
+function rccConfirmAddCol() {
+  const name      = document.getElementById('rcc-gen-name').value.trim();
+  const depth     = parseFloat(document.getElementById('rcc-gen-depth').value)    || 500;
+  const width     = parseFloat(document.getElementById('rcc-gen-width').value)    || 500;
+  const conc      = document.getElementById('rcc-gen-conc').value;
+  const fym       = document.getElementById('rcc-gen-fym').value;
+  const fyt       = document.getElementById('rcc-gen-fyt').value;
+  const cover     = parseFloat(document.getElementById('rcc-gen-cover').value)    || 40;
+  const rebarSize = parseFloat(document.getElementById('rcc-gen-rebar').value)    || 28;
+  const nb3       = parseInt(document.getElementById('rcc-gen-nb3').value)        || 3;
+  const nb2       = parseInt(document.getElementById('rcc-gen-nb2').value)        || 3;
+  const tieSize   = parseFloat(document.getElementById('rcc-gen-tie').value)      || 12;
+  const spacing   = parseFloat(document.getElementById('rcc-gen-spacing').value)  || 150;
+  const torsion   = parseFloat(document.getElementById('rcc-gen-torsion').value)  || 0.01;
+  const i22       = parseFloat(document.getElementById('rcc-gen-i22').value)      || 0.70;
+  const i33       = parseFloat(document.getElementById('rcc-gen-i33').value)      || 0.70;
+
+  const autoName = name || `C-${depth}x${width}`;
+
+  rccSections.push(rccBlankRow({
+    prop_name:         autoName,
+    material:          conc,
+    concrete_strength: conc,
+    fy_main:           fym,
+    fy_ties:           fyt,
+    depth, width, cover,
+    rebar_size: rebarSize, nbars_3: nb3, nbars_2: nb2,
+    tie_size: tieSize, tie_spacing: spacing,
+    num_tie_3: nb3, num_tie_2: nb2,
+    torsion, i22, i33,
+  }));
+  rccRenderTable();
+  rccCloseAddCol();
+  showToast(`Section "${autoName}" added`, 'success');
+}
+
+// ── View Section modal (SVG cross-section) ────────────────────────
+
+function rccOpenViewModal() {
+  if (!rccSections.length) {
+    showToast('No sections to view. Add or import sections first.', 'warn');
+    return;
+  }
+  rccSyncFromDOM();
+
+  // Populate selector
+  const sel = document.getElementById('rcc-view-sel');
+  sel.innerHTML = rccSections.map((s, i) =>
+    `<option value="${i}">${s.prop_name || `Section ${s.num}`}</option>`
+  ).join('');
+
+  // Default to currently selected row or first
+  rccViewIdx = rccSelectedIdx >= 0 ? rccSelectedIdx : 0;
+  sel.value  = rccViewIdx;
+
+  document.getElementById('rcc-view-modal').classList.remove('hidden');
+  rccDrawSection(rccViewIdx);
+}
+
+function rccCloseViewModal() {
+  document.getElementById('rcc-view-modal').classList.add('hidden');
+}
+
+function rccDrawSection(idx) {
+  if (idx < 0 || idx >= rccSections.length) return;
+  const s = rccSections[idx];
+
+  // ── Canvas setup ──────────────────────────────────────────────
+  // depth (t3) = VERTICAL axis,  width (t2) = HORIZONTAL axis
+  const canvasW = 260, canvasH = 340;
+  const padL = 32, padR = 16, padT = 28, padB = 28;
+  const drawW = canvasW - padL - padR;
+  const drawH = canvasH - padT - padB;
+
+  // Scale: fit t2 (width) horizontally, t3 (depth) vertically
+  const scaleX = drawW / s.width;
+  const scaleY = drawH / s.depth;
+  const scale  = Math.min(scaleX, scaleY, 2.0);
+
+  const colW = s.width * scale;    // SVG width  = t2 (width)
+  const colH = s.depth * scale;    // SVG height = t3 (depth)
+  const ox   = padL + (drawW - colW) / 2;
+  const oy   = padT + (drawH - colH) / 2;
+
+  const cvpx = s.cover * scale;
+  const barR = Math.max(3, Math.min((s.rebar_size / 2) * scale, 7));
+
+  // ── Grid background ───────────────────────────────────────────
+  const gridStep = 20;
+  let gridLines = '';
+  for (let gx = ox; gx <= ox + colW + 0.5; gx += gridStep) {
+    gridLines += `<line x1="${gx.toFixed(1)}" y1="${oy.toFixed(1)}"
+                        x2="${gx.toFixed(1)}" y2="${(oy+colH).toFixed(1)}"
+                        stroke="#cbd5e1" stroke-width="0.5"/>`;
+  }
+  for (let gy = oy; gy <= oy + colH + 0.5; gy += gridStep) {
+    gridLines += `<line x1="${ox.toFixed(1)}" y1="${gy.toFixed(1)}"
+                        x2="${(ox+colW).toFixed(1)}" y2="${gy.toFixed(1)}"
+                        stroke="#cbd5e1" stroke-width="0.5"/>`;
+  }
+
+  // ── Tie rectangle (at cover) ──────────────────────────────────
+  const iL = ox + cvpx, iR = ox + colW - cvpx;
+  const iT = oy + cvpx, iB = oy + colH - cvpx;
+  const iW = iR - iL,   iH = iB - iT;
+
+  // ── Rebar positions ───────────────────────────────────────────
+  // nb3 = bars on the top/bottom faces (the t2/width faces, horizontal)
+  // nb2 = bars on the left/right faces (the t3/depth faces, vertical)
+  const nb3 = Math.max(2, s.nbars_3);
+  const nb2 = Math.max(2, s.nbars_2);
+
+  const bars = [];
+  // Top and bottom faces: nb3 bars spaced across the width (iW)
+  for (let i = 0; i < nb3; i++) {
+    const x = iL + (nb3 > 1 ? (iW / (nb3 - 1)) * i : iW / 2);
+    bars.push({ x, y: iT });
+    bars.push({ x, y: iB });
+  }
+  // Left and right faces: nb2 bars spaced along the depth (iH) — corners already added
+  for (let i = 1; i < nb2 - 1; i++) {
+    const y = iT + (iH / (nb2 - 1)) * i;
+    bars.push({ x: iL, y });
+    bars.push({ x: iR, y });
+  }
+  // Deduplicate
+  const unique = [];
+  bars.forEach(b => {
+    if (!unique.some(u => Math.abs(u.x - b.x) < 1 && Math.abs(u.y - b.y) < 1))
+      unique.push(b);
+  });
+
+  const barDots = unique.map(b =>
+    `<circle cx="${b.x.toFixed(1)}" cy="${b.y.toFixed(1)}" r="${barR.toFixed(1)}"
+             fill="#ef4444" stroke="#7f1d1d" stroke-width="0.8"/>`
+  ).join('');
+
+  // ── Dimension annotations ─────────────────────────────────────
+  const lblW = `<text x="${(ox+colW/2).toFixed(1)}" y="${(oy-10).toFixed(1)}"
+      text-anchor="middle" font-family="sans-serif" font-size="10" fill="#475569">${s.width} mm</text>`;
+  const lblD = `<text x="${(ox-12).toFixed(1)}" y="${(oy+colH/2).toFixed(1)}"
+      text-anchor="middle" font-family="sans-serif" font-size="10" fill="#475569"
+      transform="rotate(-90 ${(ox-12).toFixed(1)} ${(oy+colH/2).toFixed(1)})">${s.depth} mm</text>`;
+  const lblCover = `<text x="${(ox+colW/2).toFixed(1)}" y="${(oy+colH+18).toFixed(1)}"
+      text-anchor="middle" font-family="sans-serif" font-size="9" fill="#94a3b8">
+      Cover: ${s.cover} mm  |  ⌀${s.rebar_size} mm</text>`;
+
+  // ── Build SVG ─────────────────────────────────────────────────
+  const svgContent = `
+<clipPath id="col-clip">
+  <rect x="${ox.toFixed(1)}" y="${oy.toFixed(1)}" width="${colW.toFixed(1)}" height="${colH.toFixed(1)}"/>
+</clipPath>
+<rect x="${ox.toFixed(1)}" y="${oy.toFixed(1)}" width="${colW.toFixed(1)}" height="${colH.toFixed(1)}"
+      fill="#dbeafe" stroke="none"/>
+<g clip-path="url(#col-clip)">${gridLines}</g>
+<rect x="${ox.toFixed(1)}" y="${oy.toFixed(1)}" width="${colW.toFixed(1)}" height="${colH.toFixed(1)}"
+      fill="none" stroke="#1e293b" stroke-width="2"/>
+<rect x="${iL.toFixed(1)}" y="${iT.toFixed(1)}" width="${iW.toFixed(1)}" height="${iH.toFixed(1)}"
+      fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="5 3" rx="1"/>
+${barDots}
+${lblW}${lblD}${lblCover}`;
+
+  const svgEl = document.getElementById('rcc-view-svg');
+  if (svgEl) {
+    svgEl.setAttribute('viewBox', `0 0 ${canvasW} ${canvasH}`);
+    svgEl.setAttribute('width',  canvasW);
+    svgEl.setAttribute('height', canvasH);
+    svgEl.innerHTML = svgContent;
+  }
+
+  // ── Section label above drawing ───────────────────────────────
+  const name = s.prop_name || `Section ${s.num}`;
+  const totalBars = unique.length;
+  const labelEl = document.getElementById('rcc-view-label');
+  if (labelEl) labelEl.textContent =
+    `${name}  —  ${totalBars}-⌀${s.rebar_size}d`;
+
+  // ── Selector sync ─────────────────────────────────────────────
+  const sel = document.getElementById('rcc-view-sel');
+  if (sel) sel.value = idx;
+
+  // ── Footer bar count ──────────────────────────────────────────
+  const bcEl = document.getElementById('rcc-view-barcount');
+  if (bcEl) bcEl.textContent = `${totalBars} bars total  •  ${s.depth}×${s.width} mm`;
+
+  // ── Properties panel ─────────────────────────────────────────
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val || '—';
+  };
+  set('rvp-conc',    s.concrete_strength || s.material);
+  set('rvp-fym',     s.fy_main);
+  set('rvp-fyt',     s.fy_ties);
+  set('rvp-depth',   s.depth + ' mm');
+  set('rvp-width',   s.width + ' mm');
+  set('rvp-bardia',  s.rebar_size + ' mm');
+  set('rvp-cover',   s.cover + ' mm');
+  set('rvp-nb3',     s.nbars_3);
+  set('rvp-nb2',     s.nbars_2);
+  set('rvp-tiesize', s.tie_size + ' mm');
+  set('rvp-spacing', s.tie_spacing + ' mm');
+  set('rvp-ntie3',   s.num_tie_3);
+  set('rvp-ntie2',   s.num_tie_2);
+  set('rvp-torsion', s.torsion);
+  set('rvp-i22',     s.i22);
+  set('rvp-i33',     s.i33);
+}
+
+// ── Create Drawing (SVG download) ─────────────────────────────────
+
+function rccCreateDrawing() {
+  if (!rccSections.length) {
+    showToast('No sections to draw. Add or import sections first.', 'warn');
+    return;
+  }
+  rccSyncFromDOM();
+
+  // Build a multi-section SVG sheet
+  const cols    = 3;
+  const cellW   = 280, cellH = 300;
+  const padX    = 30,  padY  = 30;
+  const rows    = Math.ceil(rccSections.length / cols);
+  const totalW  = cols * (cellW + padX) + padX;
+  const totalH  = rows * (cellH + padY) + padY + 40;  // 40 for title
+
+  let cells = rccSections.map((s, n) => {
+    const col  = n % cols;
+    const row  = Math.floor(n / cols);
+    const ox   = padX + col * (cellW + padX);
+    const oy   = 40 + padY + row * (cellH + padY);
+
+    const maxDim = Math.max(s.depth, s.width, 1);
+    const scale  = Math.min((cellW - 60) / maxDim, (cellH - 80) / maxDim);
+    const cW     = s.depth * scale;
+    const cH     = s.width * scale;
+    const cx     = ox + cellW / 2 - cW / 2;
+    const cy     = oy + 20;
+    const cvmm   = s.cover * scale;
+    const barR   = Math.max(2.5, (s.rebar_size / 2) * scale);
+
+    const iL = cx + cvmm, iR = cx + cW - cvmm;
+    const iT = cy + cvmm, iB = cy + cH - cvmm;
+    const iW = iR - iL,   iH = iB - iT;
+
+    const nb3 = Math.max(2, s.nbars_3);
+    const nb2 = Math.max(2, s.nbars_2);
+    const bars = [];
+    for (let i = 0; i < nb3; i++) {
+      const x = iL + (iW / (nb3 - 1)) * i;
+      bars.push({ x, y: iT }); bars.push({ x, y: iB });
+    }
+    for (let i = 1; i < nb2 - 1; i++) {
+      const y = iT + (iH / (nb2 - 1)) * i;
+      bars.push({ x: iL, y }); bars.push({ x: iR, y });
+    }
+    const unique = [];
+    bars.forEach(b => {
+      if (!unique.some(u => Math.abs(u.x - b.x) < 1 && Math.abs(u.y - b.y) < 1))
+        unique.push(b);
+    });
+
+    return `
+<rect x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" width="${cW.toFixed(1)}" height="${cH.toFixed(1)}"
+      fill="#e2e8f0" stroke="#334155" stroke-width="1.5"/>
+<rect x="${iL.toFixed(1)}" y="${iT.toFixed(1)}" width="${iW.toFixed(1)}" height="${iH.toFixed(1)}"
+      fill="none" stroke="#64748b" stroke-width="1" stroke-dasharray="3 2"/>
+${unique.map(b => `<circle cx="${b.x.toFixed(1)}" cy="${b.y.toFixed(1)}" r="${barR.toFixed(1)}" fill="#ef4444" stroke="#991b1b" stroke-width="0.6"/>`).join('')}
+<text x="${(ox + cellW/2).toFixed(1)}" y="${(cy + cH + 16).toFixed(1)}"
+      text-anchor="middle" font-family="sans-serif" font-size="11" fill="#334155">
+  ${s.prop_name || `Sec ${s.num}`}
+</text>
+<text x="${(ox + cellW/2).toFixed(1)}" y="${(cy + cH + 30).toFixed(1)}"
+      text-anchor="middle" font-family="sans-serif" font-size="9.5" fill="#64748b">
+  ${s.depth}×${s.width}mm  cover=${s.cover}  ⌀${s.rebar_size}  n=${unique.length}
+</text>`;
+  }).join('');
+
+  const svgStr = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${totalW}" height="${totalH}"
+     viewBox="0 0 ${totalW} ${totalH}">
+  <rect width="100%" height="100%" fill="white"/>
+  <text x="${totalW/2}" y="28" text-anchor="middle"
+        font-family="sans-serif" font-size="16" font-weight="bold" fill="#0f172a">
+    RC Column Section Generator — Drawing Sheet
+  </text>
+  ${cells}
+</svg>`;
+
+  const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'rc_column_sections.svg';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`Drawing exported: rc_column_sections.svg (${rccSections.length} section(s))`, 'success');
+}
+
+// ── Init / event wiring ───────────────────────────────────────────
+
+function initRcColumn() {
+  document.getElementById('rcc-btn-import-mat')
+    ?.addEventListener('click', rccImportMaterials);
+
+  document.getElementById('rcc-btn-import-sec')
+    ?.addEventListener('click', rccImportSections);
+
+  document.getElementById('rcc-btn-write')
+    ?.addEventListener('click', rccWriteToETABS);
+
+  document.getElementById('rcc-btn-clear')
+    ?.addEventListener('click', () => {
+      if (rccSections.length && !confirm('Clear all column sections?')) return;
+      rccSections    = [];
+      rccNextNum     = 1;
+      rccSelectedIdx = -1;
+      rccRenderTable();
+      showToast('Table cleared', 'success');
+    });
+
+  document.getElementById('rcc-btn-add-col')
+    ?.addEventListener('click', rccOpenAddCol);
+
+  document.getElementById('rcc-btn-view-sec')
+    ?.addEventListener('click', rccOpenViewModal);
+
+  document.getElementById('rcc-btn-drawing')
+    ?.addEventListener('click', rccCreateDrawing);
+
+  document.getElementById('rcc-btn-add-row')
+    ?.addEventListener('click', () => {
+      rccSections.push(rccBlankRow());
+      rccSelectedIdx = -1;
+      rccRenderTable();
+      const wrap = document.getElementById('rcc-table-wrap');
+      if (wrap) wrap.scrollTop = wrap.scrollHeight;
+    });
+
+  document.getElementById('rcc-btn-add-copy')
+    ?.addEventListener('click', () => {
+      if (rccSelectedIdx < 0 || !rccSections[rccSelectedIdx]) {
+        showToast('Select a row to copy first', 'warn');
+        return;
+      }
+      const src  = rccSections[rccSelectedIdx];
+      const copy = { ...src, num: rccNextNum++, prop_name: rccUniqueCopyName(src.prop_name) };
+      rccSections.push(copy);
+      rccSelectedIdx = rccSections.length - 1;
+      rccRenderTable();
+      const wrap = document.getElementById('rcc-table-wrap');
+      if (wrap) wrap.scrollTop = wrap.scrollHeight;
+      showToast(`Copied as "${copy.prop_name}"`, 'success');
+    });
+
+  // Import Section picker modal
+  document.getElementById('rcc-import-close')
+    ?.addEventListener('click', rccCloseImportPicker);
+  document.getElementById('rcc-import-cancel')
+    ?.addEventListener('click', rccCloseImportPicker);
+  document.getElementById('rcc-import-confirm')
+    ?.addEventListener('click', rccConfirmImport);
+  document.getElementById('rcc-import-modal')
+    ?.addEventListener('click', e => {
+      if (e.target === e.currentTarget) rccCloseImportPicker();
+    });
+
+  document.getElementById('rcc-import-search')
+    ?.addEventListener('input', e => rccRenderImportList(e.target.value.trim()));
+
+  document.getElementById('rcc-import-all')
+    ?.addEventListener('click', () => {
+      document.querySelectorAll('#rcc-import-list .rcc-import-chk')
+              .forEach(c => { c.checked = true; });
+      rccUpdateImportCount();
+    });
+  document.getElementById('rcc-import-none')
+    ?.addEventListener('click', () => {
+      document.querySelectorAll('#rcc-import-list .rcc-import-chk')
+              .forEach(c => { c.checked = false; });
+      rccUpdateImportCount();
+    });
+  document.getElementById('rcc-import-invert')
+    ?.addEventListener('click', () => {
+      document.querySelectorAll('#rcc-import-list .rcc-import-chk')
+              .forEach(c => { c.checked = !c.checked; });
+      rccUpdateImportCount();
+    });
+
+  // Add Column modal
+  document.getElementById('rcc-addcol-close')
+    ?.addEventListener('click', rccCloseAddCol);
+  document.getElementById('rcc-addcol-cancel')
+    ?.addEventListener('click', rccCloseAddCol);
+  document.getElementById('rcc-addcol-confirm')
+    ?.addEventListener('click', rccConfirmAddCol);
+  document.getElementById('rcc-addcol-modal')
+    ?.addEventListener('click', e => {
+      if (e.target === e.currentTarget) rccCloseAddCol();
+    });
+  document.getElementById('rcc-gen-name')
+    ?.addEventListener('input', function() {
+      this.dataset.userEdited = this.value ? '1' : '';
+    });
+
+  // View Sections modal
+  document.getElementById('rcc-view-close')
+    ?.addEventListener('click', rccCloseViewModal);
+  document.getElementById('rcc-view-close2')
+    ?.addEventListener('click', rccCloseViewModal);
+  document.getElementById('rcc-view-modal')
+    ?.addEventListener('click', e => {
+      if (e.target === e.currentTarget) rccCloseViewModal();
+    });
+  document.getElementById('rcc-view-sel')
+    ?.addEventListener('change', e => {
+      rccViewIdx = parseInt(e.target.value);
+      rccDrawSection(rccViewIdx);
+    });
+  document.getElementById('rcc-view-prev')
+    ?.addEventListener('click', () => {
+      rccViewIdx = Math.max(0, rccViewIdx - 1);
+      rccDrawSection(rccViewIdx);
+    });
+  document.getElementById('rcc-view-next')
+    ?.addEventListener('click', () => {
+      rccViewIdx = Math.min(rccSections.length - 1, rccViewIdx + 1);
+      rccDrawSection(rccViewIdx);
+    });
+
+  // Initial render
+  rccRenderTable();
+}
+
+document.addEventListener('DOMContentLoaded', initRcColumn);

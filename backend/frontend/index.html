@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml"  href="/app/favicon.svg">
   <link rel="icon" type="image/x-icon"   href="/favicon.ico">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/app/styles.css?v=44" />
+  <link rel="stylesheet" href="/app/styles.css?v=46" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
 <body>
@@ -114,6 +114,22 @@
           <circle cx="13" cy="12" r="1" fill="currentColor" stroke="none"/>
         </svg>
         RCSGen Beam
+        <span class="nav-plan-badge">PRO</span>
+      </a>
+
+      <a href="#" class="nav-item" data-target="rccolumn-panel" data-plan="pro">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 18 18" fill="none"
+             stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="2" width="10" height="14" rx="1"/>
+          <circle cx="6"  cy="4.5" r="1" fill="currentColor" stroke="none"/>
+          <circle cx="12" cy="4.5" r="1" fill="currentColor" stroke="none"/>
+          <circle cx="6"  cy="13.5" r="1" fill="currentColor" stroke="none"/>
+          <circle cx="12" cy="13.5" r="1" fill="currentColor" stroke="none"/>
+          <circle cx="6"  cy="9"  r="1" fill="currentColor" stroke="none"/>
+          <circle cx="12" cy="9"  r="1" fill="currentColor" stroke="none"/>
+          <rect x="6" y="4.5" width="6" height="9" rx="0.5" stroke-width="1.2" opacity="0.5"/>
+        </svg>
+        RCSGen Column
         <span class="nav-plan-badge">PRO</span>
       </a>
     </nav>
@@ -977,6 +993,174 @@
 
     </section><!-- /#rcbeam-panel -->
 
+    <!-- ───── RC COLUMN SECTION GENERATOR ───── -->
+    <section id="rccolumn-panel" class="panel">
+
+      <!-- Panel header + toolbar -->
+      <div class="panel-header rcc-header">
+        <div class="panel-title-group">
+          <h1 class="panel-title">RC Column Section Generator</h1>
+          <span class="panel-sub">Design rectangular concrete column sections and sync with ETABS</span>
+        </div>
+        <div class="header-controls rcc-toolbar">
+
+          <button id="rcc-btn-import-mat" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 2v9M4 7l4 4 4-4"/>
+              <rect x="2" y="13" width="12" height="1.5" rx="0.75"/>
+            </svg>
+            Import Material
+          </button>
+
+          <button id="rcc-btn-clear" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 4h12M6 4V2h4v2M5 4v9a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V4"/>
+            </svg>
+            Clear
+          </button>
+
+          <button id="rcc-btn-add-col" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="8" r="6"/>
+              <line x1="8" y1="5" x2="8" y2="11"/>
+              <line x1="5" y1="8" x2="11" y2="8"/>
+            </svg>
+            Add Column
+          </button>
+
+          <button id="rcc-btn-import-sec" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="12" height="12" rx="1.5"/>
+              <line x1="2"  y1="6"  x2="14" y2="6"/>
+              <line x1="6"  y1="6"  x2="6"  y2="14"/>
+            </svg>
+            Import Section
+          </button>
+
+          <button id="rcc-btn-view-sec" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="8" r="5"/>
+              <circle cx="8" cy="8" r="2"/>
+            </svg>
+            View Sections
+          </button>
+
+          <button id="rcc-btn-write" class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 11V2M4 7l4-4 4 4"/>
+              <rect x="2" y="12" width="12" height="2" rx="1"/>
+            </svg>
+            Write to ETABS
+          </button>
+
+          <button id="rcc-btn-spcol" class="btn btn-ghost" disabled title="Coming soon — feed reference code first">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="2" width="10" height="12" rx="1"/>
+              <line x1="6" y1="6" x2="10" y2="6"/>
+              <line x1="6" y1="9" x2="10" y2="9"/>
+            </svg>
+            Create Spcol Files
+          </button>
+
+          <button id="rcc-btn-drawing" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="12" height="12" rx="1.5"/>
+              <path d="M5 11l2-4 2 3 1.5-2 2 3"/>
+            </svg>
+            Create Drawing
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Main layout: material sidebar + table -->
+      <div class="rcc-layout">
+
+        <!-- Left: material list -->
+        <div class="rcc-mat-panel">
+          <div class="rcc-mat-header">Materials</div>
+          <ul class="rcc-mat-list" id="rcc-mat-list">
+            <li class="rcc-mat-empty">Click "Import Material"</li>
+          </ul>
+        </div>
+
+        <!-- Right: section table -->
+        <div class="rcc-table-outer">
+          <div class="rcc-table-empty" id="rcc-table-empty">
+            <svg width="56" height="56" viewBox="0 0 64 64" fill="none"
+                 stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+              <rect x="6"  y="6"  width="52" height="8"  rx="2" opacity=".25"/>
+              <rect x="6"  y="18" width="52" height="9"  rx="2" opacity=".18"/>
+              <rect x="6"  y="31" width="52" height="9"  rx="2" opacity=".12"/>
+              <rect x="6"  y="44" width="52" height="9"  rx="2" opacity=".07"/>
+            </svg>
+            <p>Click <strong>Import Section</strong> to load from ETABS,<br>or use <strong>Add Column</strong> to create a new section</p>
+          </div>
+          <div class="rcc-table-wrap hidden" id="rcc-table-wrap">
+            <table class="data-table rcc-table" id="rcc-table">
+              <thead>
+                <tr>
+                  <th class="rcc-th-num">#</th>
+                  <th class="rcc-th-name">Property Name</th>
+                  <th>Concrete Strength</th>
+                  <th>Fy (Main)</th>
+                  <th>Fy (Ties)</th>
+                  <th>Depth (mm)</th>
+                  <th>Width (mm)</th>
+                  <th>Cover (mm)</th>
+                  <th>Rebar Size</th>
+                  <th>NBars(3)</th>
+                  <th>NBars(2)</th>
+                  <th>Tie Size</th>
+                  <th>Spacing (mm)</th>
+                  <th>#TieBars(3)</th>
+                  <th>#TieBars(2)</th>
+                  <th>To Design</th>
+                  <th>Torsion</th>
+                  <th>I22</th>
+                  <th>I33</th>
+                  <th class="rcc-th-del"></th>
+                </tr>
+              </thead>
+              <tbody id="rcc-tbody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /.rcc-layout -->
+
+      <!-- Status bar -->
+      <div class="rcc-statusbar">
+        <span class="rcc-count" id="rcc-count">0 sections</span>
+        <button id="rcc-btn-add-row" class="btn btn-ghost btn-xs">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="6" y1="2" x2="6" y2="10"/>
+            <line x1="2" y1="6" x2="10" y2="6"/>
+          </svg>
+          Add Row
+        </button>
+        <button id="rcc-btn-add-copy" class="btn btn-ghost btn-xs">
+          <svg width="11" height="11" viewBox="0 0 14 14" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="4" width="8" height="8" rx="1"/>
+            <path d="M2 10V2h8"/>
+          </svg>
+          Add Copy
+        </button>
+      </div>
+
+    </section><!-- /#rccolumn-panel -->
+
   </main>
 </div>
 
@@ -1481,6 +1665,298 @@
   </div>
 </div>
 
-<script src="/app/app.js?v=40"></script>
+<!-- ══════════════════ RC COLUMN — IMPORT SECTION PICKER ══════════════════ -->
+<div id="rcc-import-modal" class="modal-overlay hidden">
+  <div class="modal-box rcc-import-box">
+
+    <div class="modal-header" style="padding:16px 20px 14px">
+      <div>
+        <div class="modal-title">Import Column Sections from ETABS</div>
+        <div class="rcc-import-subtitle" id="rcc-import-subtitle">Loading…</div>
+      </div>
+      <button id="rcc-import-close" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="rcc-import-toolbar">
+      <input id="rcc-import-search" type="search" class="rcc-import-search"
+             placeholder="Search sections…" autocomplete="off"/>
+      <button id="rcc-import-all"    class="btn btn-ghost btn-xs">All</button>
+      <button id="rcc-import-none"   class="btn btn-ghost btn-xs">None</button>
+      <button id="rcc-import-invert" class="btn btn-ghost btn-xs">Invert</button>
+    </div>
+
+    <div class="rcc-import-list" id="rcc-import-list"></div>
+
+    <div class="rcc-import-footer">
+      <span class="rcc-import-count" id="rcc-import-count">0 selected</span>
+      <div style="display:flex;gap:8px">
+        <button id="rcc-import-cancel"  class="btn btn-ghost">Cancel</button>
+        <button id="rcc-import-confirm" class="btn btn-primary">Import Selected</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════ RC COLUMN — ADD COLUMN MODAL ══════════════════ -->
+<div id="rcc-addcol-modal" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title">Add Column Section</div>
+      <button id="rcc-addcol-close" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/>
+          <line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="upgrade-body" style="padding:20px 24px">
+      <div class="rcb-gen-grid">
+
+        <div class="rcb-gen-row">
+          <label class="rcb-gen-label">Property Name</label>
+          <input id="rcc-gen-name" type="text" class="rcb-gen-input"
+                 placeholder="Auto — e.g. C-500x500" autocomplete="off"/>
+        </div>
+
+        <div class="rcb-gen-row">
+          <label class="rcb-gen-label">Concrete Strength</label>
+          <select id="rcc-gen-conc" class="rcb-gen-input">
+            <option value="">— select material —</option>
+          </select>
+        </div>
+
+        <div class="rcb-gen-row">
+          <label class="rcb-gen-label">Fy (Main)</label>
+          <select id="rcc-gen-fym" class="rcb-gen-input">
+            <option value="">— select material —</option>
+          </select>
+        </div>
+
+        <div class="rcb-gen-row">
+          <label class="rcb-gen-label">Fy (Ties)</label>
+          <select id="rcc-gen-fyt" class="rcb-gen-input">
+            <option value="">— select material —</option>
+          </select>
+        </div>
+
+        <div class="rcb-gen-2col">
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Depth (mm)</label>
+            <input id="rcc-gen-depth" type="number" class="rcb-gen-input" value="500" min="1"/>
+          </div>
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Width (mm)</label>
+            <input id="rcc-gen-width" type="number" class="rcb-gen-input" value="500" min="1"/>
+          </div>
+        </div>
+
+        <div class="rcb-gen-2col">
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Cover (mm)</label>
+            <input id="rcc-gen-cover" type="number" class="rcb-gen-input" value="40" min="0"/>
+          </div>
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Rebar Size</label>
+            <select id="rcc-gen-rebar" class="rcb-gen-input">
+              <option>10</option><option>12</option><option>16</option>
+              <option>20</option><option>25</option><option selected>28</option>
+              <option>32</option><option>36</option><option>40</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="rcb-gen-2col">
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">NBars(3)</label>
+            <input id="rcc-gen-nb3" type="number" class="rcb-gen-input" value="3" min="2"/>
+          </div>
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">NBars(2)</label>
+            <input id="rcc-gen-nb2" type="number" class="rcb-gen-input" value="3" min="2"/>
+          </div>
+        </div>
+
+        <div class="rcb-gen-2col">
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Tie Size</label>
+            <select id="rcc-gen-tie" class="rcb-gen-input">
+              <option>10</option><option selected>12</option><option>16</option><option>20</option>
+            </select>
+          </div>
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Tie Spacing (mm)</label>
+            <input id="rcc-gen-spacing" type="number" class="rcb-gen-input" value="150" min="1"/>
+          </div>
+        </div>
+
+        <div class="rcb-gen-2col">
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Torsion Mod</label>
+            <input id="rcc-gen-torsion" type="number" class="rcb-gen-input" value="0.01" step="0.001" min="0"/>
+          </div>
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">I22 Modifier</label>
+            <input id="rcc-gen-i22" type="number" class="rcb-gen-input" value="0.70" step="0.01" min="0"/>
+          </div>
+        </div>
+
+        <div class="rcb-gen-row">
+          <label class="rcb-gen-label">I33 Modifier</label>
+          <input id="rcc-gen-i33" type="number" class="rcb-gen-input" value="0.70" step="0.01" min="0"/>
+        </div>
+
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="rcc-addcol-confirm" class="btn btn-primary">Add Section</button>
+      <button id="rcc-addcol-cancel" class="btn btn-ghost">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ RC COLUMN — VIEW SECTIONS MODAL ══════════════════ -->
+<div id="rcc-view-modal" class="modal-overlay hidden">
+  <div class="modal-box rcc-view-box">
+
+    <!-- Header with selector -->
+    <div class="modal-header" style="padding:14px 20px 12px;gap:12px">
+      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+        <div class="modal-title" style="white-space:nowrap">View Section</div>
+        <select id="rcc-view-sel" class="rcc-view-sel-ctrl"></select>
+      </div>
+      <button id="rcc-view-close" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Body: SVG left + properties right -->
+    <div class="rcc-view-body">
+
+      <!-- Left: cross-section drawing -->
+      <div class="rcc-view-left">
+        <div class="rcc-view-label" id="rcc-view-label">—</div>
+        <div class="rcc-view-canvas" id="rcc-view-canvas">
+          <svg id="rcc-view-svg" width="260" height="340" viewBox="0 0 260 340">
+            <text x="130" y="170" text-anchor="middle" fill="#94a3b8" font-size="12">
+              Select a section above
+            </text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Right: properties panel -->
+      <div class="rcc-view-right">
+
+        <div class="rcc-view-group">
+          <div class="rcc-view-group-title">Material Properties</div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Concrete Strength (f'c)</span>
+            <span class="rcc-view-prop-val" id="rvp-conc">—</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Main Bars (fy)</span>
+            <span class="rcc-view-prop-val" id="rvp-fym">—</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Confinement Bars (fys)</span>
+            <span class="rcc-view-prop-val" id="rvp-fyt">—</span>
+          </div>
+        </div>
+
+        <div class="rcc-view-group">
+          <div class="rcc-view-group-title">Section Dimensions</div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Depth (mm)</span>
+            <span class="rcc-view-prop-val" id="rvp-depth">—</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Width (mm)</span>
+            <span class="rcc-view-prop-val" id="rvp-width">—</span>
+          </div>
+        </div>
+
+        <div class="rcc-view-group">
+          <div class="rcc-view-group-title">Longitudinal Reinforcement</div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Main Bar Diameter</span>
+            <span class="rcc-view-prop-val" id="rvp-bardia">—</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Clear Cover</span>
+            <span class="rcc-view-prop-val" id="rvp-cover">—</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">NBars (3)</span>
+            <span class="rcc-view-prop-val" id="rvp-nb3">—</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">NBars (2)</span>
+            <span class="rcc-view-prop-val" id="rvp-nb2">—</span>
+          </div>
+        </div>
+
+        <div class="rcc-view-group">
+          <div class="rcc-view-group-title">Confinement Bars</div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Confinement Bar Diameter</span>
+            <span class="rcc-view-prop-val" id="rvp-tiesize">—</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Spacing</span>
+            <span class="rcc-view-prop-val" id="rvp-spacing">—</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Conf. bars (3)</span>
+            <span class="rcc-view-prop-val" id="rvp-ntie3">—</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Conf. bars (2)</span>
+            <span class="rcc-view-prop-val" id="rvp-ntie2">—</span>
+          </div>
+        </div>
+
+        <div class="rcc-view-group">
+          <div class="rcc-view-group-title">Stiffness Modifiers</div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Torsion Constant</span>
+            <span class="rcc-view-prop-val" id="rvp-torsion">—</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Moment of Inertia I22</span>
+            <span class="rcc-view-prop-val" id="rvp-i22">—</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Moment of Inertia I33</span>
+            <span class="rcc-view-prop-val" id="rvp-i33">—</span>
+          </div>
+        </div>
+
+      </div><!-- /.rcc-view-right -->
+    </div><!-- /.rcc-view-body -->
+
+    <!-- Footer -->
+    <div class="rcc-import-footer" style="border-top:1px solid var(--bdr);margin-top:0">
+      <span class="rcc-view-barcount" id="rcc-view-barcount"></span>
+      <div style="display:flex;gap:8px">
+        <button id="rcc-view-prev" class="btn btn-ghost btn-xs">◀ Prev</button>
+        <button id="rcc-view-next" class="btn btn-ghost btn-xs">Next ▶</button>
+        <button id="rcc-view-close2" class="btn btn-ghost">Close</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="/app/app.js?v=46"></script>
 </body>
 </html>

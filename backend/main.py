@@ -594,3 +594,60 @@ def rc_beam_write_sections(
     if "error" in res:
         raise HTTPException(status_code=500, detail=res["error"])
     return res
+
+
+# ─── RC Column Section Generator endpoints ───────────────────────────────────
+
+class WriteColumnSectionsRequest(BaseModel):
+    sections: List[dict]
+
+@app.get("/api/rc-column/materials")
+def rc_column_get_materials(
+    _u: dict = Depends(require_plan("pro")),
+):
+    """Return all material names defined in the active ETABS model."""
+    res = actions.get_frame_materials()
+    if "error" in res:
+        raise HTTPException(status_code=500, detail=res["error"])
+    return res
+
+
+@app.get("/api/rc-column/sections")
+def rc_column_import_sections(
+    _u: dict = Depends(require_plan("pro")),
+):
+    """Import all rectangular frame sections from the active ETABS model as columns."""
+    res = actions.get_rc_column_sections()
+    if "error" in res:
+        raise HTTPException(status_code=500, detail=res["error"])
+    return res
+
+
+@app.post("/api/rc-column/write")
+def rc_column_write_sections(
+    request: WriteColumnSectionsRequest,
+    _u: dict = Depends(require_plan("pro")),
+):
+    """Create or update rectangular RC column sections in ETABS."""
+    if not request.sections:
+        raise HTTPException(status_code=400, detail="No sections provided.")
+    res = actions.write_rc_column_sections(request.sections)
+    if "error" in res:
+        raise HTTPException(status_code=500, detail=res["error"])
+    return res
+
+
+@app.get("/api/rc-column/debug/{section_name}")
+def rc_column_debug_raw(
+    section_name: str,
+    _u: dict = Depends(require_plan("pro")),
+):
+    """
+    Return raw comtypes output for GetRectangle + GetRebarColumn on one section.
+    Shows positional values, types, unit_code, and converted mm values.
+    Use this to diagnose unit/parsing issues after import.
+    """
+    res = actions.debug_rc_column_raw(section_name)
+    if "error" in res:
+        raise HTTPException(status_code=500, detail=res["error"])
+    return res
