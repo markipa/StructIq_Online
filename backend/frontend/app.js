@@ -4287,24 +4287,30 @@ function cleanerNormPath(raw) {
   return raw.trim().replace(/^["']+|["']+$/g, '').trim();
 }
 
+const _BROWSE_ICON = `<svg width="14" height="14" viewBox="0 0 18 18" fill="none"
+  stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M2 5.5h6l2 2h6v9H2z"/><line x1="2" y1="5.5" x2="2" y2="14.5"/></svg>`;
+
 async function cleanerBrowse() {
   const btn = document.getElementById('btn-cleaner-browse');
   btn.disabled = true;
-  btn.textContent = 'Opening…';
+  btn.innerHTML = _BROWSE_ICON + ' Opening…';
+  showToast('A folder picker window has opened — check your taskbar if you cannot see it.', 'info');
   try {
     const res  = await authFetch('/api/clean/browse-folder');
     const data = await res.json();
     if (!res.ok) { showToast(data.detail || 'Could not open folder picker', 'error'); return; }
     if (data.path) {
       document.getElementById('cleaner-dir-input').value = data.path;
+      showToast('Folder selected. Click Scan Folder to continue.', 'success');
+    } else {
+      showToast('No folder selected.', 'info');
     }
   } catch (err) {
     showToast('Browse error: ' + err.message, 'error');
   } finally {
     btn.disabled = false;
-    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 18 18" fill="none"
-      stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M2 5.5h6l2 2h6v9H2z"/><line x1="2" y1="5.5" x2="2" y2="14.5"/></svg> Browse`;
+    btn.innerHTML = _BROWSE_ICON + ' Browse';
   }
 }
 

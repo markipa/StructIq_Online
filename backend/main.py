@@ -858,23 +858,43 @@ def browse_folder(current_user: dict = Depends(get_current_user)):
     Open a native Windows folder-picker dialog and return the selected path.
     Uses PowerShell so no extra dependencies are needed.
     """
-    import subprocess, sys as _sys
+    import subprocess
 
+    # Create a tiny topmost helper form so the dialog appears IN FRONT of
+    # the browser window instead of being hidden behind it.
     ps_script = (
         "Add-Type -AssemblyName System.Windows.Forms;"
+        "Add-Type -AssemblyName System.Drawing;"
+        "$owner = New-Object System.Windows.Forms.Form;"
+        "$owner.TopMost = $true;"
+        "$owner.ShowInTaskbar = $false;"
+        "$owner.Size = New-Object System.Drawing.Size(1,1);"
+        "$owner.Show();"
+        "$owner.BringToFront();"
         "$d = New-Object System.Windows.Forms.FolderBrowserDialog;"
         "$d.Description = 'Select project folder to clean';"
         "$d.ShowNewFolderButton = $false;"
-        "if ($d.ShowDialog() -eq 'OK') { Write-Output $d.SelectedPath }"
+        "$r = $d.ShowDialog($owner);"
+        "$owner.Dispose();"
+        "if ($r -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $d.SelectedPath }"
     )
     try:
         result = subprocess.run(
-            ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_script],
+            [
+                "powershell",
+                "-NoProfile",
+                "-ExecutionPolicy", "Bypass",
+                "-Command", ps_script,
+            ],
             capture_output=True, text=True, timeout=120,
         )
-        selected = result.stdout.strip()
+        selected = (result.stdout or "").strip().strip('"\'').strip()
         if not selected:
-            return {"path": None}          # user cancelled
-        return {"path": selected}
+            return {"path": None, "cancelled": True}
+        return {"path": selected, "cancelled": False}
+    except FileNotFoundError:
+        raise HTTPException(status_code=500, detail="PowerShell not found on this system.")
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=408, detail="Folder picker timed out.")
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Folder picker failed: {exc}")
