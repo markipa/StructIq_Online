@@ -368,6 +368,48 @@ async def ls_webhook(request: Request):
     return {"ok": True}
 
 
+@app.get("/api/billing/portal")
+def get_billing_portal(request: Request):
+    """
+    Return the Lemon Squeezy customer portal URL for the authenticated user.
+    The user can manage their subscription (cancel, update payment, etc.) there.
+    """
+    auth  = request.headers.get("Authorization", "")
+    token = auth[7:] if auth.startswith("Bearer ") else ""
+    user  = database.get_user_by_token(token)
+    if not user:
+        raise HTTPException(401, "Invalid or expired session")
+
+    sub_id = user.get("ls_subscription_id")
+    if not sub_id:
+        raise HTTPException(404, "No active subscription found for this account")
+
+    if not LS_API_KEY:
+        raise HTTPException(503, "Billing not configured")
+
+    try:
+        r = httpx.get(
+            f"https://api.lemonsqueezy.com/v1/subscriptions/{sub_id}",
+            headers={
+                "Authorization": f"Bearer {LS_API_KEY}",
+                "Accept":        "application/vnd.api+json",
+            },
+            timeout=15,
+        )
+        r.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(502, f"Billing error: {e.response.text}")
+    except Exception as e:
+        raise HTTPException(503, f"Could not reach billing server: {e}")
+
+    attrs      = r.json()["data"]["attributes"]
+    portal_url = attrs.get("urls", {}).get("customer_portal", "")
+    if not portal_url:
+        raise HTTPException(502, "Billing server did not return a portal URL")
+
+    return {"portal_url": portal_url}
+
+
 @app.get("/stripe/success", response_class=HTMLResponse)
 def stripe_success():
     return """<!DOCTYPE html>

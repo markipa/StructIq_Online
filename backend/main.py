@@ -391,6 +391,44 @@ def stripe_checkout(
         raise HTTPException(503, detail=f"Could not reach billing server: {e}")
 
 
+@app.get("/api/billing/portal")
+def billing_portal(current_user: dict = Depends(get_current_user)):
+    """
+    Proxy to Railway: returns the Lemon Squeezy customer portal URL.
+    Only available for users who have an active subscription (ls_subscription_id set).
+    """
+    if not config.CLOUD_URL:
+        raise HTTPException(503, detail="Cloud billing is not configured")
+    if not _HAS_REQUESTS:
+        raise HTTPException(503, detail="requests library unavailable")
+
+    cloud_token = database.get_cloud_token(current_user["id"])
+    if not cloud_token:
+        raise HTTPException(404, detail="No subscription found — please upgrade to PRO first")
+
+    try:
+        r = _requests.get(
+            f"{config.CLOUD_URL.rstrip('/')}/api/billing/portal",
+            headers={"Authorization": f"Bearer {cloud_token}"},
+            timeout=15,
+        )
+        try:
+            data = r.json()
+        except Exception:
+            raise HTTPException(502, detail=f"Bad response from billing server (HTTP {r.status_code})")
+
+        if not r.ok:
+            detail = data.get("detail", f"Billing server error (HTTP {r.status_code})")
+            raise HTTPException(r.status_code, detail=detail)
+
+        return {"portal_url": data["portal_url"]}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(503, detail=f"Could not reach billing server: {e}")
+
+
 # ─── Static frontend ─────────────────────────────────────────────────────────
 
 # Create frontend directory if it doesn't exist

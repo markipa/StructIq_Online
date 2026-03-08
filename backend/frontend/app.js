@@ -76,9 +76,41 @@ function updatePlanBadge(plan) {
   planEl.className = 'user-pill-plan';
   if (plan === 'pro')        planEl.classList.add('plan-pro');
   if (plan === 'enterprise') planEl.classList.add('plan-enterprise');
+  // Show "Manage Subscription" button only for paid plans
+  const manageBtn = document.getElementById('btn-manage-sub');
+  if (manageBtn) {
+    if (plan === 'pro' || plan === 'enterprise') {
+      manageBtn.classList.remove('hidden');
+    } else {
+      manageBtn.classList.add('hidden');
+    }
+  }
   // Keep global plan state in sync and refresh nav locks
   currentUserPlan = plan;
   updateNavLocks(plan);
+}
+
+/** Open the Lemon Squeezy customer portal so the user can manage their subscription. */
+async function openBillingPortal() {
+  const btn = document.getElementById('btn-manage-sub');
+  if (btn) { btn.disabled = true; btn.title = 'Loading…'; }
+  try {
+    const res = await authFetch('/api/billing/portal');
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.detail || 'Could not load billing portal', 'error');
+      return;
+    }
+    if (data.portal_url) {
+      window.open(data.portal_url, '_blank');
+    } else {
+      showToast('No portal URL returned', 'error');
+    }
+  } catch (err) {
+    showToast('Could not reach billing server', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.title = 'Manage subscription'; }
+  }
 }
 
 /**
@@ -385,6 +417,9 @@ document.addEventListener('DOMContentLoaded', () => {
   ['btn-grace-close', 'btn-grace-dismiss'].forEach(id =>
     document.getElementById(id).addEventListener('click', () =>
       document.getElementById('grace-modal').classList.add('hidden')));
+
+  // Manage subscription (Lemon Squeezy customer portal)
+  document.getElementById('btn-manage-sub').addEventListener('click', openBillingPortal);
 
   // Core buttons
   document.getElementById('btn-reconnect').addEventListener('click', checkStatus);

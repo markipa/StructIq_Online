@@ -1922,6 +1922,17 @@ body {
 }
 
 .user-logout-btn:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
+
+.user-manage-sub-btn {
+  background: transparent; border: none;
+  color: #a78bfa; cursor: pointer; padding: 4px;
+  border-radius: 5px; display: flex; align-items: center;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.user-manage-sub-btn:hover { color: #c4b5fd; background: rgba(167,139,250,0.1); }
+.user-manage-sub-btn:disabled { opacity: 0.5; cursor: default; }
+
 .combo-picker-item:hover span   { color: var(--blue); }
 
 /* ================================================================
