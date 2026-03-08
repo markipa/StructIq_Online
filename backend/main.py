@@ -751,3 +751,68 @@ def rc_column_debug_raw(
     if "error" in res:
         raise HTTPException(status_code=500, detail=res["error"])
     return res
+
+
+# ─── Run File Cleaner ────────────────────────────────────────────────────────
+
+# File extensions produced by ETABS / SAFE during analysis runs
+_CLEAN_SUFFIXES = {
+    ".ebk", ".ico", ".K_0", ".K_E", ".K_G", ".K_I", ".K_J", ".K_M",
+    ".LOG", ".msh", ".OUT",
+    ".Y",   ".Y$$",
+    ".Y00", ".Y01", ".Y02", ".Y03", ".Y04", ".Y05", ".Y06", ".Y07",
+    ".Y08", ".Y09", ".Y0A", ".Y0B", ".Y0C", ".Y0D", ".Y0E",
+    ".Y_",  ".Y_1",
+    ".xsdm", ".fbk", ".K_L", ".CSJ", ".CSP", ".K_1",
+}
+
+
+class CleanRequest(BaseModel):
+    directory: str
+    dry_run: bool = True   # True = preview only, False = actually delete
+
+
+@app.post("/api/clean/run-files")
+def clean_run_files(
+    body: CleanRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Scan a directory (recursively) for ETABS / SAFE run files and
+    optionally delete them.  Free feature — available to all users.
+    """
+    import pathlib
+
+    p = pathlib.Path(body.directory)
+    if not p.exists():
+        raise HTTPException(status_code=400, detail=f"Directory not found: {body.directory}")
+    if not p.is_dir():
+        raise HTTPException(status_code=400, detail=f"Path is not a directory: {body.directory}")
+
+    # Collect matching files (case-insensitive suffix comparison)
+    found: list[str] = []
+    for f in p.rglob("*"):
+        if f.is_file() and f.suffix.upper() in {s.upper() for s in _CLEAN_SUFFIXES}:
+            found.append(str(f))
+
+    found.sort()
+
+    if body.dry_run:
+        return {"dry_run": True, "count": len(found), "files": found}
+
+    # Actually delete
+    deleted, errors = [], []
+    for fp in found:
+        try:
+            pathlib.Path(fp).unlink()
+            deleted.append(fp)
+        except Exception as exc:
+            errors.append({"file": fp, "error": str(exc)})
+
+    return {
+        "dry_run": False,
+        "count":   len(found),
+        "deleted": len(deleted),
+        "errors":  errors,
+        "files":   deleted,
+    }

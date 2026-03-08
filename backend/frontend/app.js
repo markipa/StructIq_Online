@@ -4263,4 +4263,149 @@ async function secAgCreate() {
       if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
     });
   });
+
+  // ── Run File Cleaner ──────────────────────────────────────────────────────
+  document.getElementById('btn-cleaner-scan').addEventListener('click', cleanerScan);
+  document.getElementById('btn-cleaner-delete').addEventListener('click', cleanerDelete);
+  document.getElementById('btn-cleaner-toggle-list').addEventListener('click', () => {
+    const list = document.getElementById('cleaner-file-list');
+    const btn  = document.getElementById('btn-cleaner-toggle-list');
+    list.classList.toggle('hidden');
+    btn.textContent = list.classList.contains('hidden') ? 'Show files' : 'Hide files';
+  });
 })();
+
+// ================================================================
+//  RUN FILE CLEANER
+// ================================================================
+
+let _cleanerLastFiles = [];   // files found on last scan
+
+async function cleanerScan() {
+  const dir     = document.getElementById('cleaner-dir-input').value.trim();
+  const scanBtn = document.getElementById('btn-cleaner-scan');
+  const delBtn  = document.getElementById('btn-cleaner-delete');
+  const results = document.getElementById('cleaner-results');
+
+  if (!dir) { showToast('Please enter a folder path first.'); return; }
+
+  scanBtn.disabled = true;
+  scanBtn.textContent = 'Scanning…';
+  results.classList.add('hidden');
+  delBtn.disabled = true;
+  _cleanerLastFiles = [];
+
+  try {
+    const res  = await authFetch('/api/clean/run-files', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ directory: dir, dry_run: true }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.detail || 'Scan failed', 'error'); return; }
+
+    _cleanerLastFiles = data.files || [];
+    cleanerShowResults(data.count, null);
+
+    if (data.count > 0) delBtn.disabled = false;
+
+  } catch (err) {
+    showToast('Scan error: ' + err.message, 'error');
+  } finally {
+    scanBtn.disabled = false;
+    scanBtn.textContent = 'Scan Folder';
+  }
+}
+
+async function cleanerDelete() {
+  if (!_cleanerLastFiles.length) return;
+
+  const dir    = document.getElementById('cleaner-dir-input').value.trim();
+  const delBtn = document.getElementById('btn-cleaner-delete');
+  const scanBtn = document.getElementById('btn-cleaner-scan');
+
+  // Confirm before deleting
+  const confirmed = confirm(
+    `Delete ${_cleanerLastFiles.length} run file(s) from:\n${dir}\n\nThis cannot be undone.`
+  );
+  if (!confirmed) return;
+
+  delBtn.disabled  = true;
+  scanBtn.disabled = true;
+  delBtn.textContent = 'Deleting…';
+
+  try {
+    const res  = await authFetch('/api/clean/run-files', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ directory: dir, dry_run: false }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.detail || 'Delete failed', 'error'); return; }
+
+    _cleanerLastFiles = data.files || [];
+    cleanerShowResults(data.count, data.deleted, data.errors);
+
+    delBtn.disabled = true;   // no more files to delete
+    showToast(`Deleted ${data.deleted} file(s) successfully.`);
+
+  } catch (err) {
+    showToast('Delete error: ' + err.message, 'error');
+  } finally {
+    delBtn.textContent = 'Delete Files';
+    scanBtn.disabled = false;
+  }
+}
+
+function cleanerShowResults(count, deleted, errors = []) {
+  const results  = document.getElementById('cleaner-results');
+  const summary  = document.getElementById('cleaner-results-summary');
+  const fileList = document.getElementById('cleaner-file-list');
+  const toggleBtn = document.getElementById('btn-cleaner-toggle-list');
+
+  results.classList.remove('hidden');
+
+  // Summary text
+  if (deleted === null) {
+    // Scan mode
+    if (count === 0) {
+      summary.textContent = '✓ No run files found — folder is clean.';
+      summary.className = 'cleaner-results-summary cleaner-clean';
+      toggleBtn.classList.add('hidden');
+    } else {
+      summary.textContent = `Found ${count} run file${count !== 1 ? 's' : ''} ready for deletion.`;
+      summary.className = 'cleaner-results-summary cleaner-found';
+      toggleBtn.classList.remove('hidden');
+      toggleBtn.textContent = 'Show files';
+    }
+  } else {
+    // Delete mode
+    const errCount = (errors || []).length;
+    summary.textContent = `Deleted ${deleted} of ${count} file${count !== 1 ? 's' : ''}.`
+      + (errCount ? `  (${errCount} error${errCount !== 1 ? 's' : ''})` : '');
+    summary.className = deleted === count
+      ? 'cleaner-results-summary cleaner-clean'
+      : 'cleaner-results-summary cleaner-found';
+    toggleBtn.classList.remove('hidden');
+    toggleBtn.textContent = 'Show files';
+  }
+
+  // File list
+  fileList.innerHTML = '';
+  fileList.classList.add('hidden');
+  if (_cleanerLastFiles.length) {
+    _cleanerLastFiles.forEach(fp => {
+      const row = document.createElement('div');
+      row.className = 'cleaner-file-row';
+      // Show just the filename + parent folder for readability
+      const parts = fp.replace(/\\/g, '/').split('/');
+      const name  = parts.pop();
+      const parent = parts.slice(-1)[0] || '';
+      row.innerHTML =
+        `<span class="cleaner-file-name">${name}</span>` +
+        `<span class="cleaner-file-parent">${parent ? '…/' + parent : ''}</span>`;
+      row.title = fp;
+      fileList.appendChild(row);
+    });
+  }
+}
