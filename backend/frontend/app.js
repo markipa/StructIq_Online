@@ -40,6 +40,12 @@ async function initAuth() {
 
 function showAuthOverlay() {
   document.getElementById('auth-overlay').classList.remove('hidden');
+  // Reset button states so they're always ready when the overlay re-appears
+  // (after logout the button is still disabled from the previous successful login)
+  const loginBtn = document.querySelector('#form-login .auth-submit-btn');
+  if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'Sign In'; }
+  const regBtn = document.querySelector('#form-register .auth-submit-btn');
+  if (regBtn) { regBtn.disabled = false; regBtn.textContent = 'Create Account'; }
 }
 
 function hideAuthOverlay(user) {
