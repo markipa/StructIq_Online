@@ -756,15 +756,26 @@ def rc_column_debug_raw(
 # ─── Run File Cleaner ────────────────────────────────────────────────────────
 
 # File extensions produced by ETABS / SAFE during analysis runs
-_CLEAN_SUFFIXES = {
-    ".ebk", ".ico", ".K_0", ".K_E", ".K_G", ".K_I", ".K_J", ".K_M",
-    ".LOG", ".msh", ".OUT",
-    ".Y",   ".Y$$",
-    ".Y00", ".Y01", ".Y02", ".Y03", ".Y04", ".Y05", ".Y06", ".Y07",
-    ".Y08", ".Y09", ".Y0A", ".Y0B", ".Y0C", ".Y0D", ".Y0E",
-    ".Y_",  ".Y_1",
-    ".xsdm", ".fbk", ".K_L", ".CSJ", ".CSP", ".K_1",
-}
+# Wildcard patterns mirroring the VBA DeleteEtabsRunFiles macro exactly.
+# Each pattern uses shell-style wildcards: * = any sequence of characters.
+# Matching is performed on the full filename (case-insensitive), not just the
+# extension, so files without a dot (e.g. a bare "LOG" file) are also caught.
+import fnmatch as _fnmatch
+
+_CLEAN_PATTERNS = [
+    "*ebk",  "*ico",  "*K_0",  "*K_E",  "*K_G",  "*K_I",  "*K_J",  "*K_M",
+    "*LOG",  "*msh",  "*OUT",
+    "*Y",    "*Y$$",
+    "*Y00",  "*Y01",  "*Y02",  "*Y03",  "*Y04",  "*Y05",  "*Y06",  "*Y07",
+    "*Y08",  "*Y09",  "*Y0A",  "*Y0B",  "*Y0C",  "*Y0D",  "*Y0E",
+    "*Y_",   "*Y_1",
+    "*xsdm", "*fbk",  "*K_L",  "*CSJ",  "*CSP",  "*K_1",
+]
+
+def _clean_matches(filename: str) -> bool:
+    """Return True if filename matches any ETABS/SAFE run-file pattern (case-insensitive)."""
+    fname = filename.lower()
+    return any(_fnmatch.fnmatch(fname, pat.lower()) for pat in _CLEAN_PATTERNS)
 
 
 class CleanRequest(BaseModel):
@@ -789,10 +800,11 @@ def clean_run_files(
     if not p.is_dir():
         raise HTTPException(status_code=400, detail=f"Path is not a directory: {body.directory}")
 
-    # Collect matching files (case-insensitive suffix comparison)
+    # Recursively collect matching files — mirrors VBA DeleteFilesRecursive:
+    # iterate every file in every subfolder and test with fnmatch wildcards.
     found: list[str] = []
     for f in p.rglob("*"):
-        if f.is_file() and f.suffix.upper() in {s.upper() for s in _CLEAN_SUFFIXES}:
+        if f.is_file() and _clean_matches(f.name):
             found.append(str(f))
 
     found.sort()
@@ -800,7 +812,7 @@ def clean_run_files(
     if body.dry_run:
         return {"dry_run": True, "count": len(found), "files": found}
 
-    # Actually delete
+    # Actually delete (mirrors VBA fso.DeleteFile with error skip)
     deleted, errors = [], []
     for fp in found:
         try:
