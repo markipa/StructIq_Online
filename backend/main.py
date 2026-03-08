@@ -794,26 +794,40 @@ def clean_run_files(
     """
     import pathlib
 
-    # Normalise: strip surrounding whitespace and any accidental quotes
-    raw = body.directory.strip().strip('"\'').strip()
-    p = pathlib.Path(raw)
-    if not p.exists():
-        raise HTTPException(
-            status_code=400,
-            detail=f"Folder not found. Check the path and try again.\n\nReceived: {raw}",
-        )
-    if not p.is_dir():
-        raise HTTPException(
-            status_code=400,
-            detail=f"Path is a file, not a folder: {raw}",
-        )
+    import os as _os
 
-    # Recursively collect matching files — mirrors VBA DeleteFilesRecursive:
-    # iterate every file in every subfolder and test with fnmatch wildcards.
+    # Normalise: strip surrounding whitespace, quotes, and control characters
+    raw = body.directory.strip().strip('"\'').rstrip('\\/').strip()
+    # Expand env vars (e.g. %USERPROFILE%) and resolve any symlinks
+    raw = _os.path.abspath(_os.path.expandvars(_os.path.expanduser(raw)))
+    p = pathlib.Path(raw)
+
+    # Use os.path — more reliable than pathlib on OneDrive / network paths
+    if not _os.path.exists(raw):
+        # Give the user the parent chain so they can spot the bad segment
+        parts = pathlib.PurePath(raw).parts
+        found_up_to = ""
+        for i in range(len(parts)):
+            candidate = str(pathlib.Path(*parts[:i+1]))
+            if _os.path.exists(candidate):
+                found_up_to = candidate
+            else:
+                break
+        detail = (
+            f"Folder not found: {raw}\n"
+            f"Last existing segment: {found_up_to or '(none)'}"
+        )
+        raise HTTPException(status_code=400, detail=detail)
+    if not _os.path.isdir(raw):
+        raise HTTPException(status_code=400, detail=f"Path is a file, not a folder: {raw}")
+
+    # Recursively collect matching files using os.walk — mirrors VBA
+    # DeleteFilesRecursive and works reliably on OneDrive / UNC paths.
     found: list[str] = []
-    for f in p.rglob("*"):
-        if f.is_file() and _clean_matches(f.name):
-            found.append(str(f))
+    for dirpath, _dirs, filenames in _os.walk(raw):
+        for fname in filenames:
+            if _clean_matches(fname):
+                found.append(_os.path.join(dirpath, fname))
 
     found.sort()
 
@@ -824,7 +838,7 @@ def clean_run_files(
     deleted, errors = [], []
     for fp in found:
         try:
-            pathlib.Path(fp).unlink()
+            _os.remove(fp)
             deleted.append(fp)
         except Exception as exc:
             errors.append({"file": fp, "error": str(exc)})
