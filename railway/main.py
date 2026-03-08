@@ -41,7 +41,9 @@ app.add_middleware(
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
-    if path.startswith("/api/") and not path.startswith("/api/auth/"):
+    # Key-protected endpoints called by the desktop app without a user session
+    _KEY_PATHS = ("/api/auth/", "/api/plan", "/api/session/")
+    if path.startswith("/api/") and not any(path.startswith(p) for p in _KEY_PATHS):
         auth = request.headers.get("Authorization", "")
         if not auth.startswith("Bearer "):
             return JSONResponse(status_code=401, content={"detail": "Not authenticated"})
