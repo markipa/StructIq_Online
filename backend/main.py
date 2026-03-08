@@ -224,7 +224,7 @@ def login(body: LoginRequest):
     # Best-effort cloud login — syncs plan from Railway on every sign-in
     cloud = _cloud_post("/api/auth/login", {
         "email": body.email, "password": body.password
-    })
+    }, timeout=4)
     if cloud and "token" in cloud:
         database.update_cloud_token(row["id"], cloud["token"])
         cloud_plan = (cloud.get("user") or {}).get("plan")
@@ -242,7 +242,7 @@ def login(body: LoginRequest):
             })
             reg_r = _requests.post(
                 f"{config.CLOUD_URL.rstrip('/')}/api/session/register?{qs}",
-                timeout=8,
+                timeout=4,
             )
             if reg_r.status_code == 429:
                 # Enterprise plan is at full capacity — block this login
