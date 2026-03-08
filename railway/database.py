@@ -51,6 +51,7 @@ def init_db():
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id     INTEGER NOT NULL,
                 session_key TEXT    NOT NULL UNIQUE,
+                is_kicked   INTEGER NOT NULL DEFAULT 0,
                 created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
                 last_seen   TEXT    NOT NULL DEFAULT (datetime('now')),
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -68,6 +69,7 @@ def init_db():
             # License manager columns
             "ALTER TABLE users ADD COLUMN expiration_date TEXT",
             "ALTER TABLE users ADD COLUMN last_access TEXT",
+            "ALTER TABLE cloud_sessions ADD COLUMN is_kicked INTEGER NOT NULL DEFAULT 0",
         ]:
             try:
                 c.execute(col_sql)
@@ -257,9 +259,9 @@ def register_cloud_session(user_id: int, session_key: str, plan: str) -> dict:
             if plan == "enterprise":
                 return {"ok": False, "reason": "max_sessions",
                         "message": "Maximum of 3 simultaneous users reached for this Enterprise plan."}
-            # pro / free: kick the oldest session so new login takes over
+            # pro / free: soft-kick the oldest session so the device knows it was displaced
             c.execute(
-                "DELETE FROM cloud_sessions WHERE id = ("
+                "UPDATE cloud_sessions SET is_kicked = 1 WHERE id = ("
                 "  SELECT id FROM cloud_sessions WHERE user_id = ? "
                 "  ORDER BY last_seen ASC LIMIT 1)", (user_id,)
             )
@@ -273,18 +275,26 @@ def register_cloud_session(user_id: int, session_key: str, plan: str) -> dict:
 
 
 def validate_cloud_session(session_key: str) -> bool:
-    """Returns True if the session is still active; updates last_seen."""
+    """
+    Returns True if the session is valid.
+    - Not found (e.g. DB reset, session expired): treated as valid (not explicitly kicked)
+    - Found and is_kicked = 0: valid, update last_seen
+    - Found and is_kicked = 1: explicitly displaced by another login → False
+    """
     with _conn() as c:
         row = c.execute(
-            "SELECT id FROM cloud_sessions WHERE session_key = ?", (session_key,)
+            "SELECT id, is_kicked FROM cloud_sessions WHERE session_key = ?",
+            (session_key,)
         ).fetchone()
-        if row:
-            c.execute(
-                "UPDATE cloud_sessions SET last_seen = datetime('now') WHERE session_key = ?",
-                (session_key,),
-            )
-            return True
-    return False
+        if row is None:
+            return True   # not found = benign (DB reset / expired), not kicked
+        if row["is_kicked"]:
+            return False  # explicitly displaced by another login
+        c.execute(
+            "UPDATE cloud_sessions SET last_seen = datetime('now') WHERE session_key = ?",
+            (session_key,),
+        )
+        return True
 
 
 def revoke_cloud_session(session_key: str):
