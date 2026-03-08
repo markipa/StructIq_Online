@@ -402,16 +402,29 @@ def billing_portal(current_user: dict = Depends(get_current_user)):
     if not _HAS_REQUESTS:
         raise HTTPException(503, detail="requests library unavailable")
 
+    import urllib.parse
+    sync_key    = getattr(config, "PLAN_SYNC_KEY", "")
     cloud_token = database.get_cloud_token(current_user["id"])
-    if not cloud_token:
-        raise HTTPException(404, detail="No subscription found — please upgrade to PRO first")
 
     try:
-        r = _requests.get(
-            f"{config.CLOUD_URL.rstrip('/')}/api/billing/portal",
-            headers={"Authorization": f"Bearer {cloud_token}"},
-            timeout=15,
-        )
+        if cloud_token:
+            # Path 1: Bearer token (user registered directly on Railway)
+            r = _requests.get(
+                f"{config.CLOUD_URL.rstrip('/')}/api/billing/portal",
+                headers={"Authorization": f"Bearer {cloud_token}"},
+                timeout=15,
+            )
+        else:
+            # Path 2: email + key (user auto-created by Lemon Squeezy webhook)
+            params = urllib.parse.urlencode({
+                "email": current_user["email"],
+                "key":   sync_key,
+            })
+            r = _requests.get(
+                f"{config.CLOUD_URL.rstrip('/')}/api/billing/portal-by-email?{params}",
+                timeout=15,
+            )
+
         try:
             data = r.json()
         except Exception:

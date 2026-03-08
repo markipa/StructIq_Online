@@ -370,25 +370,10 @@ async def ls_webhook(request: Request):
     return {"ok": True}
 
 
-@app.get("/api/billing/portal")
-def get_billing_portal(request: Request):
-    """
-    Return the Lemon Squeezy customer portal URL for the authenticated user.
-    The user can manage their subscription (cancel, update payment, etc.) there.
-    """
-    auth  = request.headers.get("Authorization", "")
-    token = auth[7:] if auth.startswith("Bearer ") else ""
-    user  = database.get_user_by_token(token)
-    if not user:
-        raise HTTPException(401, "Invalid or expired session")
-
-    sub_id = user.get("ls_subscription_id")
-    if not sub_id:
-        raise HTTPException(404, "No active subscription found for this account")
-
+def _fetch_portal_url(sub_id: str) -> str:
+    """Fetch customer_portal URL from Lemon Squeezy for a given subscription ID."""
     if not LS_API_KEY:
         raise HTTPException(503, "Billing not configured")
-
     try:
         r = httpx.get(
             f"https://api.lemonsqueezy.com/v1/subscriptions/{sub_id}",
@@ -404,12 +389,41 @@ def get_billing_portal(request: Request):
     except Exception as e:
         raise HTTPException(503, f"Could not reach billing server: {e}")
 
-    attrs      = r.json()["data"]["attributes"]
-    portal_url = attrs.get("urls", {}).get("customer_portal", "")
+    portal_url = r.json()["data"]["attributes"].get("urls", {}).get("customer_portal", "")
     if not portal_url:
         raise HTTPException(502, "Billing server did not return a portal URL")
+    return portal_url
 
-    return {"portal_url": portal_url}
+
+@app.get("/api/billing/portal")
+def get_billing_portal(request: Request):
+    """Return portal URL — Bearer token path (for users with a Railway session)."""
+    auth  = request.headers.get("Authorization", "")
+    token = auth[7:] if auth.startswith("Bearer ") else ""
+    user  = database.get_user_by_token(token)
+    if not user:
+        raise HTTPException(401, "Invalid or expired session")
+    sub_id = user.get("ls_subscription_id")
+    if not sub_id:
+        raise HTTPException(404, "No active subscription found for this account")
+    return {"portal_url": _fetch_portal_url(sub_id)}
+
+
+@app.get("/api/billing/portal-by-email")
+def get_billing_portal_by_email(email: str, key: str):
+    """
+    Return portal URL — email + key path (for users auto-created by webhook
+    who have no Railway session token stored in the desktop app).
+    """
+    if not key or key != PLAN_SYNC_KEY:
+        raise HTTPException(403, "Forbidden")
+    user = database.get_user_by_email(email)
+    if not user:
+        raise HTTPException(404, "No account found")
+    sub_id = user.get("ls_subscription_id")
+    if not sub_id:
+        raise HTTPException(404, "No active subscription found for this account")
+    return {"portal_url": _fetch_portal_url(sub_id)}
 
 
 @app.get("/stripe/success", response_class=HTMLResponse)
