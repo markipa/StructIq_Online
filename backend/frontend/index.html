@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml"  href="/app/favicon.svg">
   <link rel="icon" type="image/x-icon"   href="/favicon.ico">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/app/styles.css?v=49" />
+  <link rel="stylesheet" href="/app/styles.css?v=50" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
 <body>
@@ -1261,6 +1261,79 @@
       </div>
     </section>
 
+    <!-- ══════════════════ RUN FILE CLEANER PANEL ══════════════════ -->
+    <section id="cleaner-panel" class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Run File Cleaner</h2>
+        <p class="panel-subtitle">Remove ETABS &amp; SAFE analysis run files from a project folder</p>
+      </div>
+
+      <div class="cleaner-body">
+
+        <!-- Directory input -->
+        <div class="cleaner-dir-row">
+          <label class="cleaner-label" for="cleaner-dir-input">Project Folder</label>
+          <div class="cleaner-dir-input-wrap">
+            <input id="cleaner-dir-input" type="text" class="cleaner-dir-input"
+                   placeholder="e.g. C:\Projects\Building A\Analysis" spellcheck="false"/>
+          </div>
+          <p class="cleaner-hint">Paste or type the full folder path. Subfolders are also scanned.</p>
+        </div>
+
+        <!-- File types info -->
+        <div class="cleaner-types-box">
+          <span class="cleaner-types-label">File types targeted:</span>
+          <span class="cleaner-types-chips">
+            <span class="cleaner-chip">.ebk</span><span class="cleaner-chip">.K_0</span>
+            <span class="cleaner-chip">.K_E</span><span class="cleaner-chip">.K_G</span>
+            <span class="cleaner-chip">.K_I</span><span class="cleaner-chip">.K_J</span>
+            <span class="cleaner-chip">.K_M</span><span class="cleaner-chip">.K_L</span>
+            <span class="cleaner-chip">.K_1</span><span class="cleaner-chip">.LOG</span>
+            <span class="cleaner-chip">.msh</span><span class="cleaner-chip">.OUT</span>
+            <span class="cleaner-chip">.fbk</span><span class="cleaner-chip">.xsdm</span>
+            <span class="cleaner-chip">.CSJ</span><span class="cleaner-chip">.CSP</span>
+            <span class="cleaner-chip">.Y</span><span class="cleaner-chip">.Y$$</span>
+            <span class="cleaner-chip">.Y00–.Y0E</span>
+            <span class="cleaner-chip">.Y_</span><span class="cleaner-chip">.Y_1</span>
+          </span>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="cleaner-actions">
+          <button id="btn-cleaner-scan" class="cleaner-btn cleaner-btn-scan">
+            <svg width="14" height="14" viewBox="0 0 18 18" fill="none"
+                 stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="8" r="5.5"/>
+              <line x1="12.5" y1="12.5" x2="17" y2="17"/>
+            </svg>
+            Scan Folder
+          </button>
+          <button id="btn-cleaner-delete" class="cleaner-btn cleaner-btn-delete" disabled>
+            <svg width="14" height="14" viewBox="0 0 18 18" fill="none"
+                 stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3,5 5,5 15,5"/>
+              <path d="M6 5V3.5a1 1 0 011-1h4a1 1 0 011 1V5"/>
+              <path d="M14 5l-.9 10.1a1 1 0 01-1 .9H5.9a1 1 0 01-1-.9L4 5"/>
+              <line x1="9" y1="8.5" x2="9" y2="12.5"/>
+              <line x1="6.5" y1="8.5" x2="6.8" y2="12.5"/>
+              <line x1="11.5" y1="8.5" x2="11.2" y2="12.5"/>
+            </svg>
+            Delete Files
+          </button>
+        </div>
+
+        <!-- Results area -->
+        <div id="cleaner-results" class="cleaner-results hidden">
+          <div class="cleaner-results-header">
+            <span id="cleaner-results-summary" class="cleaner-results-summary"></span>
+            <button id="btn-cleaner-toggle-list" class="cleaner-toggle-btn">Show files</button>
+          </div>
+          <div id="cleaner-file-list" class="cleaner-file-list hidden"></div>
+        </div>
+
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -2227,81 +2300,7 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     RUN FILE CLEANER PANEL  (outside main content wrapper — same as RC panels)
-════════════════════════════════════════════════════════════════ -->
-<section id="cleaner-panel" class="panel">
-  <div class="panel-header">
-    <h2 class="panel-title">Run File Cleaner</h2>
-    <p class="panel-subtitle">Remove ETABS &amp; SAFE analysis run files from a project folder</p>
-  </div>
 
-  <div class="cleaner-body">
-
-    <!-- Directory input -->
-    <div class="cleaner-dir-row">
-      <label class="cleaner-label" for="cleaner-dir-input">Project Folder</label>
-      <div class="cleaner-dir-input-wrap">
-        <input id="cleaner-dir-input" type="text" class="cleaner-dir-input"
-               placeholder="e.g. C:\Projects\Building A\Analysis" spellcheck="false"/>
-      </div>
-      <p class="cleaner-hint">Paste or type the full folder path. Subfolders are also scanned.</p>
-    </div>
-
-    <!-- File types info -->
-    <div class="cleaner-types-box">
-      <span class="cleaner-types-label">File types targeted:</span>
-      <span class="cleaner-types-chips">
-        <span class="cleaner-chip">.ebk</span><span class="cleaner-chip">.K_0</span>
-        <span class="cleaner-chip">.K_E</span><span class="cleaner-chip">.K_G</span>
-        <span class="cleaner-chip">.K_I</span><span class="cleaner-chip">.K_J</span>
-        <span class="cleaner-chip">.K_M</span><span class="cleaner-chip">.K_L</span>
-        <span class="cleaner-chip">.K_1</span><span class="cleaner-chip">.LOG</span>
-        <span class="cleaner-chip">.msh</span><span class="cleaner-chip">.OUT</span>
-        <span class="cleaner-chip">.fbk</span><span class="cleaner-chip">.xsdm</span>
-        <span class="cleaner-chip">.CSJ</span><span class="cleaner-chip">.CSP</span>
-        <span class="cleaner-chip">.Y</span><span class="cleaner-chip">.Y$$</span>
-        <span class="cleaner-chip">.Y00–.Y0E</span>
-        <span class="cleaner-chip">.Y_</span><span class="cleaner-chip">.Y_1</span>
-      </span>
-    </div>
-
-    <!-- Action buttons -->
-    <div class="cleaner-actions">
-      <button id="btn-cleaner-scan" class="cleaner-btn cleaner-btn-scan">
-        <svg width="14" height="14" viewBox="0 0 18 18" fill="none"
-             stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="8" cy="8" r="5.5"/>
-          <line x1="12.5" y1="12.5" x2="17" y2="17"/>
-        </svg>
-        Scan Folder
-      </button>
-      <button id="btn-cleaner-delete" class="cleaner-btn cleaner-btn-delete" disabled>
-        <svg width="14" height="14" viewBox="0 0 18 18" fill="none"
-             stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="3,5 5,5 15,5"/>
-          <path d="M6 5V3.5a1 1 0 011-1h4a1 1 0 011 1V5"/>
-          <path d="M14 5l-.9 10.1a1 1 0 01-1 .9H5.9a1 1 0 01-1-.9L4 5"/>
-          <line x1="9" y1="8.5" x2="9" y2="12.5"/>
-          <line x1="6.5" y1="8.5" x2="6.8" y2="12.5"/>
-          <line x1="11.5" y1="8.5" x2="11.2" y2="12.5"/>
-        </svg>
-        Delete Files
-      </button>
-    </div>
-
-    <!-- Results area -->
-    <div id="cleaner-results" class="cleaner-results hidden">
-      <div class="cleaner-results-header">
-        <span id="cleaner-results-summary" class="cleaner-results-summary"></span>
-        <button id="btn-cleaner-toggle-list" class="cleaner-toggle-btn">Show files</button>
-      </div>
-      <div id="cleaner-file-list" class="cleaner-file-list hidden"></div>
-    </div>
-
-  </div>
-</section>
-
-<script src="/app/app.js?v=49"></script>
+<script src="/app/app.js?v=50"></script>
 </body>
 </html>
