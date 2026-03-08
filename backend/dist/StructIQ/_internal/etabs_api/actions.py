@@ -567,3 +567,300 @@ def get_base_reactions(combo_name: Optional[str] = None, load_type: str = "combo
 
     except Exception as e:
         return {"error": f"Failed to retrieve base reactions: {str(e)}"}
+
+
+# ─── RC Beam Section Generator ──────────────────────────────────────────────
+
+def _length_to_mm(value: float, unit_code: int) -> float:
+    """Convert a length from ETABS model units to mm."""
+    # unit_code: 1=lb-in, 2=lb-ft, 3=kip-in, 4=kip-ft,
+    #            5=kN-mm, 6=kN-m, 7=kgf-mm, 8=kgf-m,
+    #            9=N-mm, 10=N-m, 11=tonf-mm, 12=tonf-m
+    if unit_code in (1, 3):     return value * 25.4        # inches → mm
+    if unit_code in (2, 4):     return value * 304.8       # feet → mm
+    if unit_code in (6, 8, 10, 12): return value * 1000.0  # m → mm
+    return value                                             # already mm
+
+
+def _mm_to_length(mm: float, unit_code: int) -> float:
+    """Convert mm back to ETABS model length units."""
+    if unit_code in (1, 3):     return mm / 25.4
+    if unit_code in (2, 4):     return mm / 304.8
+    if unit_code in (6, 8, 10, 12): return mm / 1000.0
+    return mm
+
+
+def get_frame_materials():
+    """Return all material names defined in the active ETABS model."""
+    SapModel = get_active_etabs()
+    if not SapModel:
+        return {"error": "ETABS is not currently running."}
+    try:
+        ret = SapModel.PropMaterial.GetNameList()
+        names = list(ret[1]) if ret and len(ret) > 1 else []
+        return {"status": "success", "materials": names}
+    except Exception as e:
+        return {"error": f"Failed to get materials: {str(e)}"}
+
+
+def get_rc_beam_sections():
+    """
+    Import all rectangular frame sections from ETABS.
+    Returns geometry, rebar basics, and stiffness modifiers.
+    """
+    SapModel = get_active_etabs()
+    if not SapModel:
+        return {"error": "ETABS is not currently running."}
+    try:
+        # Determine model length units for conversion
+        try:
+            unit_code = SapModel.GetDatabaseUnits()
+        except Exception:
+            try:
+                unit_code = SapModel.GetPresentUnits()
+            except Exception:
+                unit_code = 6  # default: kN-m
+
+        # Get all frame section names
+        ret = SapModel.PropFrame.GetNameList()
+        if not ret or len(ret) < 2:
+            return {"error": "No frame sections found in ETABS model."}
+        all_names = list(ret[1])
+
+        sections = []
+        num = 1
+        for name in all_names:
+            try:
+                # comtypes returns: ['', MatProp, t3, t2, Color, Notes, GUID, retcode]
+                r = SapModel.PropFrame.GetRectangle(name)
+                if not r or int(r[-1]) != 0:
+                    continue  # not a rectangular (or any valid) section
+
+                sMat  = str(r[1])     # material name at index 1
+                t3    = float(r[2])   # depth in model units at index 2
+                t2    = float(r[3])   # width in model units at index 3
+                depth_mm = round(_length_to_mm(t3, unit_code))
+                width_mm = round(_length_to_mm(t2, unit_code))
+
+                # Stiffness modifiers [area, S22, S33, torsion, I22, I33, mass, weight]
+                torsion_mod, i22_mod, i33_mod = 0.01, 0.35, 0.35
+                # comtypes: GetModifiers(name) → ['', [8 values], retcode] or [[8 values], retcode]
+                try:
+                    mr = SapModel.PropFrame.GetModifiers(name)
+                    if mr and int(mr[-1]) == 0:
+                        # Find the array of 8 modifiers — it's the first iterable element
+                        mods = None
+                        for item in mr[:-1]:
+                            if hasattr(item, '__iter__') and not isinstance(item, str):
+                                mods = list(item)
+                                break
+                        if mods and len(mods) >= 6:
+                            torsion_mod = round(float(mods[3]), 4)
+                            i22_mod     = round(float(mods[4]), 4)
+                            i33_mod     = round(float(mods[5]), 4)
+                except Exception:
+                    pass
+
+                # comtypes: GetRebarBeam(name) → ['', MatRebar, MatRebarShr, CoverTop, CoverBot, ..., retcode]
+                fy_main, fy_ties, bar_dia = "", "", 25
+                top_cc, bot_cc = 40, 40
+                try:
+                    rr = SapModel.PropFrame.GetRebarBeam(name)
+                    if rr and int(rr[-1]) == 0 and len(rr) >= 5:
+                        # Skip leading empty string at index 0; strings=materials, floats=cover
+                        str_vals   = [v for v in rr[:-1] if isinstance(v, str) and v]
+                        float_vals = [v for v in rr[:-1] if isinstance(v, float)]
+                        if str_vals:
+                            fy_main = str_vals[0]
+                        if len(str_vals) >= 2:
+                            fy_ties = str_vals[1]
+                        if len(float_vals) >= 2:
+                            top_cc = round(_length_to_mm(float_vals[0], unit_code))
+                            bot_cc = round(_length_to_mm(float_vals[1], unit_code))
+                except Exception:
+                    pass
+
+                sections.append({
+                    "num":              num,
+                    "material":         sMat,
+                    "prop_name":        name,
+                    "concrete_strength": sMat,
+                    "fy_main":          fy_main,
+                    "fy_ties":          fy_ties,
+                    "depth":            depth_mm,
+                    "width":            width_mm,
+                    "bar_dia":          bar_dia,
+                    "top_cc":           top_cc,
+                    "bot_cc":           bot_cc,
+                    "nbar_top_i":       0,
+                    "nbar_top_j":       0,
+                    "nbar_bot_i":       0,
+                    "nbar_bot_j":       0,
+                    "torsion":          torsion_mod,
+                    "i22":              i22_mod,
+                    "i33":              i33_mod,
+                })
+                num += 1
+            except Exception:
+                continue
+
+        return {"status": "success", "sections": sections}
+
+    except Exception as e:
+        return {"error": f"Failed to import beam sections: {str(e)}"}
+
+
+def debug_all_frame_sections():
+    """Return all frame section names and whether GetRectangle succeeds for each."""
+    SapModel = get_active_etabs()
+    if not SapModel:
+        return {"error": "ETABS is not currently running."}
+    try:
+        try:
+            unit_code = SapModel.GetDatabaseUnits()
+        except Exception:
+            unit_code = 6
+
+        ret = SapModel.PropFrame.GetNameList()
+        if not ret or len(ret) < 2:
+            return {"status": "success", "all_sections": [], "total": 0}
+        all_names = list(ret[1])
+
+        results = []
+        sample_raw = {}  # raw return values for first 5 sections
+        for name in all_names:
+            info = {"name": name, "is_rect": False, "rect_error": None, "t3": None, "t2": None}
+            try:
+                # comtypes: pass [in] param only; [out] params returned in tuple
+                r = SapModel.PropFrame.GetRectangle(name)
+                retcode = int(r[-1]) if r else -1
+                info["rect_retcode"] = retcode
+                # Capture raw repr for first 5 sections
+                if len(sample_raw) < 5:
+                    sample_raw[name] = {
+                        "repr": repr(r)[:300],
+                        "len": len(r) if hasattr(r, '__len__') else None,
+                        "indices": {str(i): repr(r[i])[:60] for i in range(len(r))} if hasattr(r, '__len__') else {}
+                    }
+                if retcode == 0:
+                    info["is_rect"] = True
+                    # Find numeric t3 and t2 among the tuple elements
+                    floats = [(i, v) for i, v in enumerate(r[:-1]) if isinstance(v, (int, float)) and not isinstance(v, bool)]
+                    if len(floats) >= 2:
+                        info["t3"] = float(floats[0][1])
+                        info["t2"] = float(floats[1][1])
+                        info["t3_idx"] = floats[0][0]
+                        info["t2_idx"] = floats[1][0]
+                        info["depth_mm"] = round(_length_to_mm(float(floats[0][1]), unit_code))
+                        info["width_mm"] = round(_length_to_mm(float(floats[1][1]), unit_code))
+                else:
+                    info["rect_error"] = f"retcode={retcode}"
+            except Exception as ex:
+                info["rect_error"] = str(ex)
+                if len(sample_raw) < 5:
+                    sample_raw[name] = {"exception": str(ex)}
+            results.append(info)
+
+        return {
+            "status": "success",
+            "unit_code": unit_code,
+            "total": len(results),
+            "sample_raw": sample_raw,
+            "rectangular": [r for r in results if r["is_rect"]],
+            "non_rectangular": [r["name"] for r in results if not r["is_rect"]],
+        }
+    except Exception as e:
+        return {"error": f"Debug failed: {str(e)}"}
+
+
+def write_rc_beam_sections(sections: list):
+    """
+    Create or update rectangular RC beam sections in ETABS.
+    Sets geometry (SetRectangle), stiffness modifiers, and rebar cover (SetRebarBeam).
+    """
+    SapModel = get_active_etabs()
+    if not SapModel:
+        return {"error": "ETABS is not currently running."}
+    try:
+        # Determine model units
+        try:
+            unit_code = SapModel.GetDatabaseUnits()
+        except Exception:
+            try:
+                unit_code = SapModel.GetPresentUnits()
+            except Exception:
+                unit_code = 6  # default kN-m
+
+        # Unlock model if locked
+        try:
+            if SapModel.GetModelIsLocked():
+                SapModel.SetModelIsLocked(False)
+        except Exception:
+            pass
+
+        results = []
+        for sec in sections:
+            name = str(sec.get("prop_name", "")).strip()
+            if not name:
+                continue
+
+            mat       = str(sec.get("concrete_strength") or sec.get("material", "")).strip()
+            fy_main   = str(sec.get("fy_main", "")).strip()
+            fy_ties   = str(sec.get("fy_ties", "")).strip()
+            depth_mm  = float(sec.get("depth", 400))
+            width_mm  = float(sec.get("width", 300))
+            top_cc_mm = float(sec.get("top_cc", 40))
+            bot_cc_mm = float(sec.get("bot_cc", 40))
+            torsion   = float(sec.get("torsion", 0.01))
+            i22       = float(sec.get("i22",     0.35))
+            i33       = float(sec.get("i33",     0.35))
+
+            t3 = _mm_to_length(depth_mm, unit_code)
+            t2 = _mm_to_length(width_mm, unit_code)
+
+            try:
+                # Create / overwrite rectangular section
+                ret = SapModel.PropFrame.SetRectangle(name, mat, t3, t2, -1, "", "")
+                if int(ret) != 0:
+                    results.append({"name": name, "status": "error",
+                                    "reason": f"SetRectangle returned {ret}"})
+                    continue
+
+                # Stiffness modifiers: [area, S22, S33, torsion, I22, I33, mass, weight]
+                mods = [1.0, 1.0, 1.0, torsion, i22, i33, 1.0, 1.0]
+                SapModel.PropFrame.SetModifiers(name, mods)
+
+                # Rebar (only if material specified)
+                if fy_main or fy_ties:
+                    try:
+                        rebar_mat = fy_main or fy_ties
+                        tie_mat   = fy_ties or fy_main
+                        top_cov   = _mm_to_length(top_cc_mm, unit_code)
+                        bot_cov   = _mm_to_length(bot_cc_mm, unit_code)
+                        # SetRebarBeam(Name, MatRebar, MatRebarShr, CoverTop, CoverBot,
+                        #              AreaTop_I, AreaTop_J, AreaBot_I, AreaBot_J)
+                        SapModel.PropFrame.SetRebarBeam(
+                            name, rebar_mat, tie_mat, top_cov, bot_cov,
+                            0.0, 0.0, 0.0, 0.0
+                        )
+                    except Exception:
+                        pass  # rebar optional; continue without
+
+                results.append({"name": name, "status": "success"})
+
+            except Exception as e:
+                results.append({"name": name, "status": "error", "reason": str(e)})
+
+        success = sum(1 for r in results if r["status"] == "success")
+        errors  = sum(1 for r in results if r["status"] == "error")
+
+        return {
+            "status":        "success",
+            "message":       f"Wrote {success} section(s) to ETABS. {errors} error(s).",
+            "results":       results,
+            "success_count": success,
+            "error_count":   errors,
+        }
+
+    except Exception as e:
+        return {"error": f"Failed to write beam sections: {str(e)}"}

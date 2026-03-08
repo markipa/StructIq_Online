@@ -2116,3 +2116,261 @@ body {
   color: var(--amber);
   margin: 0;
 }
+
+
+/* ════════════════════════════════════════════════════════════
+   RC BEAM SECTION GENERATOR
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Lock panel to viewport height (same pattern as drifts/joint/lc panels) ── */
+#rcbeam-panel.panel.active {
+  height:   calc(100vh - 80px);
+  overflow: hidden;
+  gap:      10px;
+}
+#rcbeam-panel .panel-header { flex-shrink: 0; }
+.rcb-statusbar                { flex-shrink: 0; }
+
+/* ── Panel header / toolbar ── */
+.rcb-header .header-controls.rcb-toolbar {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ── Main split layout ── */
+.rcb-layout {
+  display: flex;
+  flex: 1;
+  gap: 10px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Material sidebar ── */
+.rcb-mat-panel {
+  width: 158px;
+  flex-shrink: 0;
+  background: var(--dark-bg);
+  border-radius: var(--r-md);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--dark-border);
+}
+
+.rcb-mat-header {
+  padding: 9px 12px 8px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--dark-t2);
+  border-bottom: 1px solid var(--dark-border);
+  flex-shrink: 0;
+}
+
+.rcb-mat-list {
+  list-style: none;
+  overflow-y: auto;
+  flex: 1;
+  padding: 4px 0;
+  margin: 0;
+}
+
+.rcb-mat-item {
+  padding: 6px 12px;
+  font-size: var(--fs-sm);
+  color: var(--dark-t1);
+  cursor: pointer;
+  transition: background .12s;
+  border-left: 3px solid transparent;
+  user-select: none;
+}
+.rcb-mat-item:hover   { background: var(--dark-bg2); }
+.rcb-mat-item.selected {
+  background: rgba(59,130,246,.15);
+  color: var(--blue-light);
+  border-left-color: var(--blue-light);
+}
+
+.rcb-mat-empty {
+  padding: 14px 12px;
+  font-size: var(--fs-sm);
+  color: var(--dark-t3);
+  font-style: italic;
+}
+
+/* ── Table container ── */
+.rcb-table-outer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rcb-table-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--t3);
+  text-align: center;
+  padding: 40px 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--bdr-sm);
+  border-radius: var(--r-md);
+}
+.rcb-table-empty p { font-size: var(--fs-sm); color: var(--t2); line-height: 1.6; }
+.rcb-table-empty strong { color: var(--t1); }
+
+.rcb-table-wrap {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+  border: 1px solid var(--bdr-sm);
+  border-radius: var(--r-md);
+  background: var(--bg-card);
+  box-shadow: var(--s-sm);
+}
+
+/* ── RC Beam data table ── */
+.rcb-table {
+  min-width: 1320px;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.rcb-table thead th {
+  background: var(--bg-header);
+  border-bottom: 1.5px solid var(--bdr-sm);
+  padding: 8px 6px;
+  font-weight: 600;
+  font-size: var(--fs-xs);
+  color: var(--t2);
+  text-align: center;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.rcb-th-mat  { min-width: 120px; text-align: left; padding-left: 10px; }
+.rcb-th-num  { min-width: 36px; }
+.rcb-th-name { min-width: 140px; text-align: left; padding-left: 8px; }
+.rcb-th-del  { width: 30px; }
+
+.rcb-table tbody tr { border-bottom: 1px solid var(--bdr-row, #f1f5f9); }
+.rcb-table tbody tr:last-child { border-bottom: none; }
+.rcb-table tbody tr:nth-child(even) { background: var(--bg-row-alt); }
+.rcb-table tbody tr:hover { background: var(--bg-hover); }
+
+.rcb-num-cell {
+  text-align: center;
+  color: var(--t3);
+  font-size: var(--fs-xs);
+  padding: 0 4px;
+}
+
+/* ── Cell inputs & selects ── */
+.rcb-inp,
+.rcb-sel {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 5px 6px;
+  font-size: var(--fs-sm);
+  color: var(--t1);
+  font-family: inherit;
+  outline: none;
+}
+
+.rcb-inp:focus,
+.rcb-sel:focus {
+  background: var(--blue-tint);
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+  border-radius: var(--r-xs);
+  position: relative;
+  z-index: 1;
+}
+
+.rcb-inp.rcb-num  { text-align: right; }
+.rcb-sel-mat      { text-align: left; }
+
+/* ── Delete row button ── */
+.rcb-del-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  color: var(--t3);
+  border-radius: var(--r-xs);
+  opacity: 0;
+  transition: opacity .12s, color .12s, background .12s;
+}
+.rcb-table tbody tr:hover .rcb-del-btn { opacity: 1; }
+.rcb-del-btn:hover { color: var(--red); background: var(--red-dim); }
+
+/* ── Status bar ── */
+.rcb-statusbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px 2px;
+  flex-shrink: 0;
+}
+
+.rcb-count {
+  font-size: var(--fs-xs);
+  color: var(--t3);
+  font-weight: 600;
+}
+
+/* ── AutoGenerate modal form ── */
+.rcb-gen-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rcb-gen-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.rcb-gen-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.rcb-gen-label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--t2);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.rcb-gen-input {
+  height: var(--h-input);
+  padding: 0 10px;
+  border: 1.5px solid var(--bdr-sm);
+  border-radius: var(--r-sm);
+  background: var(--bg-input);
+  font-size: var(--fs-sm);
+  font-family: inherit;
+  color: var(--t1);
+  outline: none;
+  transition: border-color .15s, background .15s;
+  width: 100%;
+}
+.rcb-gen-input:focus {
+  border-color: var(--blue);
+  background: var(--blue-tint);
+}

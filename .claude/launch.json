@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "StructIQ API",
+      "name": "StructIQ Main",
       "runtimeExecutable": "python",
       "runtimeArgs": ["backend/start_server.py"],
       "autoPort": true

@@ -204,12 +204,12 @@ function showGraceModal(days, msg) {
   document.getElementById('grace-modal').classList.remove('hidden');
 }
 
-/** Open a Stripe Checkout session for the selected interval (monthly | yearly). */
+/** Open a Lemon Squeezy Checkout session for the selected interval (monthly | yearly). */
 async function openStripeCheckout(interval) {
   const btn = document.getElementById('btn-subscribe');
 
   // Disable button while we create the session
-  if (btn) { btn.disabled = true; btn.textContent = 'Opening Stripe…'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Opening checkout…'; }
 
   try {
     // Route through local backend — it proxies to Railway and handles auth.
@@ -222,16 +222,16 @@ async function openStripeCheckout(interval) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Failed to create checkout session');
 
-    // Open Stripe Checkout in the user's default browser
+    // Open Lemon Squeezy Checkout in the user's default browser
     if (data.checkout_url) {
       window.open(data.checkout_url, '_blank');
       document.getElementById('upgrade-modal').classList.add('hidden');
-      showToast('Stripe Checkout opened in your browser!', 'success');
+      showToast('Checkout opened in your browser!', 'success');
     }
   } catch (err) {
     showToast('Could not start checkout: ' + err.message, 'error');
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Subscribe with Stripe'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Subscribe Now'; }
   }
 }
 
@@ -2266,3 +2266,455 @@ function lcApplyTemplate(template, rowEl) {
     lcStyleFactor(inp);
   });
 }
+
+
+// ═══════════════════════════════════════════════════════════════════
+//  RC BEAM SECTION GENERATOR
+// ═══════════════════════════════════════════════════════════════════
+
+let rcbMaterials   = [];   // all material names from ETABS
+let rcbSections    = [];   // working rows  [{...}]
+let rcbNextNum     = 1;    // auto-increment row number
+
+// ── Helpers ──────────────────────────────────────────────────────
+
+function rcbBuildMatOptions(selected = '') {
+  if (!rcbMaterials.length) return '<option value="">— no materials —</option>';
+  return '<option value="">—</option>' +
+    rcbMaterials.map(m =>
+      `<option value="${m}" ${m === selected ? 'selected' : ''}>${m}</option>`
+    ).join('');
+}
+
+function rcbUpdateCount() {
+  const n = rcbSections.length;
+  document.getElementById('rcb-count').textContent =
+    n === 1 ? '1 section' : `${n} sections`;
+}
+
+function rcbToggleEmpty() {
+  const empty = document.getElementById('rcb-table-empty');
+  const wrap  = document.getElementById('rcb-table-wrap');
+  if (rcbSections.length === 0) {
+    empty.classList.remove('hidden');
+    wrap.classList.add('hidden');
+  } else {
+    empty.classList.add('hidden');
+    wrap.classList.remove('hidden');
+  }
+}
+
+// ── Render / re-render the full table body ────────────────────────
+
+function rcbRenderTable() {
+  const tbody = document.getElementById('rcb-tbody');
+  if (!tbody) return;
+
+  if (rcbSections.length === 0) {
+    tbody.innerHTML = '';
+    rcbToggleEmpty();
+    rcbUpdateCount();
+    return;
+  }
+
+  tbody.innerHTML = rcbSections.map((s, idx) => `
+    <tr class="rcb-row" data-idx="${idx}">
+      <td>
+        <select class="rcb-sel rcb-sel-mat" data-field="material" data-idx="${idx}">
+          ${rcbBuildMatOptions(s.material)}
+        </select>
+      </td>
+      <td class="rcb-num-cell">${s.num}</td>
+      <td>
+        <input class="rcb-inp" type="text" value="${s.prop_name}"
+               data-field="prop_name" data-idx="${idx}"
+               placeholder="e.g. G-300x500"/>
+      </td>
+      <td>
+        <select class="rcb-sel" data-field="concrete_strength" data-idx="${idx}">
+          ${rcbBuildMatOptions(s.concrete_strength)}
+        </select>
+      </td>
+      <td>
+        <select class="rcb-sel" data-field="fy_main" data-idx="${idx}">
+          ${rcbBuildMatOptions(s.fy_main)}
+        </select>
+      </td>
+      <td>
+        <select class="rcb-sel" data-field="fy_ties" data-idx="${idx}">
+          ${rcbBuildMatOptions(s.fy_ties)}
+        </select>
+      </td>
+      <td><input class="rcb-inp rcb-num" type="number" value="${s.depth}"       data-field="depth"       data-idx="${idx}" min="1"/></td>
+      <td><input class="rcb-inp rcb-num" type="number" value="${s.width}"       data-field="width"       data-idx="${idx}" min="1"/></td>
+      <td><input class="rcb-inp rcb-num" type="number" value="${s.bar_dia}"     data-field="bar_dia"     data-idx="${idx}" min="0"/></td>
+      <td><input class="rcb-inp rcb-num" type="number" value="${s.top_cc}"      data-field="top_cc"      data-idx="${idx}" min="0"/></td>
+      <td><input class="rcb-inp rcb-num" type="number" value="${s.bot_cc}"      data-field="bot_cc"      data-idx="${idx}" min="0"/></td>
+      <td><input class="rcb-inp rcb-num" type="number" value="${s.nbar_top_i}"  data-field="nbar_top_i"  data-idx="${idx}" min="0"/></td>
+      <td><input class="rcb-inp rcb-num" type="number" value="${s.nbar_top_j}"  data-field="nbar_top_j"  data-idx="${idx}" min="0"/></td>
+      <td><input class="rcb-inp rcb-num" type="number" value="${s.nbar_bot_i}"  data-field="nbar_bot_i"  data-idx="${idx}" min="0"/></td>
+      <td><input class="rcb-inp rcb-num" type="number" value="${s.nbar_bot_j}"  data-field="nbar_bot_j"  data-idx="${idx}" min="0"/></td>
+      <td><input class="rcb-inp rcb-num" type="number" value="${s.torsion}"     data-field="torsion"     data-idx="${idx}" step="0.001" min="0"/></td>
+      <td><input class="rcb-inp rcb-num" type="number" value="${s.i22}"         data-field="i22"         data-idx="${idx}" step="0.01"  min="0"/></td>
+      <td><input class="rcb-inp rcb-num" type="number" value="${s.i33}"         data-field="i33"         data-idx="${idx}" step="0.01"  min="0"/></td>
+      <td>
+        <button class="rcb-del-btn" data-idx="${idx}" title="Delete row" tabindex="-1">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="2" y1="2" x2="10" y2="10"/>
+            <line x1="10" y1="2" x2="2" y2="10"/>
+          </svg>
+        </button>
+      </td>
+    </tr>`).join('');
+
+  rcbToggleEmpty();
+  rcbUpdateCount();
+  rcbAttachRowListeners();
+}
+
+// ── Wire up input / select / delete listeners ─────────────────────
+
+function rcbAttachRowListeners() {
+  const tbody = document.getElementById('rcb-tbody');
+  if (!tbody) return;
+
+  // Input/select changes sync back to rcbSections[]
+  tbody.querySelectorAll('.rcb-inp, .rcb-sel').forEach(el => {
+    el.addEventListener('change', e => {
+      const idx   = parseInt(e.target.dataset.idx);
+      const field = e.target.dataset.field;
+      const val   = e.target.value;
+      if (rcbSections[idx] !== undefined) {
+        const numericFields = [
+          'depth','width','bar_dia','top_cc','bot_cc',
+          'nbar_top_i','nbar_top_j','nbar_bot_i','nbar_bot_j',
+          'torsion','i22','i33'
+        ];
+        rcbSections[idx][field] = numericFields.includes(field)
+          ? (parseFloat(val) || 0) : val;
+      }
+    });
+  });
+
+  // Delete row buttons
+  tbody.querySelectorAll('.rcb-del-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const idx = parseInt(e.currentTarget.dataset.idx);
+      rcbSections.splice(idx, 1);
+      rcbRenderTable();
+    });
+  });
+}
+
+// ── Material list rendering ───────────────────────────────────────
+
+function rcbRenderMaterials() {
+  const ul = document.getElementById('rcb-mat-list');
+  if (!ul) return;
+  if (!rcbMaterials.length) {
+    ul.innerHTML = '<li class="rcb-mat-empty">No materials found</li>';
+    return;
+  }
+  ul.innerHTML = rcbMaterials.map(m =>
+    `<li class="rcb-mat-item" data-mat="${m}">${m}</li>`
+  ).join('');
+
+  ul.querySelectorAll('.rcb-mat-item').forEach(li => {
+    li.addEventListener('click', () => {
+      ul.querySelectorAll('.rcb-mat-item').forEach(x => x.classList.remove('selected'));
+      li.classList.add('selected');
+      // If a row is currently focused/selected, assign material to it
+      const focused = document.querySelector('#rcb-tbody .rcb-row:focus-within');
+      if (focused) {
+        const idx = parseInt(focused.dataset.idx);
+        if (rcbSections[idx] !== undefined) {
+          rcbSections[idx].material = li.dataset.mat;
+          const sel = focused.querySelector('.rcb-sel-mat');
+          if (sel) sel.value = li.dataset.mat;
+        }
+      }
+    });
+  });
+}
+
+// ── Populate AutoGenerate modal dropdowns ─────────────────────────
+
+function rcbPopulateGenDropdowns() {
+  ['rcb-gen-conc','rcb-gen-fym','rcb-gen-fyt'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— select material —</option>' +
+      rcbMaterials.map(m => `<option value="${m}">${m}</option>`).join('');
+  });
+}
+
+// ── Blank row factory ─────────────────────────────────────────────
+
+function rcbBlankRow(overrides = {}) {
+  return {
+    num:              rcbNextNum++,
+    material:         '',
+    prop_name:        '',
+    concrete_strength:'',
+    fy_main:          '',
+    fy_ties:          '',
+    depth:            500,
+    width:            300,
+    bar_dia:          25,
+    top_cc:           40,
+    bot_cc:           40,
+    nbar_top_i:       0,
+    nbar_top_j:       0,
+    nbar_bot_i:       0,
+    nbar_bot_j:       0,
+    torsion:          0.01,
+    i22:              0.35,
+    i33:              0.35,
+    ...overrides
+  };
+}
+
+// ── API calls ─────────────────────────────────────────────────────
+
+async function rcbImportMaterials() {
+  const btn = document.getElementById('rcb-btn-import-mat');
+  btn.disabled = true;
+  btn.textContent = 'Loading…';
+  try {
+    const res = await authFetch('/api/rc-beam/materials');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.detail || 'Failed to import materials', 'error');
+      return;
+    }
+    const data = await res.json();
+    rcbMaterials = data.materials || [];
+    rcbRenderMaterials();
+    rcbPopulateGenDropdowns();
+    // refresh dropdowns in existing rows
+    if (rcbSections.length) rcbRenderTable();
+    showToast(`Loaded ${rcbMaterials.length} material(s)`, 'success');
+  } catch (e) {
+    showToast('Import materials failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+      stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 2v9M4 7l4 4 4-4"/><rect x="2" y="13" width="12" height="1.5" rx="0.75"/>
+    </svg> Import Material`;
+  }
+}
+
+async function rcbImportSections() {
+  const btn = document.getElementById('rcb-btn-import-sec');
+  btn.disabled = true;
+  btn.textContent = 'Importing…';
+  try {
+    const res = await authFetch('/api/rc-beam/sections');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.detail || 'Failed to import sections', 'error');
+      return;
+    }
+    const data = await res.json();
+    const imported = data.sections || [];
+    if (!imported.length) {
+      showToast('No rectangular frame sections found in ETABS model', 'error');
+      return;
+    }
+    rcbSections = imported;
+    rcbNextNum  = imported.length + 1;
+    rcbRenderTable();
+    showToast(`Imported ${imported.length} section(s) from ETABS`, 'success');
+  } catch (e) {
+    showToast('Import sections failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+      stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="2" width="12" height="12" rx="1.5"/>
+      <line x1="2" y1="6" x2="14" y2="6"/>
+      <line x1="6" y1="6" x2="6" y2="14"/>
+    </svg> Import Section`;
+  }
+}
+
+async function rcbWriteToETABS() {
+  if (!rcbSections.length) {
+    showToast('No sections to write. Add or import sections first.', 'error');
+    return;
+  }
+  const btn = document.getElementById('rcb-btn-write');
+  btn.disabled = true;
+  btn.textContent = 'Writing…';
+  try {
+    // Collect latest values from DOM inputs (in case user didn't trigger change)
+    rcbSyncFromDOM();
+    const res = await authFetch('/api/rc-beam/write', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sections: rcbSections }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.detail || 'Write to ETABS failed', 'error');
+      return;
+    }
+    const data = await res.json();
+    const ok  = data.success_count || 0;
+    const bad = data.error_count   || 0;
+    if (bad > 0) {
+      showToast(`Written: ${ok} ✓  Errors: ${bad} ✗ — check section names & materials`, 'error');
+    } else {
+      showToast(`${ok} section(s) written to ETABS successfully`, 'success');
+    }
+  } catch (e) {
+    showToast('Write failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+      stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 11V2M4 7l4-4 4 4"/>
+      <rect x="2" y="12" width="12" height="2" rx="1"/>
+    </svg> Write to ETABS`;
+  }
+}
+
+// Sync input values to rcbSections[] from DOM (in case change events weren't fired)
+function rcbSyncFromDOM() {
+  const tbody = document.getElementById('rcb-tbody');
+  if (!tbody) return;
+  const numericFields = [
+    'depth','width','bar_dia','top_cc','bot_cc',
+    'nbar_top_i','nbar_top_j','nbar_bot_i','nbar_bot_j',
+    'torsion','i22','i33'
+  ];
+  tbody.querySelectorAll('.rcb-inp, .rcb-sel').forEach(el => {
+    const idx   = parseInt(el.dataset.idx);
+    const field = el.dataset.field;
+    if (rcbSections[idx] === undefined || !field) return;
+    const val = el.value;
+    rcbSections[idx][field] = numericFields.includes(field)
+      ? (parseFloat(val) || 0) : val;
+  });
+}
+
+// ── AutoGenerate modal helpers ────────────────────────────────────
+
+function rcbOpenAutogen() {
+  rcbPopulateGenDropdowns();
+  // Auto-sync name when depth/width changes
+  ['rcb-gen-depth','rcb-gen-width'].forEach(id => {
+    document.getElementById(id).addEventListener('input', rcbUpdateGenName);
+  });
+  document.getElementById('rcb-autogen-modal').classList.remove('hidden');
+}
+
+function rcbUpdateGenName() {
+  const depth = document.getElementById('rcb-gen-depth').value || '';
+  const width = document.getElementById('rcb-gen-width').value || '';
+  const nameEl = document.getElementById('rcb-gen-name');
+  if (!nameEl.dataset.userEdited) {
+    nameEl.value = depth && width ? `G-${width}x${depth}` : '';
+  }
+}
+
+function rcbCloseAutogen() {
+  document.getElementById('rcb-autogen-modal').classList.add('hidden');
+  // Reset user-edited flag
+  const nameEl = document.getElementById('rcb-gen-name');
+  if (nameEl) { nameEl.value = ''; delete nameEl.dataset.userEdited; }
+}
+
+function rcbConfirmAutogen() {
+  const name    = document.getElementById('rcb-gen-name').value.trim();
+  const depth   = parseFloat(document.getElementById('rcb-gen-depth').value)   || 500;
+  const width   = parseFloat(document.getElementById('rcb-gen-width').value)   || 300;
+  const conc    = document.getElementById('rcb-gen-conc').value;
+  const fym     = document.getElementById('rcb-gen-fym').value;
+  const fyt     = document.getElementById('rcb-gen-fyt').value;
+  const bardia  = parseFloat(document.getElementById('rcb-gen-bardia').value)  || 25;
+  const topcc   = parseFloat(document.getElementById('rcb-gen-topcc').value)   || 40;
+  const botcc   = parseFloat(document.getElementById('rcb-gen-botcc').value)   || 40;
+  const torsion = parseFloat(document.getElementById('rcb-gen-torsion').value) || 0.01;
+  const i22     = parseFloat(document.getElementById('rcb-gen-i22').value)     || 0.35;
+  const i33     = parseFloat(document.getElementById('rcb-gen-i33').value)     || 0.35;
+
+  const autoName = name || `G-${width}x${depth}`;
+
+  rcbSections.push(rcbBlankRow({
+    prop_name:        autoName,
+    material:         conc,
+    concrete_strength: conc,
+    fy_main:          fym,
+    fy_ties:          fyt,
+    depth, width, bar_dia: bardia,
+    top_cc: topcc, bot_cc: botcc,
+    torsion, i22, i33,
+  }));
+  rcbRenderTable();
+  rcbCloseAutogen();
+  showToast(`Section "${autoName}" added`, 'success');
+}
+
+// ── Init / event wiring ───────────────────────────────────────────
+
+function initRcBeam() {
+  // Toolbar buttons
+  document.getElementById('rcb-btn-import-mat')
+    ?.addEventListener('click', rcbImportMaterials);
+
+  document.getElementById('rcb-btn-import-sec')
+    ?.addEventListener('click', rcbImportSections);
+
+  document.getElementById('rcb-btn-write')
+    ?.addEventListener('click', rcbWriteToETABS);
+
+  document.getElementById('rcb-btn-clear')
+    ?.addEventListener('click', () => {
+      if (rcbSections.length && !confirm('Clear all sections?')) return;
+      rcbSections = [];
+      rcbNextNum  = 1;
+      rcbRenderTable();
+      showToast('Table cleared', 'success');
+    });
+
+  document.getElementById('rcb-btn-autogen')
+    ?.addEventListener('click', rcbOpenAutogen);
+
+  document.getElementById('rcb-btn-add-row')
+    ?.addEventListener('click', () => {
+      rcbSections.push(rcbBlankRow());
+      rcbRenderTable();
+      // scroll table to bottom
+      const wrap = document.getElementById('rcb-table-wrap');
+      if (wrap) wrap.scrollTop = wrap.scrollHeight;
+    });
+
+  // AutoGenerate modal
+  document.getElementById('rcb-autogen-close')
+    ?.addEventListener('click', rcbCloseAutogen);
+  document.getElementById('rcb-autogen-cancel')
+    ?.addEventListener('click', rcbCloseAutogen);
+  document.getElementById('rcb-autogen-confirm')
+    ?.addEventListener('click', rcbConfirmAutogen);
+
+  // Mark name as user-edited so auto-name stops overwriting
+  document.getElementById('rcb-gen-name')
+    ?.addEventListener('input', function() {
+      this.dataset.userEdited = this.value ? '1' : '';
+    });
+
+  // Dismiss modal on backdrop click
+  document.getElementById('rcb-autogen-modal')
+    ?.addEventListener('click', e => {
+      if (e.target === e.currentTarget) rcbCloseAutogen();
+    });
+
+  // Initial render
+  rcbRenderTable();
+}
+
+// ── Bootstrap (called from main DOMContentLoaded) ─────────────────
+document.addEventListener('DOMContentLoaded', initRcBeam);
