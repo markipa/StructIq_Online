@@ -93,7 +93,22 @@ def run_server(port: int):
     log(f"[launcher] cwd      = {os.getcwd()}")
     try:
         import uvicorn
-        from main import app   # direct import — string ref fails in frozen .exe
+
+        # ── Load main.py from the filesystem, not from PyInstaller's frozen
+        # bytecode archive.  This lets us patch _internal/main.py without
+        # rebuilding the .exe — any copy of main.py to _internal/ is picked
+        # up on the next restart. ──────────────────────────────────────────
+        if getattr(sys, 'frozen', False):
+            import importlib.util as _ilu
+            _mp = os.path.join(BASE_DIR, "main.py")
+            _spec = _ilu.spec_from_file_location("main", _mp)
+            _mod  = _ilu.module_from_spec(_spec)
+            sys.modules["main"] = _mod          # register BEFORE exec so
+            _spec.loader.exec_module(_mod)       # relative imports resolve
+            app = _mod.app
+        else:
+            from main import app  # dev mode — normal import
+
         uvicorn.run(
             app,
             host=HOST,

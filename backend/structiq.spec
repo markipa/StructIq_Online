@@ -22,6 +22,7 @@ a = Analysis(
     datas=[
         ('frontend', 'frontend'),          # HTML / CSS / JS
         ('etabs_api', 'etabs_api'),        # ETABS COM bridge
+        ('main.py',   '.'),               # App routes — loaded from filesystem so patches work without rebuild
         ('database.py', '.'),              # Auth DB module
         ('config.py', '.'),                # App config
         (certifi.where(), 'certifi'),      # SSL CA bundle — needed for HTTPS in .exe
