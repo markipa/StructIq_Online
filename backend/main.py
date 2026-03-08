@@ -794,11 +794,19 @@ def clean_run_files(
     """
     import pathlib
 
-    p = pathlib.Path(body.directory)
+    # Normalise: strip surrounding whitespace and any accidental quotes
+    raw = body.directory.strip().strip('"\'').strip()
+    p = pathlib.Path(raw)
     if not p.exists():
-        raise HTTPException(status_code=400, detail=f"Directory not found: {body.directory}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Folder not found. Check the path and try again.\n\nReceived: {raw}",
+        )
     if not p.is_dir():
-        raise HTTPException(status_code=400, detail=f"Path is not a directory: {body.directory}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Path is a file, not a folder: {raw}",
+        )
 
     # Recursively collect matching files — mirrors VBA DeleteFilesRecursive:
     # iterate every file in every subfolder and test with fnmatch wildcards.
@@ -828,3 +836,31 @@ def clean_run_files(
         "errors":  errors,
         "files":   deleted,
     }
+
+
+@app.get("/api/clean/browse-folder")
+def browse_folder(current_user: dict = Depends(get_current_user)):
+    """
+    Open a native Windows folder-picker dialog and return the selected path.
+    Uses PowerShell so no extra dependencies are needed.
+    """
+    import subprocess, sys as _sys
+
+    ps_script = (
+        "Add-Type -AssemblyName System.Windows.Forms;"
+        "$d = New-Object System.Windows.Forms.FolderBrowserDialog;"
+        "$d.Description = 'Select project folder to clean';"
+        "$d.ShowNewFolderButton = $false;"
+        "if ($d.ShowDialog() -eq 'OK') { Write-Output $d.SelectedPath }"
+    )
+    try:
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_script],
+            capture_output=True, text=True, timeout=120,
+        )
+        selected = result.stdout.strip()
+        if not selected:
+            return {"path": None}          # user cancelled
+        return {"path": selected}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Folder picker failed: {exc}")

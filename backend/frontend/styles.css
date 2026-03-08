@@ -3161,7 +3161,7 @@ body {
   text-transform: uppercase;
   letter-spacing: .05em;
 }
-.cleaner-dir-input-wrap { display: flex; gap: 8px; }
+.cleaner-dir-input-wrap { display: flex; gap: 8px; align-items: center; }
 .cleaner-dir-input {
   flex: 1;
   background: var(--bg2);
@@ -3175,6 +3175,20 @@ body {
   transition: border-color .15s;
 }
 .cleaner-dir-input:focus { border-color: var(--accent); }
+.cleaner-browse-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 8px 14px;
+  background: var(--bg3);
+  border: 1px solid var(--bdr);
+  border-radius: 7px;
+  color: var(--t2);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s, color .15s;
+}
+.cleaner-browse-btn:hover  { background: var(--bg4, #2a2d3a); color: var(--t1); }
+.cleaner-browse-btn:disabled { opacity: .5; cursor: default; }
 .cleaner-hint {
   font-size: 11px;
   color: var(--t3);

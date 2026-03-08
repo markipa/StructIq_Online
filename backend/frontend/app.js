@@ -4267,6 +4267,7 @@ async function secAgCreate() {
   // ── Run File Cleaner ──────────────────────────────────────────────────────
   document.getElementById('btn-cleaner-scan').addEventListener('click', cleanerScan);
   document.getElementById('btn-cleaner-delete').addEventListener('click', cleanerDelete);
+  document.getElementById('btn-cleaner-browse').addEventListener('click', cleanerBrowse);
   document.getElementById('btn-cleaner-toggle-list').addEventListener('click', () => {
     const list = document.getElementById('cleaner-file-list');
     const btn  = document.getElementById('btn-cleaner-toggle-list');
@@ -4281,8 +4282,34 @@ async function secAgCreate() {
 
 let _cleanerLastFiles = [];   // files found on last scan
 
+/** Strip surrounding whitespace and quotes that Windows sometimes adds to pasted paths. */
+function cleanerNormPath(raw) {
+  return raw.trim().replace(/^["']+|["']+$/g, '').trim();
+}
+
+async function cleanerBrowse() {
+  const btn = document.getElementById('btn-cleaner-browse');
+  btn.disabled = true;
+  btn.textContent = 'Opening…';
+  try {
+    const res  = await authFetch('/api/clean/browse-folder');
+    const data = await res.json();
+    if (!res.ok) { showToast(data.detail || 'Could not open folder picker', 'error'); return; }
+    if (data.path) {
+      document.getElementById('cleaner-dir-input').value = data.path;
+    }
+  } catch (err) {
+    showToast('Browse error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 18 18" fill="none"
+      stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 5.5h6l2 2h6v9H2z"/><line x1="2" y1="5.5" x2="2" y2="14.5"/></svg> Browse`;
+  }
+}
+
 async function cleanerScan() {
-  const dir     = document.getElementById('cleaner-dir-input').value.trim();
+  const dir     = cleanerNormPath(document.getElementById('cleaner-dir-input').value);
   const scanBtn = document.getElementById('btn-cleaner-scan');
   const delBtn  = document.getElementById('btn-cleaner-delete');
   const results = document.getElementById('cleaner-results');
@@ -4320,7 +4347,7 @@ async function cleanerScan() {
 async function cleanerDelete() {
   if (!_cleanerLastFiles.length) return;
 
-  const dir    = document.getElementById('cleaner-dir-input').value.trim();
+  const dir    = cleanerNormPath(document.getElementById('cleaner-dir-input').value);
   const delBtn = document.getElementById('btn-cleaner-delete');
   const scanBtn = document.getElementById('btn-cleaner-scan');
 

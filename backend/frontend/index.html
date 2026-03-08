@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml"  href="/app/favicon.svg">
   <link rel="icon" type="image/x-icon"   href="/favicon.ico">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/app/styles.css?v=51" />
+  <link rel="stylesheet" href="/app/styles.css?v=52" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
 <body>
@@ -1276,8 +1276,16 @@
           <div class="cleaner-dir-input-wrap">
             <input id="cleaner-dir-input" type="text" class="cleaner-dir-input"
                    placeholder="e.g. C:\Projects\Building A\Analysis" spellcheck="false"/>
+            <button id="btn-cleaner-browse" class="cleaner-browse-btn" title="Browse for folder">
+              <svg width="14" height="14" viewBox="0 0 18 18" fill="none"
+                   stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 5.5h6l2 2h6v9H2z"/>
+                <line x1="2" y1="5.5" x2="2" y2="14.5"/>
+              </svg>
+              Browse
+            </button>
           </div>
-          <p class="cleaner-hint">Paste or type the full folder path. Subfolders are also scanned.</p>
+          <p class="cleaner-hint">Click Browse or paste the full folder path. All subfolders are scanned.</p>
         </div>
 
         <!-- File types info -->
@@ -2309,6 +2317,6 @@
 </div>
 
 
-<script src="/app/app.js?v=51"></script>
+<script src="/app/app.js?v=52"></script>
 </body>
 </html>
