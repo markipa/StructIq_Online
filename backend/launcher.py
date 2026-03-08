@@ -16,6 +16,11 @@ if getattr(sys, 'frozen', False):
     # Running as compiled .exe — all files extracted to _MEIPASS (_internal/)
     BASE_DIR = sys._MEIPASS
     os.chdir(BASE_DIR)  # chdir to _MEIPASS so frontend/, etabs_api/ etc. are found
+    # Point requests at the bundled CA certificate so HTTPS works in the .exe
+    _cert = os.path.join(BASE_DIR, 'certifi', 'cacert.pem')
+    if os.path.exists(_cert):
+        os.environ.setdefault('SSL_CERT_FILE',      _cert)
+        os.environ.setdefault('REQUESTS_CA_BUNDLE', _cert)
 else:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 

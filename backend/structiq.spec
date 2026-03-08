@@ -5,6 +5,7 @@ Run from the backend/ folder:
     pyinstaller structiq.spec
 """
 import os
+import certifi
 from PyInstaller.utils.hooks import collect_all, collect_submodules
 
 block_cipher = None
@@ -23,6 +24,7 @@ a = Analysis(
         ('etabs_api', 'etabs_api'),        # ETABS COM bridge
         ('database.py', '.'),              # Auth DB module
         ('config.py', '.'),                # App config
+        (certifi.where(), 'certifi'),      # SSL CA bundle — needed for HTTPS in .exe
     ],
     hiddenimports=hidden + [
         'uvicorn.logging',
