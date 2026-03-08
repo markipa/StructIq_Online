@@ -293,6 +293,13 @@ def cloud_sync(request: Request, current_user: dict = Depends(get_current_user))
     synced = False
     source = "local"
 
+    # Admin accounts are already set to enterprise by get_current_user — never
+    # let Railway override that (Railway may have them as 'free').
+    if plan == "enterprise" and current_user.get("email", "").lower() in \
+            [e.lower() for e in config.ADMIN_EMAILS]:
+        return {"plan": "enterprise", "source": "local",
+                "synced": False, "session_valid": True}
+
     # ── 1. Plan sync (cloud token path) ──────────────────────────────
     cloud_token = database.get_cloud_token(current_user["id"])
     if cloud_token and config.CLOUD_URL:
