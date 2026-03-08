@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml"  href="/app/favicon.svg">
   <link rel="icon" type="image/x-icon"   href="/favicon.ico">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/app/styles.css?v=53" />
+  <link rel="stylesheet" href="/app/styles.css?v=54" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
 <body>
@@ -96,18 +96,6 @@
           <rect x="10" y="10" width="6" height="6" rx="1"/>
         </svg>
         Load Combinations
-        <span class="nav-plan-badge">PRO</span>
-      </a>
-
-      <a href="#" class="nav-item" data-target="sections-panel" data-plan="pro">
-        <svg class="nav-icon" width="16" height="16" viewBox="0 0 18 18" fill="none"
-             stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="1" y="4" width="16" height="10" rx="1.5"/>
-          <rect x="4" y="1" width="10" height="3" rx="1"/>
-          <rect x="4" y="14" width="10" height="3" rx="1"/>
-          <line x1="9" y1="4" x2="9" y2="14"/>
-        </svg>
-        Beam Sections
         <span class="nav-plan-badge">PRO</span>
       </a>
 
@@ -1192,74 +1180,6 @@
 
     </section><!-- /#rccolumn-panel -->
 
-    <!-- ───── BEAM SECTIONS ───── -->
-    <section id="sections-panel" class="panel">
-      <div class="panel-header">
-        <div class="panel-title-group">
-          <h1 class="panel-title">Beam Sections</h1>
-          <span class="panel-sub">Import, create, and resize frame sections — push changes back to ETABS</span>
-        </div>
-        <div class="header-controls">
-          <button id="btn-import-sections" class="btn btn-ghost">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
-                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3,10 8,15 13,10"/>
-              <line x1="8" y1="1" x2="8" y2="15"/>
-              <rect x="1" y="1" width="14" height="6" rx="1.5" fill="none"/>
-            </svg>
-            Import Section
-          </button>
-          <button id="btn-add-section" class="btn btn-ghost">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
-                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-              <line x1="8" y1="2" x2="8" y2="14"/>
-              <line x1="2" y1="8" x2="14" y2="8"/>
-            </svg>
-            Add Beam
-          </button>
-          <button id="btn-autogen-section" class="btn btn-primary">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
-                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="8,1 15,5 15,11 8,15 1,11 1,5" fill="none"/>
-              <line x1="8" y1="5" x2="8" y2="11"/>
-              <line x1="5" y1="8" x2="11" y2="8"/>
-            </svg>
-            AutoGenerate
-          </button>
-        </div>
-      </div>
-
-      <!-- Section table -->
-      <div id="sections-table-wrap" class="sec-table-wrap">
-        <div class="empty-placeholder" id="sections-empty">
-          <svg width="48" height="48" viewBox="0 0 48 48" fill="none"
-               stroke="currentColor" stroke-width="1.2"
-               stroke-linecap="round" stroke-linejoin="round">
-            <rect x="6" y="12" width="36" height="24" rx="3" opacity="0.25"/>
-            <rect x="12" y="6" width="24" height="8" rx="2" opacity="0.25"/>
-            <rect x="12" y="34" width="24" height="8" rx="2" opacity="0.25"/>
-            <line x1="24" y1="12" x2="24" y2="36" opacity="0.25"/>
-          </svg>
-          <p>Click <strong>Import Section</strong> to load from ETABS,<br>
-             or use <strong>Add Beam</strong> / <strong>AutoGenerate</strong> to create sections</p>
-        </div>
-        <table class="sec-table hidden" id="sections-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Material</th>
-              <th class="num">b (m)</th>
-              <th class="num">h (m)</th>
-              <th class="num">Area (m²)</th>
-              <th class="num">I₃₃ (m⁴)</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="sections-tbody"></tbody>
-        </table>
-      </div>
-    </section>
 
     <!-- ══════════════════ RUN FILE CLEANER PANEL ══════════════════ -->
     <section id="cleaner-panel" class="panel">
@@ -2317,6 +2237,6 @@
 </div>
 
 
-<script src="/app/app.js?v=53"></script>
+<script src="/app/app.js?v=54"></script>
 </body>
 </html>
