@@ -2055,17 +2055,38 @@ function lcStyleFactor(inp) {
 function lcMakeDeleteCell(rowEl) {
   const td  = document.createElement('td');
   td.className = 'lc-td-del';
-  const btn = document.createElement('button');
-  btn.className   = 'lc-del-btn';
-  btn.innerHTML   = '&times;';
-  btn.title       = 'Delete row';
-  btn.addEventListener('click', () => { rowEl.remove(); lcUpdateRowCount(); lcUpdateEmptyState(); });
-  td.appendChild(btn);
+
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'lc-copy-btn';
+  copyBtn.title     = 'Duplicate row';
+  copyBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 16 16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="5" y="5" width="9" height="9" rx="1.5"/>
+    <path d="M3 11V2.5A1.5 1.5 0 0 1 4.5 1H13"/>
+  </svg>`;
+  copyBtn.addEventListener('click', () => lcCopyRow(rowEl));
+  td.appendChild(copyBtn);
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'lc-del-btn';
+  delBtn.innerHTML = '&times;';
+  delBtn.title     = 'Delete row';
+  delBtn.addEventListener('click', () => { rowEl.remove(); lcUpdateRowCount(); lcUpdateEmptyState(); });
+  td.appendChild(delBtn);
+
   return td;
 }
 
+// ── Copy row ──
+function lcCopyRow(rowEl) {
+  const name    = rowEl.querySelector('.lc-name-input')?.value || '';
+  const factors = {};
+  rowEl.querySelectorAll('.lc-factor-input').forEach(inp => { factors[inp.dataset.col] = inp.value; });
+  lcAddRow({ name: name + ' (copy)', factors }, rowEl);
+}
+
 // ── Add row ──
-function lcAddRow(template = null) {
+function lcAddRow(template = null, afterEl = null) {
   const emptyRow = document.getElementById('lc-empty-row');
   if (emptyRow) emptyRow.remove();
 
@@ -2081,7 +2102,9 @@ function lcAddRow(template = null) {
     if (!lcHiddenCols.has(col)) tr.appendChild(lcMakeFactorCell(col, tf[col] !== undefined ? tf[col] : ''));
   });
   tr.appendChild(lcMakeDeleteCell(tr));
-  tbody.appendChild(tr);
+
+  if (afterEl) afterEl.insertAdjacentElement('afterend', tr);
+  else tbody.appendChild(tr);
 
   if (!template) tr.querySelector('.lc-name-input').focus();
   lcUpdateRowCount();
@@ -3916,6 +3939,14 @@ function cleanerNormPath(raw) {
   return raw.trim().replace(/^["']+|["']+$/g, '').trim();
 }
 
+/** Format a byte count as a human-readable string (KB / MB / GB). */
+function _fmtBytes(bytes) {
+  if (bytes === 0 || bytes == null) return '0 KB';
+  if (bytes < 1024 * 1024)         return (bytes / 1024).toFixed(1) + ' KB';
+  if (bytes < 1024 * 1024 * 1024)  return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+}
+
 const _BROWSE_ICON = `<svg width="14" height="14" viewBox="0 0 18 18" fill="none"
   stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
   <path d="M2 5.5h6l2 2h6v9H2z"/><line x1="2" y1="5.5" x2="2" y2="14.5"/></svg>`;
@@ -3967,7 +3998,7 @@ async function cleanerScan() {
     if (!res.ok) { showToast(data.detail || 'Scan failed', 'error'); return; }
 
     _cleanerLastFiles = data.files || [];
-    cleanerShowResults(data.count, null);
+    cleanerShowResults(data.count, null, [], data.total_bytes);
 
     if (data.count > 0) delBtn.disabled = false;
 
@@ -4006,10 +4037,10 @@ async function cleanerDelete() {
     if (!res.ok) { showToast(data.detail || 'Delete failed', 'error'); return; }
 
     _cleanerLastFiles = data.files || [];
-    cleanerShowResults(data.count, data.deleted, data.errors);
+    cleanerShowResults(data.count, data.deleted, data.errors, data.total_bytes);
 
     delBtn.disabled = true;   // no more files to delete
-    showToast(`Deleted ${data.deleted} file(s) successfully.`);
+    showToast(`Deleted ${data.deleted} file(s) — ${_fmtBytes(data.total_bytes)} freed.`, 'success');
 
   } catch (err) {
     showToast('Delete error: ' + err.message, 'error');
@@ -4019,7 +4050,7 @@ async function cleanerDelete() {
   }
 }
 
-function cleanerShowResults(count, deleted, errors = []) {
+function cleanerShowResults(count, deleted, errors = [], totalBytes = 0) {
   const results  = document.getElementById('cleaner-results');
   const summary  = document.getElementById('cleaner-results-summary');
   const fileList = document.getElementById('cleaner-file-list');
@@ -4035,7 +4066,7 @@ function cleanerShowResults(count, deleted, errors = []) {
       summary.className = 'cleaner-results-summary cleaner-clean';
       toggleBtn.classList.add('hidden');
     } else {
-      summary.textContent = `Found ${count} run file${count !== 1 ? 's' : ''} ready for deletion.`;
+      summary.textContent = `Found ${count} run file${count !== 1 ? 's' : ''} ready for deletion — ${_fmtBytes(totalBytes)}.`;
       summary.className = 'cleaner-results-summary cleaner-found';
       toggleBtn.classList.remove('hidden');
       toggleBtn.textContent = 'Show files';
@@ -4043,7 +4074,7 @@ function cleanerShowResults(count, deleted, errors = []) {
   } else {
     // Delete mode
     const errCount = (errors || []).length;
-    summary.textContent = `Deleted ${deleted} of ${count} file${count !== 1 ? 's' : ''}.`
+    summary.textContent = `Deleted ${deleted} of ${count} file${count !== 1 ? 's' : ''} — ${_fmtBytes(totalBytes)} freed.`
       + (errCount ? `  (${errCount} error${errCount !== 1 ? 's' : ''})` : '');
     summary.className = deleted === count
       ? 'cleaner-results-summary cleaner-clean'
@@ -4071,3 +4102,15 @@ function cleanerShowResults(count, deleted, errors = []) {
     });
   }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('btn-cleaner-browse')?.addEventListener('click', cleanerBrowse);
+  document.getElementById('btn-cleaner-scan')?.addEventListener('click', cleanerScan);
+  document.getElementById('btn-cleaner-delete')?.addEventListener('click', cleanerDelete);
+  document.getElementById('btn-cleaner-toggle-list')?.addEventListener('click', () => {
+    const list = document.getElementById('cleaner-file-list');
+    const btn  = document.getElementById('btn-cleaner-toggle-list');
+    const hidden = list.classList.toggle('hidden');
+    btn.textContent = hidden ? 'Show files' : 'Hide files';
+  });
+});

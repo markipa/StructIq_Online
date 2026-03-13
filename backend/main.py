@@ -21,6 +21,11 @@ app = FastAPI(title="StructIQ API")
 # Initialise DB on startup
 database.init_db()
 
+@app.get("/api/ping")
+def ping():
+    """Diagnostic: confirms this main.py (filesystem copy) is running."""
+    return {"source": "filesystem", "browse_available": True}
+
 
 # ─── Cloud (Railway) helpers ──────────────────────────────────────────────────
 
@@ -831,24 +836,37 @@ def clean_run_files(
 
     found.sort()
 
+    # Measure sizes before any deletion
+    def _safe_size(path: str) -> int:
+        try:
+            return _os.path.getsize(path)
+        except Exception:
+            return 0
+
+    total_bytes = sum(_safe_size(fp) for fp in found)
+
     if body.dry_run:
-        return {"dry_run": True, "count": len(found), "files": found}
+        return {"dry_run": True, "count": len(found), "files": found, "total_bytes": total_bytes}
 
     # Actually delete (mirrors VBA fso.DeleteFile with error skip)
     deleted, errors = [], []
+    deleted_bytes = 0
     for fp in found:
+        size = _safe_size(fp)
         try:
             _os.remove(fp)
             deleted.append(fp)
+            deleted_bytes += size
         except Exception as exc:
             errors.append({"file": fp, "error": str(exc)})
 
     return {
-        "dry_run": False,
-        "count":   len(found),
-        "deleted": len(deleted),
-        "errors":  errors,
-        "files":   deleted,
+        "dry_run":       False,
+        "count":         len(found),
+        "deleted":       len(deleted),
+        "errors":        errors,
+        "files":         deleted,
+        "total_bytes":   deleted_bytes,
     }
 
 
@@ -856,45 +874,81 @@ def clean_run_files(
 def browse_folder(current_user: dict = Depends(get_current_user)):
     """
     Open a native Windows folder-picker dialog and return the selected path.
-    Uses PowerShell so no extra dependencies are needed.
+    Uses ctypes + Shell32 (SHBrowseForFolderW) in a dedicated STA thread —
+    no subprocess, no PowerShell, always appears in the foreground.
     """
-    import subprocess
+    import ctypes
+    import ctypes.wintypes as _wt
+    import threading as _threading
+    import queue    as _queue
 
-    # Create a tiny topmost helper form so the dialog appears IN FRONT of
-    # the browser window instead of being hidden behind it.
-    ps_script = (
-        "Add-Type -AssemblyName System.Windows.Forms;"
-        "Add-Type -AssemblyName System.Drawing;"
-        "$owner = New-Object System.Windows.Forms.Form;"
-        "$owner.TopMost = $true;"
-        "$owner.ShowInTaskbar = $false;"
-        "$owner.Size = New-Object System.Drawing.Size(1,1);"
-        "$owner.Show();"
-        "$owner.BringToFront();"
-        "$d = New-Object System.Windows.Forms.FolderBrowserDialog;"
-        "$d.Description = 'Select project folder to clean';"
-        "$d.ShowNewFolderButton = $false;"
-        "$r = $d.ShowDialog($owner);"
-        "$owner.Dispose();"
-        "if ($r -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $d.SelectedPath }"
-    )
-    try:
-        result = subprocess.run(
-            [
-                "powershell",
-                "-NoProfile",
-                "-ExecutionPolicy", "Bypass",
-                "-Command", ps_script,
-            ],
-            capture_output=True, text=True, timeout=120,
-        )
-        selected = (result.stdout or "").strip().strip('"\'').strip()
-        if not selected:
-            return {"path": None, "cancelled": True}
-        return {"path": selected, "cancelled": False}
-    except FileNotFoundError:
-        raise HTTPException(status_code=500, detail="PowerShell not found on this system.")
-    except subprocess.TimeoutExpired:
+    result_q: _queue.Queue = _queue.Queue()
+
+    def _picker_thread() -> None:
+        ole32   = ctypes.windll.ole32
+        shell32 = ctypes.windll.shell32
+        user32  = ctypes.windll.user32
+
+        # COM must be initialised as Single-Threaded Apartment for UI dialogs.
+        COINIT_APARTMENTTHREADED = 0x2
+        ole32.CoInitializeEx(None, COINIT_APARTMENTTHREADED)
+        try:
+            # Snap the foreground window NOW (browser window) so the dialog
+            # is owned by it and therefore guaranteed to appear in front.
+            hwnd = user32.GetForegroundWindow()
+
+            # ── BROWSEINFO structure ──────────────────────────────────────
+            class BROWSEINFOW(ctypes.Structure):
+                _fields_ = [
+                    ("hwndOwner",      _wt.HWND),
+                    ("pidlRoot",       ctypes.c_void_p),
+                    ("pszDisplayName", _wt.LPWSTR),
+                    ("lpszTitle",      _wt.LPCWSTR),
+                    ("ulFlags",        _wt.UINT),
+                    ("lpfn",           ctypes.c_void_p),
+                    ("lParam",         ctypes.c_void_p),
+                    ("iImage",         ctypes.c_int),
+                ]
+
+            BIF_RETURNONLYFSDIRS = 0x0001  # folders only
+            BIF_NEWDIALOGSTYLE   = 0x0040  # resizable modern dialog
+            BIF_EDITBOX          = 0x0010  # editable path field
+
+            disp_buf = ctypes.create_unicode_buffer(260)
+            bi = BROWSEINFOW()
+            bi.hwndOwner      = hwnd
+            bi.pszDisplayName = ctypes.cast(disp_buf, ctypes.c_wchar_p)
+            bi.lpszTitle      = "Select project folder to clean"
+            bi.ulFlags        = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE | BIF_EDITBOX
+
+            shell32.SHBrowseForFolderW.restype = ctypes.c_void_p
+            pidl = shell32.SHBrowseForFolderW(ctypes.byref(bi))
+
+            if not pidl:
+                result_q.put(None)   # user cancelled
+                return
+
+            path_buf = ctypes.create_unicode_buffer(32768)
+            shell32.SHGetPathFromIDListW(ctypes.c_void_p(pidl), path_buf)
+            ole32.CoTaskMemFree(ctypes.c_void_p(pidl))
+
+            result_q.put(path_buf.value.strip() or None)
+
+        except Exception as _exc:
+            result_q.put(_exc)
+        finally:
+            ole32.CoUninitialize()
+
+    t = _threading.Thread(target=_picker_thread, daemon=True)
+    t.start()
+    t.join(timeout=120)
+
+    if result_q.empty():
         raise HTTPException(status_code=408, detail="Folder picker timed out.")
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Folder picker failed: {exc}")
+
+    val = result_q.get_nowait()
+    if isinstance(val, Exception):
+        raise HTTPException(status_code=500, detail=f"Folder picker error: {val}")
+    if not val:
+        return {"path": None, "cancelled": True}
+    return {"path": val, "cancelled": False}
