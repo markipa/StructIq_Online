@@ -1410,7 +1410,7 @@ body {
   background: var(--bg-header); border-right: 2px solid var(--blue-border);
 }
 .lc-th-col { width: 70px; min-width: 60px; text-align: center; overflow: hidden; text-overflow: ellipsis; padding: 8px 4px; }
-.lc-th-del { width: 36px; min-width: 36px; }
+.lc-th-del { width: 60px; min-width: 60px; }
 
 /* Rows */
 .lc-sheet tbody tr { transition: background 0.08s; }
@@ -1440,7 +1440,7 @@ body {
 }
 .lc-sheet tbody tr:hover .lc-td-name { background: var(--bg-hover); }
 .lc-td-factor { text-align: center; }
-.lc-td-del    { text-align: center; }
+
 
 /* Cell inputs */
 .lc-name-input,
@@ -1466,13 +1466,15 @@ body {
 .lc-factor-input[type=number] { -moz-appearance: textfield; }
 
 /* Delete button */
-.lc-del-btn {
-  width: 100%; height: 32px;
+.lc-td-del { width: 60px; min-width: 60px; display: flex; gap: 2px; align-items: center; justify-content: center; padding: 0 2px; }
+.lc-del-btn, .lc-copy-btn {
+  width: 26px; height: 28px; flex-shrink: 0;
   background: none; border: none; color: var(--t3);
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  font-size: 1rem; transition: color 0.13s, background 0.13s;
+  font-size: 1rem; transition: color 0.13s, background 0.13s; border-radius: 4px;
 }
-.lc-del-btn:hover { color: var(--red); background: var(--red-dim); }
+.lc-del-btn:hover  { color: var(--red);  background: var(--red-dim);  }
+.lc-copy-btn:hover { color: var(--blue); background: var(--blue-dim); }
 
 /* Status bar */
 .lc-statusbar {

@@ -21,6 +21,11 @@ app = FastAPI(title="StructIQ API")
 # Initialise DB on startup
 database.init_db()
 
+@app.get("/api/ping")
+def ping():
+    """Diagnostic: confirms this main.py (filesystem copy) is running."""
+    return {"source": "filesystem", "browse_available": True}
+
 
 # ─── Cloud (Railway) helpers ──────────────────────────────────────────────────
 
@@ -756,15 +761,26 @@ def rc_column_debug_raw(
 # ─── Run File Cleaner ────────────────────────────────────────────────────────
 
 # File extensions produced by ETABS / SAFE during analysis runs
-_CLEAN_SUFFIXES = {
-    ".ebk", ".ico", ".K_0", ".K_E", ".K_G", ".K_I", ".K_J", ".K_M",
-    ".LOG", ".msh", ".OUT",
-    ".Y",   ".Y$$",
-    ".Y00", ".Y01", ".Y02", ".Y03", ".Y04", ".Y05", ".Y06", ".Y07",
-    ".Y08", ".Y09", ".Y0A", ".Y0B", ".Y0C", ".Y0D", ".Y0E",
-    ".Y_",  ".Y_1",
-    ".xsdm", ".fbk", ".K_L", ".CSJ", ".CSP", ".K_1",
-}
+# Wildcard patterns mirroring the VBA DeleteEtabsRunFiles macro exactly.
+# Each pattern uses shell-style wildcards: * = any sequence of characters.
+# Matching is performed on the full filename (case-insensitive), not just the
+# extension, so files without a dot (e.g. a bare "LOG" file) are also caught.
+import fnmatch as _fnmatch
+
+_CLEAN_PATTERNS = [
+    "*ebk",  "*ico",  "*K_0",  "*K_E",  "*K_G",  "*K_I",  "*K_J",  "*K_M",
+    "*LOG",  "*msh",  "*OUT",
+    "*Y",    "*Y$$",
+    "*Y00",  "*Y01",  "*Y02",  "*Y03",  "*Y04",  "*Y05",  "*Y06",  "*Y07",
+    "*Y08",  "*Y09",  "*Y0A",  "*Y0B",  "*Y0C",  "*Y0D",  "*Y0E",
+    "*Y_",   "*Y_1",
+    "*xsdm", "*fbk",  "*K_L",  "*CSJ",  "*CSP",  "*K_1",
+]
+
+def _clean_matches(filename: str) -> bool:
+    """Return True if filename matches any ETABS/SAFE run-file pattern (case-insensitive)."""
+    fname = filename.lower()
+    return any(_fnmatch.fnmatch(fname, pat.lower()) for pat in _CLEAN_PATTERNS)
 
 
 class CleanRequest(BaseModel):
@@ -783,36 +799,156 @@ def clean_run_files(
     """
     import pathlib
 
-    p = pathlib.Path(body.directory)
-    if not p.exists():
-        raise HTTPException(status_code=400, detail=f"Directory not found: {body.directory}")
-    if not p.is_dir():
-        raise HTTPException(status_code=400, detail=f"Path is not a directory: {body.directory}")
+    import os as _os
 
-    # Collect matching files (case-insensitive suffix comparison)
+    # Normalise: strip surrounding whitespace, quotes, and control characters
+    raw = body.directory.strip().strip('"\'').rstrip('\\/').strip()
+    # Expand env vars (e.g. %USERPROFILE%) and resolve any symlinks
+    raw = _os.path.abspath(_os.path.expandvars(_os.path.expanduser(raw)))
+    p = pathlib.Path(raw)
+
+    # Use os.path — more reliable than pathlib on OneDrive / network paths
+    if not _os.path.exists(raw):
+        # Give the user the parent chain so they can spot the bad segment
+        parts = pathlib.PurePath(raw).parts
+        found_up_to = ""
+        for i in range(len(parts)):
+            candidate = str(pathlib.Path(*parts[:i+1]))
+            if _os.path.exists(candidate):
+                found_up_to = candidate
+            else:
+                break
+        detail = (
+            f"Folder not found: {raw}\n"
+            f"Last existing segment: {found_up_to or '(none)'}"
+        )
+        raise HTTPException(status_code=400, detail=detail)
+    if not _os.path.isdir(raw):
+        raise HTTPException(status_code=400, detail=f"Path is a file, not a folder: {raw}")
+
+    # Recursively collect matching files using os.walk — mirrors VBA
+    # DeleteFilesRecursive and works reliably on OneDrive / UNC paths.
     found: list[str] = []
-    for f in p.rglob("*"):
-        if f.is_file() and f.suffix.upper() in {s.upper() for s in _CLEAN_SUFFIXES}:
-            found.append(str(f))
+    for dirpath, _dirs, filenames in _os.walk(raw):
+        for fname in filenames:
+            if _clean_matches(fname):
+                found.append(_os.path.join(dirpath, fname))
 
     found.sort()
 
-    if body.dry_run:
-        return {"dry_run": True, "count": len(found), "files": found}
-
-    # Actually delete
-    deleted, errors = [], []
-    for fp in found:
+    # Measure sizes before any deletion
+    def _safe_size(path: str) -> int:
         try:
-            pathlib.Path(fp).unlink()
+            return _os.path.getsize(path)
+        except Exception:
+            return 0
+
+    total_bytes = sum(_safe_size(fp) for fp in found)
+
+    if body.dry_run:
+        return {"dry_run": True, "count": len(found), "files": found, "total_bytes": total_bytes}
+
+    # Actually delete (mirrors VBA fso.DeleteFile with error skip)
+    deleted, errors = [], []
+    deleted_bytes = 0
+    for fp in found:
+        size = _safe_size(fp)
+        try:
+            _os.remove(fp)
             deleted.append(fp)
+            deleted_bytes += size
         except Exception as exc:
             errors.append({"file": fp, "error": str(exc)})
 
     return {
-        "dry_run": False,
-        "count":   len(found),
-        "deleted": len(deleted),
-        "errors":  errors,
-        "files":   deleted,
+        "dry_run":       False,
+        "count":         len(found),
+        "deleted":       len(deleted),
+        "errors":        errors,
+        "files":         deleted,
+        "total_bytes":   deleted_bytes,
     }
+
+
+@app.get("/api/clean/browse-folder")
+def browse_folder(current_user: dict = Depends(get_current_user)):
+    """
+    Open a native Windows folder-picker dialog and return the selected path.
+    Uses ctypes + Shell32 (SHBrowseForFolderW) in a dedicated STA thread —
+    no subprocess, no PowerShell, always appears in the foreground.
+    """
+    import ctypes
+    import ctypes.wintypes as _wt
+    import threading as _threading
+    import queue    as _queue
+
+    result_q: _queue.Queue = _queue.Queue()
+
+    def _picker_thread() -> None:
+        ole32   = ctypes.windll.ole32
+        shell32 = ctypes.windll.shell32
+        user32  = ctypes.windll.user32
+
+        # COM must be initialised as Single-Threaded Apartment for UI dialogs.
+        COINIT_APARTMENTTHREADED = 0x2
+        ole32.CoInitializeEx(None, COINIT_APARTMENTTHREADED)
+        try:
+            # Snap the foreground window NOW (browser window) so the dialog
+            # is owned by it and therefore guaranteed to appear in front.
+            hwnd = user32.GetForegroundWindow()
+
+            # ── BROWSEINFO structure ──────────────────────────────────────
+            class BROWSEINFOW(ctypes.Structure):
+                _fields_ = [
+                    ("hwndOwner",      _wt.HWND),
+                    ("pidlRoot",       ctypes.c_void_p),
+                    ("pszDisplayName", _wt.LPWSTR),
+                    ("lpszTitle",      _wt.LPCWSTR),
+                    ("ulFlags",        _wt.UINT),
+                    ("lpfn",           ctypes.c_void_p),
+                    ("lParam",         ctypes.c_void_p),
+                    ("iImage",         ctypes.c_int),
+                ]
+
+            BIF_RETURNONLYFSDIRS = 0x0001  # folders only
+            BIF_NEWDIALOGSTYLE   = 0x0040  # resizable modern dialog
+            BIF_EDITBOX          = 0x0010  # editable path field
+
+            disp_buf = ctypes.create_unicode_buffer(260)
+            bi = BROWSEINFOW()
+            bi.hwndOwner      = hwnd
+            bi.pszDisplayName = ctypes.cast(disp_buf, ctypes.c_wchar_p)
+            bi.lpszTitle      = "Select project folder to clean"
+            bi.ulFlags        = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE | BIF_EDITBOX
+
+            shell32.SHBrowseForFolderW.restype = ctypes.c_void_p
+            pidl = shell32.SHBrowseForFolderW(ctypes.byref(bi))
+
+            if not pidl:
+                result_q.put(None)   # user cancelled
+                return
+
+            path_buf = ctypes.create_unicode_buffer(32768)
+            shell32.SHGetPathFromIDListW(ctypes.c_void_p(pidl), path_buf)
+            ole32.CoTaskMemFree(ctypes.c_void_p(pidl))
+
+            result_q.put(path_buf.value.strip() or None)
+
+        except Exception as _exc:
+            result_q.put(_exc)
+        finally:
+            ole32.CoUninitialize()
+
+    t = _threading.Thread(target=_picker_thread, daemon=True)
+    t.start()
+    t.join(timeout=120)
+
+    if result_q.empty():
+        raise HTTPException(status_code=408, detail="Folder picker timed out.")
+
+    val = result_q.get_nowait()
+    if isinstance(val, Exception):
+        raise HTTPException(status_code=500, detail=f"Folder picker error: {val}")
+    if not val:
+        return {"path": None, "cancelled": True}
+    return {"path": val, "cancelled": False}
