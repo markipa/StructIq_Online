@@ -5197,12 +5197,12 @@ function pmmLoadsInit() {
             <tr>
               <th></th>
               <th class="col-label pmm-sort-th" onclick="pmmSortLoads('label')" id="sth-label">Label</th>
-              <th class="col-num pmm-sort-th"   onclick="pmmSortLoads('P')"     id="sth-P">P (kN)</th>
-              <th class="col-num pmm-sort-th"   onclick="pmmSortLoads('Mx')"    id="sth-Mx">Mx (kN·m)</th>
-              <th class="col-num pmm-sort-th"   onclick="pmmSortLoads('My')"    id="sth-My">My (kN·m)</th>
-              <th class="col-res" id="sth-Md"  title="Total moment demand = √(Mx²+My²)">M_d (kN·m)</th>
-              <th class="col-res" id="sth-Mc"  title="Moment capacity at demand P-level and direction">M_cap (kN·m)</th>
-              <th class="col-res" id="sth-al"  title="Demand angle α">α (°)</th>
+              <th class="col-num pmm-sort-th"   onclick="pmmSortLoads('P')"     id="sth-P">P<br><span class="th-unit">(kN)</span></th>
+              <th class="col-num pmm-sort-th"   onclick="pmmSortLoads('Mx')"    id="sth-Mx">Mx<br><span class="th-unit">(kN·m)</span></th>
+              <th class="col-num pmm-sort-th"   onclick="pmmSortLoads('My')"    id="sth-My">My<br><span class="th-unit">(kN·m)</span></th>
+              <th class="col-res" id="sth-Md"  title="Total moment demand = √(Mx²+My²)">M<sub>d</sub><br><span class="th-unit">(kN·m)</span></th>
+              <th class="col-res" id="sth-Mc"  title="Moment capacity at demand P-level and direction">M<sub>cap</sub><br><span class="th-unit">(kN·m)</span></th>
+              <th class="col-res" id="sth-al"  title="Demand angle α = atan2(My,Mx)">α<br><span class="th-unit">(°)</span></th>
               <th class="col-dcr pmm-sort-th"   onclick="pmmSortLoads('DCR')"   id="sth-DCR">DCR</th>
               <th class="col-st">Status</th>
               <th class="col-del"></th>
