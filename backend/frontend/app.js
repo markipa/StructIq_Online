@@ -4291,12 +4291,13 @@ function pmmShowTab(tab) {
     }
   }
 
-  // 2D tabs (P-Mx, P-My)
+  // 2D tabs (P-Mx, P-My) — toggle the outer wrapper (button + chart)
   ['pmx','pmy'].forEach(t => {
+    const outerEl = document.getElementById(`pmm-2d-outer-${t}`);
     const chartEl = document.getElementById(`pmm-chart-${t}`);
     const tabBtn  = document.querySelector(`.pmm-tab[data-tab="${t}"]`);
     const show    = t === tab;
-    chartEl?.classList.toggle('hidden', !show);
+    outerEl?.classList.toggle('hidden', !show);
     tabBtn?.classList.toggle('active', show);
     if (show && _pmmResult && chartEl) {
       try { Plotly.Plots.resize(chartEl); } catch(e) {}
@@ -4968,6 +4969,57 @@ function pmmRender2D(data, chartId, title, momentKey, payload, loadPts) {
   };
 
   Plotly.react(el, traces, layout, { responsive: true, displayModeBar: false });
+}
+
+/**
+ * Export the 2D P–Mx or P–My interaction curve as a CSV file.
+ * Format is compatible with spColumn (P in kN compression-positive, M in kN·m).
+ */
+function pmmExport2DCSV(chartId, momentKey) {
+  if (!_pmmResult) { alert('Generate the PMM diagram first.'); return; }
+
+  const c2d    = _pmmResult.curves_2d;
+  const angles = momentKey === 'My' ? ['0', '180'] : ['90', '270'];
+  const rows   = [];
+
+  // ── File header ─────────────────────────────────────────────────────────────
+  rows.push(`# StructIQ – P–${momentKey} Interaction Curve`);
+  rows.push(`# Units  : P in kN (positive = compression), ${momentKey} in kN·m`);
+  rows.push(`# Columns: alpha_deg, P_kN, ${momentKey}_kNm`);
+  rows.push(`alpha_deg,P_kN,${momentKey}_kNm`);
+
+  // ── Interaction curve points ─────────────────────────────────────────────────
+  angles.forEach(angle => {
+    const curve = c2d[angle];
+    if (!curve) return;
+    const mArr = momentKey === 'Mx' ? curve.Mx : curve.My;
+    for (let i = 0; i < curve.P.length; i++) {
+      rows.push(`${angle},${curve.P[i].toFixed(2)},${mArr[i].toFixed(3)}`);
+    }
+  });
+
+  // ── Demand points (if checked) ───────────────────────────────────────────────
+  const checked = _pmmLoads.filter(l => l.P !== '' && l.status);
+  if (checked.length) {
+    rows.push('');
+    rows.push(`# Demand loads`);
+    rows.push(`label,P_kN,${momentKey}_kNm,DCR,status`);
+    checked.forEach(d => {
+      const Peng = -(+d.P);                                   // engine sign: +compression
+      const m    = +(momentKey === 'Mx' ? d.Mx : d.My) || 0;
+      const dcr  = d.DCR != null ? (+d.DCR).toFixed(3) : '';
+      rows.push(`${d.label},${Peng.toFixed(2)},${m.toFixed(3)},${dcr},${d.status || ''}`);
+    });
+  }
+
+  const blob = new Blob([rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;  a.download = `StructIQ_P${momentKey}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 // ── PMM boundary helpers (shared by Mx-My chart and DCR update) ──────────────

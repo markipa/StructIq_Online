@@ -3523,6 +3523,41 @@ body {
 .pmm-chart-empty.hidden,
 .pmm-summary.hidden { display: none; }
 
+/* ── 2D chart outer wrapper (P-Mx / P-My) ─────────────────────────────────── */
+.pmm-2d-outer {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pmm-2d-outer.hidden { display: none; }
+.pmm-2d-outer .pmm-chart-area { flex: 1; min-height: 0; }
+
+/* Export CSV button — floats in top-right corner over the chart */
+.pmm-2d-csv-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 20;
+  padding: 4px 11px;
+  font-size: 11px;
+  font-weight: 500;
+  background: rgba(255,255,255,0.92);
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  color: #475569;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  transition: background 0.14s, color 0.14s, border-color 0.14s;
+}
+.pmm-2d-csv-btn:hover {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+  box-shadow: 0 2px 6px rgba(59,130,246,0.3);
+}
+
 /* Mx-My axial load toolbar */
 .pmm-mxmy-toolbar {
   display: flex;

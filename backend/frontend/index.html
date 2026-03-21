@@ -1376,8 +1376,16 @@
             </div>
             <div id="pmm-chart-loads" class="pmm-loads-panel"></div>
           </div>
-          <div id="pmm-chart-pmx" class="pmm-chart-area hidden"></div>
-          <div id="pmm-chart-pmy" class="pmm-chart-area hidden"></div>
+          <div class="pmm-2d-outer hidden" id="pmm-2d-outer-pmx">
+            <div id="pmm-chart-pmx" class="pmm-chart-area"></div>
+            <button class="pmm-2d-csv-btn" onclick="pmmExport2DCSV('pmx','Mx')"
+                    title="Export P–Mx interaction curve as CSV (spColumn compatible)">⬇ Export CSV</button>
+          </div>
+          <div class="pmm-2d-outer hidden" id="pmm-2d-outer-pmy">
+            <div id="pmm-chart-pmy" class="pmm-chart-area"></div>
+            <button class="pmm-2d-csv-btn" onclick="pmmExport2DCSV('pmy','My')"
+                    title="Export P–My interaction curve as CSV (spColumn compatible)">⬇ Export CSV</button>
+          </div>
           <div id="pmm-mxmy-toolbar" class="pmm-mxmy-toolbar hidden">
             <label for="pmm-mxmy-p-input">Axial load</label>
             <div class="pmm-p-combo">
