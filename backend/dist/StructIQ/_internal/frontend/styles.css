@@ -3401,6 +3401,13 @@ body {
   border-top: 1px solid var(--bdr-xs);
 }
 .pmm-rho-warn { color: var(--amber); }
+.pmm-rho-d {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--t4);
+  opacity: 0.85;
+}
 
 .pmm-section-preview {
   padding: 6px 10px 4px;

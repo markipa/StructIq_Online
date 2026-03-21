@@ -4158,7 +4158,7 @@ function pmmInit() {
     ?.addEventListener('click', pmmImportETABS);
 
   // Live rho preview + section drawing on input change
-  ['pmm-b','pmm-h','pmm-cover','pmm-nbars-b','pmm-nbars-h','pmm-barsize'].forEach(id => {
+  ['pmm-b','pmm-h','pmm-cover','pmm-stirrup-dia','pmm-nbars-b','pmm-nbars-h','pmm-barsize'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', () => {
       pmmUpdateRhoInfo();
       pmmDrawSection();
@@ -4172,15 +4172,20 @@ function pmmInit() {
 }
 
 function pmmUpdateRhoInfo() {
-  const b      = parseFloat(document.getElementById('pmm-b')?.value)        || 0;
-  const h      = parseFloat(document.getElementById('pmm-h')?.value)        || 0;
+  const b          = parseFloat(document.getElementById('pmm-b')?.value)          || 0;
+  const h          = parseFloat(document.getElementById('pmm-h')?.value)          || 0;
+  const clearCover = parseFloat(document.getElementById('pmm-cover')?.value)      || 0;
+  const stirrupDia = parseFloat(document.getElementById('pmm-stirrup-dia')?.value)|| 10;
   const nbarsB = parseInt(document.getElementById('pmm-nbars-b')?.value)    || 0;
   const nbarsH = parseInt(document.getElementById('pmm-nbars-h')?.value)    || 0;
   const n      = 2 * nbarsB + 2 * nbarsH;  // total bars
   const barSel = document.getElementById('pmm-barsize');
+  const barVal = barSel?.value || '';                        // e.g. "Ø20"
   const areaText = barSel?.selectedOptions[0]?.textContent || '';
   const areaMatch = areaText.match(/\(([0-9.]+)\s*m/);
   const ab    = areaMatch ? parseFloat(areaMatch[1]) : 0;
+  // Extract longitudinal bar diameter from size label e.g. "Ø20" → 20 mm
+  const barDia = parseFloat(barVal.replace(/[^0-9.]/g, '')) || 0;
   const info  = document.getElementById('pmm-rho-info');
   if (!info) return;
 
@@ -4189,8 +4194,18 @@ function pmmUpdateRhoInfo() {
     const Ast = n * ab;
     const rho = (Ast / Ag * 100).toFixed(2);
     const ok  = Ast / Ag >= 0.01 && Ast / Ag <= 0.08;
-    info.textContent = `${n} bars · ρ = ${rho}%  (ACI 318: 1–8%)`;
-    info.className   = 'pmm-rho-info' + (ok ? '' : ' pmm-rho-warn');
+    // Effective cover to longitudinal bar centre
+    const effCover = clearCover + stirrupDia + barDia / 2;
+    // Effective depth to tension steel (minor axis d uses b, major axis d uses h)
+    const dH = h - effCover;   // depth to bar centre for h-direction bending
+    const dB = b - effCover;   // depth to bar centre for b-direction bending
+    info.innerHTML =
+      `${n} bars · ρ = ${rho}%  (ACI 318: 1–8%)<br>` +
+      `<span class="pmm-rho-d">` +
+        `Stirrup Ø${stirrupDia}  ·  eff. cover = ${effCover.toFixed(0)} mm  ·  ` +
+        `d<sub>h</sub> = ${dH.toFixed(0)} mm  ·  d<sub>b</sub> = ${dB.toFixed(0)} mm` +
+      `</span>`;
+    info.className = 'pmm-rho-info' + (ok ? '' : ' pmm-rho-warn');
   } else {
     info.textContent = '';
   }
@@ -4203,7 +4218,8 @@ async function pmmGenerate() {
   const fc    = parseFloat(document.getElementById('pmm-fc').value);
   const fy    = parseFloat(document.getElementById('pmm-fy').value);
   const es    = parseFloat(document.getElementById('pmm-es').value);
-  const cover  = parseFloat(document.getElementById('pmm-cover').value);
+  const cover      = parseFloat(document.getElementById('pmm-cover').value);
+  const stirrupDia = parseFloat(document.getElementById('pmm-stirrup-dia')?.value) || 10;
   const nbarsB = parseInt(document.getElementById('pmm-nbars-b').value);
   const nbarsH = parseInt(document.getElementById('pmm-nbars-h').value) || 0;
   const barSel  = document.getElementById('pmm-barsize');
@@ -4225,7 +4241,8 @@ async function pmmGenerate() {
 
   const payload = {
     b, h, fc, fy, es,
-    cover, nbars_b: nbarsB, nbars_h: nbarsH, bar_size: barSize,
+    cover, stirrup_dia_mm: stirrupDia,
+    nbars_b: nbarsB, nbars_h: nbarsH, bar_size: barSize,
     include_phi: phi,
     alpha_steps: alphaSteps,
     num_points:  numPoints,
@@ -4402,16 +4419,23 @@ function pmmDrawSection() {
   const svg = document.getElementById('pmm-section-svg');
   if (!svg) return;
 
-  const b      = parseFloat(document.getElementById('pmm-b')?.value)      || 0;
-  const h      = parseFloat(document.getElementById('pmm-h')?.value)      || 0;
-  const cover  = parseFloat(document.getElementById('pmm-cover')?.value)  || 0;
+  const b          = parseFloat(document.getElementById('pmm-b')?.value)          || 0;
+  const h          = parseFloat(document.getElementById('pmm-h')?.value)          || 0;
+  const clearCover = parseFloat(document.getElementById('pmm-cover')?.value)      || 0;
+  const stirrupDia = parseFloat(document.getElementById('pmm-stirrup-dia')?.value)|| 10;
   const nbarsB = Math.max(2, parseInt(document.getElementById('pmm-nbars-b')?.value) || 2);
   const nbarsH = Math.max(0, parseInt(document.getElementById('pmm-nbars-h')?.value) || 0);
   const barSel = document.getElementById('pmm-barsize');
+  const barVal = barSel?.value || '';
   const areaText = barSel?.selectedOptions[0]?.textContent || '';
   const areaMatch = areaText.match(/\(([0-9.]+)\s*m/);
   const ab = areaMatch ? parseFloat(areaMatch[1]) : 0;
   const barR = ab > 0 ? Math.sqrt(ab / Math.PI) : 0;  // bar radius in mm
+  // Effective cover = clear cover + stirrup diameter + longitudinal bar radius
+  const barDia   = parseFloat(barVal.replace(/[^0-9.]/g, '')) || (barR * 2);
+  const effCover = clearCover + stirrupDia + barDia / 2;
+  // Stirrup centreline offset from face
+  const stCover  = clearCover + stirrupDia / 2;
 
   if (b <= 0 || h <= 0) { svg.innerHTML = ''; return; }
 
@@ -4424,10 +4448,10 @@ function pmmDrawSection() {
   const px = x => ox + x * scale;
   const py = y => oy + (h - y) * scale;   // flip y (SVG y grows down)
 
-  // Bar positions matching rect_bars_grid logic
+  // Bar positions using EFFECTIVE cover (clear cover + stirrup dia + bar radius)
   const bars = [];
-  const x0 = cover, x1 = b - cover, y0 = cover, y1 = h - cover;
-  const bLen = x1 - x0, hLen = y1 - y0;
+  const x0 = effCover, x1 = b - effCover, y0 = effCover, y1 = h - effCover;
+  const bLen = Math.max(0, x1 - x0), hLen = Math.max(0, y1 - y0);
 
   // Bottom face
   for (let i = 0; i < nbarsB; i++) {
@@ -4448,19 +4472,24 @@ function pmmDrawSection() {
     bars.push([x0, y0 + hLen * (j + 1) / (nbarsH + 1)]);
   }
 
-  const barRpx = Math.max(2.5, Math.min(barR * scale, 6));
-  const coverPx = cover * scale;
-  const total = 2 * nbarsB + 2 * nbarsH;
+  const barRpx  = Math.max(2.5, Math.min(barR * scale, 6));
+  const stDiaPx = Math.max(1, stirrupDia * scale);          // stirrup thickness px
+  const total   = 2 * nbarsB + 2 * nbarsH;
+  // Stirrup centreline rectangle coordinates
+  const sx0 = stCover, sx1 = b - stCover, sy0 = stCover, sy1 = h - stCover;
 
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svg.innerHTML = `
     <!-- Section outline -->
     <rect x="${px(0)}" y="${py(h)}" width="${b * scale}" height="${h * scale}"
           fill="#e8f0fe" stroke="#2563eb" stroke-width="1.5" rx="1"/>
-    <!-- Cover boundary -->
+    <!-- Stirrup outline (centreline, orange) -->
+    <rect x="${px(sx0)}" y="${py(sy1)}" width="${(sx1-sx0)*scale}" height="${(sy1-sy0)*scale}"
+          fill="none" stroke="#f59e0b" stroke-width="${Math.max(1, stDiaPx)}" rx="1"/>
+    <!-- Bar centreline boundary (dashed, faint) -->
     <rect x="${px(x0)}" y="${py(y1)}" width="${bLen * scale}" height="${hLen * scale}"
-          fill="none" stroke="#93c5fd" stroke-width="0.8" stroke-dasharray="3,2" rx="0"/>
-    <!-- Bars -->
+          fill="none" stroke="#93c5fd" stroke-width="0.7" stroke-dasharray="3,2"/>
+    <!-- Longitudinal bars -->
     ${bars.map(([bx, by]) =>
       `<circle cx="${px(bx)}" cy="${py(by)}" r="${barRpx}"
                fill="#1e5a8a" stroke="#fff" stroke-width="0.8"/>`

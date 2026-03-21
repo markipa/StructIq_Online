@@ -1256,11 +1256,23 @@
           <div class="pmm-group">
             <div class="pmm-group-title">REINFORCEMENT</div>
             <div class="pmm-row">
-              <label class="pmm-label">Cover</label>
+              <label class="pmm-label" title="Clear cover from concrete face to face of stirrup">Clear Cover</label>
               <div class="pmm-input-unit">
-                <input id="pmm-cover" type="number" class="pmm-input" value="40" min="20" step="5"/>
+                <input id="pmm-cover" type="number" class="pmm-input" value="40" min="10" step="5"
+                       title="Clear cover from concrete face to stirrup face (mm)"/>
                 <span class="pmm-unit">mm</span>
               </div>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label" title="Shear reinforcement (stirrup/tie) diameter">Stirrup ⌀</label>
+              <select id="pmm-stirrup-dia" class="pmm-input pmm-select"
+                      title="Stirrup / tie bar diameter — used to compute cover to longitudinal bar centre">
+                <option value="6">Ø6</option>
+                <option value="8">Ø8</option>
+                <option value="10" selected>Ø10</option>
+                <option value="12">Ø12</option>
+                <option value="16">Ø16</option>
+              </select>
             </div>
             <div class="pmm-row">
               <label class="pmm-label">Bars (b-dir)</label>

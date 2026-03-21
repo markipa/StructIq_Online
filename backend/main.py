@@ -1021,7 +1021,8 @@ class PMMRequest(BaseModel):
     fy: float                          # fy  — MPa (SI) or ksi (US)
     Es: float = 200000.0               # Es  — MPa (SI) or ksi (US)
     # Reinforcement
-    cover:    float                    # clear cover to bar centre — mm or in
+    cover:          float              # clear cover (face → stirrup face) — mm or in
+    stirrup_dia_mm: float = 10.0      # shear tie / stirrup diameter (mm); ignored if units=US
     nbars_b:  int   = 3               # bars on bottom/top face incl. corners (≥2)
     nbars_h:  int   = 1               # bars on each side face excl. corners (≥0)
     bar_size: str = "Ø20"             # rebar designation e.g. "Ø20" or "#8"
@@ -1046,6 +1047,12 @@ def pmm_calculate(body: PMMRequest,
 
     si = body.units.upper() == "SI"
 
+    # Rebar nominal diameters (mm) for effective cover calculation
+    _REBAR_DIA_MM = {
+        "Ø8": 8.0, "Ø10": 10.0, "Ø12": 12.0, "Ø16": 16.0, "Ø20": 20.0,
+        "Ø25": 25.0, "Ø28": 28.0, "Ø32": 32.0, "Ø36": 36.0, "Ø40": 40.0,
+    }
+
     # Resolve bar area
     if si:
         bar_area_mm2 = REBAR_TABLE_SI.get(body.bar_size)
@@ -1053,13 +1060,16 @@ def pmm_calculate(body: PMMRequest,
             raise HTTPException(status_code=422,
                                 detail=f"Unknown bar size '{body.bar_size}'. "
                                        f"Valid SI sizes: {list(REBAR_TABLE_SI.keys())}")
+        # Effective cover = clear cover + stirrup dia + half bar dia (ACI 318)
+        bar_dia_mm   = _REBAR_DIA_MM.get(body.bar_size, 20.0)
+        eff_cover_mm = body.cover + body.stirrup_dia_mm + bar_dia_mm / 2.0
         # Convert inputs to US customary for the engine (works in kips + inches)
         b_in      = body.b      * _MM_TO_IN
         h_in      = body.h      * _MM_TO_IN
         fc_ksi    = body.fc     * _MPA_TO_KSI
         fy_ksi    = body.fy     * _MPA_TO_KSI
         Es_ksi    = body.Es     * _MPA_TO_KSI
-        cover_in  = body.cover  * _MM_TO_IN
+        cover_in  = eff_cover_mm * _MM_TO_IN
         bar_area  = bar_area_mm2 * (_MM_TO_IN ** 2)   # mm² → in²
     else:
         bar_area = REBAR_TABLE.get(body.bar_size)
