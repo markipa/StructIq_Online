@@ -4867,7 +4867,13 @@ function pmmRender2D(data, chartId, title, momentKey, payload, loadPts) {
   const palette = { '0': '#3b82f6', '90': '#22c55e', '180': '#f59e0b', '270': '#ef4444' };
   const labels  = { '0': 'α=0°', '90': 'α=90°', '180': 'α=180°', '270': 'α=270°' };
 
+  // For P–My only show the My-dominant sweeps (α=0°,180°); for P–Mx only Mx-dominant
+  // sweeps (α=90°,270°).  Showing the orthogonal sweeps produces near-zero-M jagged
+  // vertical lines in the centre of the chart that look like errors.
+  const relevantAngles = momentKey === 'My' ? new Set(['0', '180']) : new Set(['90', '270']);
+
   Object.entries(c2d).forEach(([angle, curve]) => {
+    if (!relevantAngles.has(angle)) return;   // skip orthogonal sweeps
     const mArr = momentKey === 'Mx' ? curve.Mx : curve.My;
     traces.push({
       type: 'scatter', mode: 'lines',
