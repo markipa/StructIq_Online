@@ -4632,23 +4632,21 @@ function pmmRender3D(data, payload, loadPts) {
 
   const surf = data.surface;
   const allMx = surf.Mx, allMy = surf.My, allP = surf.P;
-  const numPts = payload.num_points;               // points per alpha sweep
+  // After bar-transition clustering the engine may return more points per
+  // meridian than payload.num_points.  Use surf.num_points when available.
+  const numPts   = surf.num_points || payload.num_points;
   const numAlpha = Math.round(allP.length / numPts); // number of alpha angles
   const arrMax = (a) => a.reduce((m, v) => v > m ? v : m, -Infinity);
   const arrMin = (a) => a.reduce((m, v) => v < m ? v : m,  Infinity);
   const ext = Math.max(arrMax(allMx.map(Math.abs)), arrMax(allMy.map(Math.abs))) * 1.15;
 
-  // ── Resample meridians to common P levels ──────────────────────────
-  // The engine sweeps the same neutral-axis depths for every alpha, but each
-  // alpha produces different P values at the same index. Grid triangulation
-  // must connect points at the same P level, so resample to a uniform P grid.
-  //
-  // IMPORTANT: phi*Pn is NOT always monotonic — the phi factor temporarily
-  // decreases in the tension-transition zone, which can create a local P "dip".
-  // A binary search on non-monotonic data silently returns wrong segments and
-  // corrupts the mesh vertices.  Instead we do a full linear scan over all
-  // segments and keep the interpolation with the LARGEST moment magnitude
-  // (outer-envelope of the interaction curve).
+  // ── Build per-meridian reference arrays ────────────────────────────────
+  // The engine now returns a *uniform global P grid* for every meridian
+  // (all alphas share the same P value at each index k, after the engine's
+  // global-P-grid surface rebuild + outer-envelope pass).
+  // rMx/rMy/rP are therefore simply views into allMx/allMy/allP — but we
+  // keep a small outer-envelope safety scan so older engine responses or
+  // edge cases (residual numerical drift) are handled gracefully.
   const Pglo_min = arrMin(allP);
   const Pglo_max = arrMax(allP);
   const rMx = new Array(numAlpha * numPts);
@@ -4661,6 +4659,8 @@ function pmmRender3D(data, payload, loadPts) {
     const mMy = allMy.slice(base, base + numPts);
     for (let k = 0; k < numPts; k++) {
       const Pt = Pglo_min + (Pglo_max - Pglo_min) * k / (numPts - 1);
+      // Fast path: engine provides monotonic P → direct index copy
+      // Safety: full scan in case of residual non-monotonicity
       let mx = 0, my = 0, bestM = -1;
       for (let j = 0; j < numPts - 1; j++) {
         const p1 = mP[j], p2 = mP[j + 1];
@@ -4671,11 +4671,10 @@ function pmmRender3D(data, payload, loadPts) {
         const tc  = Math.max(0, Math.min(1, t));
         const cMx = mMx[j] + tc * (mMx[j + 1] - mMx[j]);
         const cMy = mMy[j] + tc * (mMy[j + 1] - mMy[j]);
-        const M   = cMx * cMx + cMy * cMy;   // squared magnitude (no sqrt needed)
+        const M   = cMx * cMx + cMy * cMy;
         if (M > bestM) { bestM = M; mx = cMx; my = cMy; }
       }
       if (bestM < 0) {
-        // Pt is outside this meridian's range — clamp to nearest endpoint
         mx = Pt <= mP[0] ? mMx[0] : mMx[numPts - 1];
         my = Pt <= mP[0] ? mMy[0] : mMy[numPts - 1];
       }
@@ -4685,9 +4684,11 @@ function pmmRender3D(data, payload, loadPts) {
     }
   }
 
-  // ── Angular super-sampling (2×): insert one interpolated meridian between ──
-  // each adjacent pair to halve the visible facet angle (smoother silhouette).
-  const SUPER      = 2;
+  // ── Angular super-sampling (4×): insert 3 interpolated meridians between ──
+  // each adjacent pair.  With typical 5° engine sweeps (72 real meridians)
+  // this gives 288 effective meridians → 1.25° apparent angular resolution,
+  // matching the density spColumn uses for its smooth 3-D surface.
+  const SUPER      = 4;
   const numAlphaS  = numAlpha * SUPER;
   const nVerts     = numAlphaS * numPts;
   const sMx = new Array(nVerts);
