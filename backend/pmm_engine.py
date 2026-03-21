@@ -147,6 +147,74 @@ def _split_area(polygon_coords, line_coords):
     return top, bot
 
 
+def _outer_envelope_curve(P_raw, Mx_raw, My_raw, n_out=None):
+    """
+    Extract the outer-envelope of a φ-reduced P-M meridian curve.
+
+    Background (ACI 318-19):
+        The φ factor transitions from 0.90 (TC) down to 0.65 (CC) through the
+        tension-transition zone.  While φ is decreasing, φ·Pn can temporarily
+        *decrease* even though the nominal Pn is still rising.  In (P, M) space
+        this makes the curve fold back on itself, forming a closed loop — the
+        so-called "nose" of the ACI φ-reduced diagram.  At any P level inside
+        this loop there are two moment values: one on the TC branch (φ=0.90,
+        high M) and one on the CC branch (φ=0.65, low M).
+
+        For design only the *outer* boundary matters.  Every production column
+        program (spColumn, ColumnBase …) shows the outer envelope, not the raw
+        folded curve.
+
+    Method:
+        Resample to a uniform P grid [P_min … P_max]; at each P level scan ALL
+        segments of the raw curve and keep the interpolation with the largest
+        moment magnitude.  Identical to the ACI "max-M at each P" convention.
+
+    Args:
+        P_raw, Mx_raw, My_raw : raw φ-reduced output from the engine sweep
+        n_out                  : number of output points (default = len(P_raw))
+
+    Returns:
+        (P_out, Mx_out, My_out) – outer-envelope lists, uniformly spaced in P
+    """
+    n = len(P_raw)
+    if n < 2:
+        return list(P_raw), list(Mx_raw), list(My_raw)
+    n_out   = n_out if n_out is not None else n
+    P_min   = min(P_raw)
+    P_max   = max(P_raw)
+    P_range = P_max - P_min
+    if P_range < 1e-12:
+        return list(P_raw), list(Mx_raw), list(My_raw)
+
+    P_out, Mx_out, My_out = [], [], []
+    for k in range(n_out):
+        Pt      = P_min + P_range * k / (n_out - 1)
+        best_M2 = -1.0
+        best_mx = best_my = 0.0
+        for j in range(n - 1):
+            p1, p2 = P_raw[j], P_raw[j + 1]
+            dp = p2 - p1
+            if abs(dp) < 1e-12:
+                continue
+            t = (Pt - p1) / dp
+            if t < -1e-9 or t > 1 + 1e-9:
+                continue
+            tc   = max(0.0, min(1.0, t))
+            cMx  = Mx_raw[j] + tc * (Mx_raw[j + 1] - Mx_raw[j])
+            cMy  = My_raw[j] + tc * (My_raw[j + 1] - My_raw[j])
+            M2   = cMx * cMx + cMy * cMy
+            if M2 > best_M2:
+                best_M2 = M2
+                best_mx = cMx
+                best_my = cMy
+        if best_M2 >= 0:
+            P_out.append(round(Pt,      2))
+            Mx_out.append(round(best_mx, 2))
+            My_out.append(round(best_my, 2))
+
+    return P_out, Mx_out, My_out
+
+
 def _quadrant_corners(coords):
     """
     Return corner indices ordered [Q3, Q4, Q1, Q2] from centroid quadrants.
@@ -466,12 +534,19 @@ def compute_pmm(sec: PMMSection) -> dict:
         alpha_deg = round(math.degrees(alpha_raw), 1)
         alpha_data[alpha_deg] = {'P': P_list, 'Mx': Mx_list, 'My': My_list}
 
-    # ── 2D cardinal curves ───────────────────────────────────────────────
+    # ── 2D cardinal curves (outer-envelope of φ-reduced data) ───────────────
+    # The raw φ-reduced P-M curve can fold back on itself in the tension-
+    # transition zone (the ACI "nose").  Apply _outer_envelope_curve() so the
+    # displayed P-Mx / P-My diagrams show only the outer design boundary —
+    # matching spColumn and every other production column-design program.
     curves_2d = {}
     available = list(alpha_data.keys())
     for target in (0, 90, 180, 270):
-        best = min(available, key=lambda a: abs(a - target))
-        curves_2d[str(target)] = alpha_data[best]
+        best  = min(available, key=lambda a: abs(a - target))
+        curve = alpha_data[best]
+        P_env, Mx_env, My_env = _outer_envelope_curve(
+            curve['P'], curve['Mx'], curve['My'])
+        curves_2d[str(target)] = {'P': P_env, 'Mx': Mx_env, 'My': My_env}
 
     return {
         'surface':    {'P': all_P, 'Mx': all_Mx, 'My': all_My,
