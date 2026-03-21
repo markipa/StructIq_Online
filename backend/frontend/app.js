@@ -4672,13 +4672,38 @@ function pmmRender3D(data, payload, loadPts) {
     }
   }
 
-  const traces = [];
-
-  // ── Semi-transparent fill (mesh3d, explicit grid triangulation) ──
-  // Build quads between adjacent meridians on the resampled P grid.
-  const triI = [], triJ = [], triK = [];
+  // ── Angular super-sampling (2×): insert one interpolated meridian between ──
+  // each adjacent pair to halve the visible facet angle (smoother silhouette).
+  const SUPER      = 2;
+  const numAlphaS  = numAlpha * SUPER;
+  const nVerts     = numAlphaS * numPts;
+  const sMx = new Array(nVerts);
+  const sMy = new Array(nVerts);
+  const sP  = new Array(nVerts);
   for (let a = 0; a < numAlpha; a++) {
     const a1 = (a + 1) % numAlpha;
+    for (let s = 0; s < SUPER; s++) {
+      const t  = s / SUPER;
+      const sa = a * SUPER + s;
+      for (let k = 0; k < numPts; k++) {
+        const b0 = a  * numPts + k;
+        const b1 = a1 * numPts + k;
+        sMx[sa * numPts + k] = rMx[b0] * (1 - t) + rMx[b1] * t;
+        sMy[sa * numPts + k] = rMy[b0] * (1 - t) + rMy[b1] * t;
+        sP [sa * numPts + k] = rP[b0];   // P identical for same k across all alphas
+      }
+    }
+  }
+
+  const traces = [];
+
+  // ── Semi-transparent fill (mesh3d + Gouraud shading via intensity) ──────
+  // Using `intensity` instead of flat `color` enables smooth per-vertex colour
+  // interpolation across each triangle (Gouraud shading), eliminating the
+  // visible facets that appear with a single flat colour.
+  const triI = [], triJ = [], triK = [];
+  for (let a = 0; a < numAlphaS; a++) {
+    const a1 = (a + 1) % numAlphaS;
     for (let i = 0; i < numPts - 1; i++) {
       const p00 = a  * numPts + i;
       const p10 = a1 * numPts + i;
@@ -4688,17 +4713,35 @@ function pmmRender3D(data, payload, loadPts) {
       triI.push(p10); triJ.push(p11); triK.push(p01);
     }
   }
+  // Normalise P [0=max-tension … 1=max-compression] for smooth colour gradient
+  const Prange    = (Pglo_max - Pglo_min) || 1;
+  const intensity = sP.map(p => (p - Pglo_min) / Prange);
+
   traces.push({
     type: 'mesh3d',
-    x: rMx, y: rMy, z: rP,
+    x: sMx, y: sMy, z: sP,
     i: triI, j: triJ, k: triK,
-    color: '#93c5fd',
-    opacity: 0.18,
+    intensity,
+    colorscale: [
+      [0.00, '#dbeafe'],   // tension zone  — pale blue
+      [0.45, '#93c5fd'],   // balanced zone — medium blue
+      [0.75, '#3b82f6'],   // compression   — vivid blue
+      [1.00, '#1e40af'],   // max compression — deep blue
+    ],
+    cmin: 0, cmax: 1,
     showscale: false,
+    opacity: 0.22,
     hoverinfo: 'none',
     name: 'Surface',
     flatshading: false,
-    lighting: { ambient: 0.9, diffuse: 0.3, specular: 0.0 },
+    lighting: {
+      ambient:   0.88,
+      diffuse:   0.45,
+      specular:  0.08,
+      roughness: 0.55,
+      fresnel:   0.10,
+    },
+    lightposition: { x: 2000, y: 1000, z: 8000 },
   });
 
   // ── Wireframe: meridian lines (one per alpha angle) ───────────────
