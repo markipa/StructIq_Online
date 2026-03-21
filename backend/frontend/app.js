@@ -4642,6 +4642,13 @@ function pmmRender3D(data, payload, loadPts) {
   // The engine sweeps the same neutral-axis depths for every alpha, but each
   // alpha produces different P values at the same index. Grid triangulation
   // must connect points at the same P level, so resample to a uniform P grid.
+  //
+  // IMPORTANT: phi*Pn is NOT always monotonic — the phi factor temporarily
+  // decreases in the tension-transition zone, which can create a local P "dip".
+  // A binary search on non-monotonic data silently returns wrong segments and
+  // corrupts the mesh vertices.  Instead we do a full linear scan over all
+  // segments and keep the interpolation with the LARGEST moment magnitude
+  // (outer-envelope of the interaction curve).
   const Pglo_min = arrMin(allP);
   const Pglo_max = arrMax(allP);
   const rMx = new Array(numAlpha * numPts);
@@ -4649,22 +4656,28 @@ function pmmRender3D(data, payload, loadPts) {
   const rP  = new Array(numAlpha * numPts);
   for (let a = 0; a < numAlpha; a++) {
     const base = a * numPts;
-    const mP  = allP .slice(base, base + numPts);  // monotonically increasing
+    const mP  = allP .slice(base, base + numPts);
     const mMx = allMx.slice(base, base + numPts);
     const mMy = allMy.slice(base, base + numPts);
     for (let k = 0; k < numPts; k++) {
       const Pt = Pglo_min + (Pglo_max - Pglo_min) * k / (numPts - 1);
-      let mx, my;
-      if (Pt <= mP[0]) {
-        mx = mMx[0]; my = mMy[0];
-      } else if (Pt >= mP[numPts - 1]) {
-        mx = mMx[numPts - 1]; my = mMy[numPts - 1];
-      } else {
-        let lo = 0, hi = numPts - 1;
-        while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (mP[mid] <= Pt) lo = mid; else hi = mid; }
-        const t = (Pt - mP[lo]) / (mP[hi] - mP[lo]);
-        mx = mMx[lo] + t * (mMx[hi] - mMx[lo]);
-        my = mMy[lo] + t * (mMy[hi] - mMy[lo]);
+      let mx = 0, my = 0, bestM = -1;
+      for (let j = 0; j < numPts - 1; j++) {
+        const p1 = mP[j], p2 = mP[j + 1];
+        const dp = p2 - p1;
+        if (Math.abs(dp) < 1e-12) continue;
+        const t = (Pt - p1) / dp;
+        if (t < -1e-9 || t > 1 + 1e-9) continue;
+        const tc  = Math.max(0, Math.min(1, t));
+        const cMx = mMx[j] + tc * (mMx[j + 1] - mMx[j]);
+        const cMy = mMy[j] + tc * (mMy[j + 1] - mMy[j]);
+        const M   = cMx * cMx + cMy * cMy;   // squared magnitude (no sqrt needed)
+        if (M > bestM) { bestM = M; mx = cMx; my = cMy; }
+      }
+      if (bestM < 0) {
+        // Pt is outside this meridian's range — clamp to nearest endpoint
+        mx = Pt <= mP[0] ? mMx[0] : mMx[numPts - 1];
+        my = Pt <= mP[0] ? mMy[0] : mMy[numPts - 1];
       }
       rMx[base + k] = mx;
       rMy[base + k] = my;
@@ -4767,21 +4780,24 @@ function pmmRender3D(data, payload, loadPts) {
     showlegend: false,
   });
 
-  // ── Wireframe: horizontal ring lines (constant P-level cuts) ────────
-  // Take every rStep-th point along each meridian → forms a ring
+  // ── Wireframe: horizontal ring lines (true constant-P-level cuts) ──────
+  // Use the resampled (rMx/rMy/rP) data so each ring connects points at the
+  // SAME P level across all alpha angles → perfectly planar, smooth ellipses.
+  // Previously this used the raw constant-c-index data, where different alpha
+  // angles give different P at the same c, producing non-planar wavy rings.
   const numRings = 50;
   const rStep = Math.max(1, Math.floor(numPts / numRings));
   const mxR = [], myR = [], pR = [];
-  for (let i = 0; i < numPts; i += rStep) {
+  for (let k = 0; k < numPts; k += rStep) {
     for (let a = 0; a < numAlpha; a++) {
-      mxR.push(allMx[a * numPts + i]);
-      myR.push(allMy[a * numPts + i]);
-      pR.push(allP[a * numPts + i]);
+      mxR.push(rMx[a * numPts + k]);
+      myR.push(rMy[a * numPts + k]);
+      pR.push(rP [a * numPts + k]);
     }
-    // Close the ring by repeating first meridian point
-    mxR.push(allMx[0 * numPts + i]);
-    myR.push(allMy[0 * numPts + i]);
-    pR.push(allP[0 * numPts + i]);
+    // Close the ring by repeating the first meridian point at this P level
+    mxR.push(rMx[k]);
+    myR.push(rMy[k]);
+    pR.push (rP [k]);
     mxR.push(null); myR.push(null); pR.push(null);
   }
   traces.push({
