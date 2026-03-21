@@ -4882,30 +4882,61 @@ function pmmRender2D(data, chartId, title, momentKey, payload, loadPts) {
   if (loadPts && loadPts.length) {
     const pass = loadPts.filter(p => p.status === 'PASS');
     const fail = loadPts.filter(p => p.status === 'FAIL');
+
+    // Helper: biaxial capacity component on the plotted moment axis
+    const capComp = p => momentKey === 'Mx' ? p._capMx : p._capMy;
+    const demComp = p => momentKey === 'Mx' ? p.Mx : p.My;
+    // Build hover text showing full biaxial context
+    const hoverText = p =>
+      `${p.label||'Load'}<br>` +
+      `P: ${(+(p.P)||0).toFixed(1)} kN<br>` +
+      `Mx: ${(+(p.Mx)||0).toFixed(1)} kN·m  My: ${(+(p.My)||0).toFixed(1)} kN·m<br>` +
+      `M_d: ${p.M_demand != null ? (+p.M_demand).toFixed(1) : '–'} kN·m  ` +
+      `M_cap: ${p.M_cap != null ? (+p.M_cap).toFixed(1) : '–'} kN·m  ` +
+      `DCR: ${p.DCR != null ? (+p.DCR).toFixed(3) : '–'}`;
+
+    // Capacity indicator lines — dashed segment from cap-component to demand component
+    const allChecked = [...pass, ...fail].filter(p => capComp(p) != null);
+    if (allChecked.length) {
+      allChecked.forEach(p => {
+        const xCap = capComp(p), xDem = demComp(p), yPt = -(+p.P);
+        const col = p.status === 'FAIL' ? 'rgba(220,38,38,0.55)' : 'rgba(22,163,74,0.55)';
+        traces.push({
+          type: 'scatter', mode: 'lines+markers', showlegend: false,
+          x: [xCap, xDem], y: [yPt, yPt],
+          line: { color: col, width: 1.5, dash: 'dot' },
+          marker: { size: [6, 0], color: col, symbol: 'diamond' },
+          hoverinfo: 'skip',
+        });
+      });
+    }
+
     if (pass.length) traces.push({
       type: 'scatter', mode: 'markers',
-      x: pass.map(p => momentKey === 'Mx' ? p.Mx : p.My), y: pass.map(p => -(+p.P)),
+      x: pass.map(demComp), y: pass.map(p => -(+p.P)),
       marker: { size: 9, color: '#16a34a', symbol: 'circle',
                 line: { color: '#fff', width: 1 } },
       name: 'PASS',
-      hovertemplate: `%{text}<br>${momentKey}: %{x:.1f} kN·m<br>P: %{y:.1f} kN<extra></extra>`,
-      text: pass.map(p => `${p.label||'Load'} DCR:${p.DCR}`),
+      hovertemplate: `%{text}<extra></extra>`,
+      text: pass.map(hoverText),
     });
     if (fail.length) traces.push({
       type: 'scatter', mode: 'markers',
-      x: fail.map(p => momentKey === 'Mx' ? p.Mx : p.My), y: fail.map(p => -(+p.P)),
+      x: fail.map(demComp), y: fail.map(p => -(+p.P)),
       marker: { size: 10, color: '#dc2626', symbol: 'x',
                 line: { color: '#dc2626', width: 2 } },
       name: 'FAIL',
-      hovertemplate: `%{text}<br>${momentKey}: %{x:.1f} kN·m<br>P: %{y:.1f} kN<extra></extra>`,
-      text: fail.map(p => `${p.label||'Load'} DCR:${p.DCR}`),
+      hovertemplate: `%{text}<extra></extra>`,
+      text: fail.map(hoverText),
     });
   } else {
+    // Single-demand fallback (no loadPts): demand_P is in user sign (compression = negative),
+    // convert to engine sign (positive = compression) to match the capacity curves.
     const dM = momentKey === 'Mx' ? payload.demand_Mx : payload.demand_My;
     if (payload.demand_P != null && dM != null) {
       traces.push({
         type: 'scatter', mode: 'markers',
-        x: [dM], y: [payload.demand_P],
+        x: [dM], y: [-(+payload.demand_P)],
         marker: { size: 10, color: '#fff', symbol: 'diamond',
                   line: { color: '#3b82f6', width: 2 } },
         name: 'Demand',
@@ -5002,6 +5033,9 @@ function pmmUpdateDCRFromBoundary(loads) {
     p.M_cap  = +M_geo.toFixed(3);
     p.DCR    = +(Md / M_geo).toFixed(3);
     p.status = p.DCR <= 1.0 ? 'PASS' : 'FAIL';
+    // Store biaxial cap components so 2D charts can draw capacity indicators
+    p._capMx = +cap.x.toFixed(3);
+    p._capMy = +cap.y.toFixed(3);
   });
 }
 
