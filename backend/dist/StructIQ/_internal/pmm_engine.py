@@ -147,6 +147,79 @@ def _split_area(polygon_coords, line_coords):
     return top, bot
 
 
+def _outer_envelope_curve(P_raw, Mx_raw, My_raw, n_out=None,
+                           P_lo=None, P_hi=None):
+    """
+    Extract the outer-envelope of a φ-reduced P-M meridian curve.
+
+    Background (ACI 318-19):
+        The φ factor transitions from 0.90 (TC) down to 0.65 (CC) through the
+        tension-transition zone.  While φ is decreasing, φ·Pn can temporarily
+        *decrease* even though the nominal Pn is still rising.  In (P, M) space
+        this makes the curve fold back on itself, forming a closed loop — the
+        so-called "nose" of the ACI φ-reduced diagram.  At any P level inside
+        this loop there are two moment values: one on the TC branch (φ=0.90,
+        high M) and one on the CC branch (φ=0.65, low M).
+
+        For design only the *outer* boundary matters.  Every production column
+        program (spColumn, ColumnBase …) shows the outer envelope, not the raw
+        folded curve.
+
+    Method:
+        Resample to a uniform P grid [P_min … P_max]; at each P level scan ALL
+        segments of the raw curve and keep the interpolation with the largest
+        moment magnitude.  Identical to the ACI "max-M at each P" convention.
+
+    Args:
+        P_raw, Mx_raw, My_raw : raw φ-reduced output from the engine sweep
+        n_out                  : number of output points (default = len(P_raw))
+        P_lo, P_hi             : override the P range for the output grid.
+                                 Pass the *global* P_min/P_max when rebuilding
+                                 the surface so every meridian shares the same
+                                 uniform P grid → perfect 3-D triangulation.
+
+    Returns:
+        (P_out, Mx_out, My_out) – outer-envelope lists, uniformly spaced in P
+    """
+    n = len(P_raw)
+    if n < 2:
+        return list(P_raw), list(Mx_raw), list(My_raw)
+    n_out   = n_out if n_out is not None else n
+    P_min   = P_lo  if P_lo  is not None else min(P_raw)
+    P_max   = P_hi  if P_hi  is not None else max(P_raw)
+    P_range = P_max - P_min
+    if P_range < 1e-12:
+        return list(P_raw), list(Mx_raw), list(My_raw)
+
+    P_out, Mx_out, My_out = [], [], []
+    for k in range(n_out):
+        Pt      = P_min + P_range * k / (n_out - 1)
+        best_M2 = -1.0
+        best_mx = best_my = 0.0
+        for j in range(n - 1):
+            p1, p2 = P_raw[j], P_raw[j + 1]
+            dp = p2 - p1
+            if abs(dp) < 1e-12:
+                continue
+            t = (Pt - p1) / dp
+            if t < -1e-9 or t > 1 + 1e-9:
+                continue
+            tc   = max(0.0, min(1.0, t))
+            cMx  = Mx_raw[j] + tc * (Mx_raw[j + 1] - Mx_raw[j])
+            cMy  = My_raw[j] + tc * (My_raw[j + 1] - My_raw[j])
+            M2   = cMx * cMx + cMy * cMy
+            if M2 > best_M2:
+                best_M2 = M2
+                best_mx = cMx
+                best_my = cMy
+        if best_M2 >= 0:
+            P_out.append(round(Pt,      2))
+            Mx_out.append(round(best_mx, 2))
+            My_out.append(round(best_my, 2))
+
+    return P_out, Mx_out, My_out
+
+
 def _quadrant_corners(coords):
     """
     Return corner indices ordered [Q3, Q4, Q1, Q2] from centroid quadrants.
@@ -328,6 +401,27 @@ def compute_pmm(sec: PMMSection) -> dict:
         + [1.5 * c_scale + (6.5 * c_scale) * (i + 1) / _n_hi  for i in range(_n_hi)]
         + [c_scale * 20]                           # pure-compression anchor
     )
+
+    # ── Bar-transition c-clustering ──────────────────────────────────────
+    # Each rebar layer causes a kink in the P-M curve because the bar's
+    # contribution abruptly switches from tension to compression as c passes
+    # through its depth.  Inserting a tight 3-point cluster (d-δ, d, d+δ)
+    # around every bar's transition depth for both horizontal (α≈0°) and
+    # vertical (α≈90°) neutral-axis orientations adds at most ~3×n_bars extra
+    # c values but gives sub-millimetre resolution exactly where kinks are
+    # steepest — equivalent to what spColumn achieves with a very fine c-grid.
+    _delta = 0.06   # cluster half-width in inches (≈1.5 mm)
+    _extra_c: set = set()
+    for bx, by in sec.bar_positions:
+        for d in (by, h_dim - by, bx, b_dim - bx):
+            if 0.01 < d < c_scale:
+                _extra_c.update({
+                    round(d - _delta, 5),
+                    round(d,          5),
+                    round(d + _delta, 5),
+                })
+    c_list = sorted(set(c_list) | _extra_c)
+    n_c    = len(c_list)   # update: may be larger than sec.num_points
     n_a = int(360 / sec.alpha_steps)
     alpha_arr = [2 * math.pi * i / n_a for i in range(n_a)]
 
@@ -454,8 +548,8 @@ def compute_pmm(sec: PMMSection) -> dict:
                 else:                   sc = 'TZ'
 
                 P_list.append( round(phi * Pn,  2))
-                Mx_list.append(round(phi * Mnx, 2))
-                My_list.append(round(phi * Mny, 2))
+                Mx_list.append(round(phi * Mny, 2))   # Mny = from y-displacements = moment about X-axis ✓
+                My_list.append(round(phi * Mnx, 2))   # Mnx = from x-displacements = moment about Y-axis ✓
                 st_list.append(sc)
                 ep_list.append(round(eps_t, 5))
 
@@ -466,16 +560,57 @@ def compute_pmm(sec: PMMSection) -> dict:
         alpha_deg = round(math.degrees(alpha_raw), 1)
         alpha_data[alpha_deg] = {'P': P_list, 'Mx': Mx_list, 'My': My_list}
 
-    # ── 2D cardinal curves ───────────────────────────────────────────────
+    # ── Surface rebuild: project every meridian onto a GLOBAL P grid ────────
+    # After computing all meridians, the P values differ per alpha at the same
+    # c index because the compression-block area varies with neutral-axis angle.
+    # Re-sampling every meridian to the same global P range with
+    # _outer_envelope_curve simultaneously:
+    #   1. Gives all meridians identical P values at the same index
+    #      → perfect 3-D triangulation without jagged rings or wavy fill
+    #   2. Removes the ACI phi-factor "nose" loop (outer-envelope selection)
+    #   3. Resolves bar-transition kinks via the max-M scan across all segments
+    # After this pass the surface arrays contain n_a × n_c monotonic values.
+    Pglo_min_r = min(all_P)
+    Pglo_max_r = max(all_P)
+    new_all_P, new_all_Mx, new_all_My = [], [], []
+    for a_idx, alpha_raw in enumerate(alpha_arr):
+        base = a_idx * n_c
+        P_env, Mx_env, My_env = _outer_envelope_curve(
+            all_P [base : base + n_c],
+            all_Mx[base : base + n_c],
+            all_My[base : base + n_c],
+            n_out=n_c,
+            P_lo=Pglo_min_r,
+            P_hi=Pglo_max_r,
+        )
+        new_all_P .extend(P_env)
+        new_all_Mx.extend(Mx_env)
+        new_all_My.extend(My_env)
+        # Keep alpha_data in sync with the cleaned uniform-P meridian
+        alpha_deg = round(math.degrees(alpha_raw), 1)
+        alpha_data[alpha_deg] = {'P': P_env, 'Mx': Mx_env, 'My': My_env}
+    all_P  = new_all_P
+    all_Mx = new_all_Mx
+    all_My = new_all_My
+
+    # ── 2D cardinal curves (outer-envelope of φ-reduced data) ───────────────
+    # alpha_data now contains already-cleaned uniform-P meridians; applying
+    # _outer_envelope_curve once more is effectively an identity pass — kept
+    # for robustness and to guarantee identical logic for both 2D and surface.
     curves_2d = {}
     available = list(alpha_data.keys())
     for target in (0, 90, 180, 270):
-        best = min(available, key=lambda a: abs(a - target))
-        curves_2d[str(target)] = alpha_data[best]
+        best  = min(available, key=lambda a: abs(a - target))
+        curve = alpha_data[best]
+        P_env, Mx_env, My_env = _outer_envelope_curve(
+            curve['P'], curve['Mx'], curve['My'])
+        curves_2d[str(target)] = {'P': P_env, 'Mx': Mx_env, 'My': My_env}
 
     return {
         'surface':    {'P': all_P, 'Mx': all_Mx, 'My': all_My,
-                       'status': all_status, 'eps': all_eps},
+                       'num_points': n_c,   # actual pts/meridian (may differ from
+                                            # sec.num_points after bar clustering)
+                       'status': [], 'eps': []},
         'curves_2d':  curves_2d,
         'alpha_data': alpha_data,          # full sweep — used by check_demands
         'Pmax':       round(max(all_P),  2) if all_P else 0,
@@ -556,9 +691,9 @@ def check_demands(alpha_data: dict, Pmax: float, Pmin: float,
                         'DCR': round(dcr, 3), 'status': 'PASS' if inside else 'FAIL'})
             continue
 
-        # Engine alpha=0° produces moment along the My axis; alpha=90° along Mx.
-        # atan2(My,Mx) is 90° ahead of the engine alpha, so subtract pi/2 to align.
-        alpha_d = math.pi / 2.0 - math.atan2(Myd, Mxd)
+        # After Mx/My convention fix: alpha=0° → horizontal NA → Mx axis; alpha=90° → My axis.
+        # atan2(Myd, Mxd) directly gives the demand angle from the Mx axis = engine alpha.
+        alpha_d = math.pi / 2.0 - math.atan2(Mxd, Myd)
         if alpha_d < 0:
             alpha_d += 2.0 * math.pi
 

@@ -4957,10 +4957,9 @@ function pmmRender2D(data, chartId, title, momentKey, payload, loadPts) {
   const palette = { '0': '#3b82f6', '90': '#22c55e', '180': '#f59e0b', '270': '#ef4444' };
   const labels  = { '0': 'α=0°', '90': 'α=90°', '180': 'α=180°', '270': 'α=270°' };
 
-  // For P–My only show the My-dominant sweeps (α=0°,180°); for P–Mx only Mx-dominant
-  // sweeps (α=90°,270°).  Showing the orthogonal sweeps produces near-zero-M jagged
-  // vertical lines in the centre of the chart that look like errors.
-  const relevantAngles = momentKey === 'My' ? new Set(['0', '180']) : new Set(['90', '270']);
+  // Mx (about X-axis) = horizontal NA → α=0°/180°; My (about Y-axis) = vertical NA → α=90°/270°.
+  // Only show the relevant meridians so orthogonal (near-zero) sweeps don't pollute the chart.
+  const relevantAngles = momentKey === 'My' ? new Set(['90', '270']) : new Set(['0', '180']);
 
   Object.entries(c2d).forEach(([angle, curve]) => {
     if (!relevantAngles.has(angle)) return;   // skip orthogonal sweeps
@@ -5068,7 +5067,7 @@ function pmmExport2DCSV(chartId, momentKey) {
   if (!_pmmResult) { alert('Generate the PMM diagram first.'); return; }
 
   const c2d    = _pmmResult.curves_2d;
-  const angles = momentKey === 'My' ? ['0', '180'] : ['90', '270'];
+  const angles = momentKey === 'My' ? ['90', '270'] : ['0', '180'];
   const rows   = [];
 
   // ── File header ─────────────────────────────────────────────────────────────

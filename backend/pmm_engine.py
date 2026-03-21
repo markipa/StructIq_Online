@@ -548,8 +548,8 @@ def compute_pmm(sec: PMMSection) -> dict:
                 else:                   sc = 'TZ'
 
                 P_list.append( round(phi * Pn,  2))
-                Mx_list.append(round(phi * Mnx, 2))
-                My_list.append(round(phi * Mny, 2))
+                Mx_list.append(round(phi * Mny, 2))   # Mny = from y-displacements = moment about X-axis ✓
+                My_list.append(round(phi * Mnx, 2))   # Mnx = from x-displacements = moment about Y-axis ✓
                 st_list.append(sc)
                 ep_list.append(round(eps_t, 5))
 
@@ -691,9 +691,9 @@ def check_demands(alpha_data: dict, Pmax: float, Pmin: float,
                         'DCR': round(dcr, 3), 'status': 'PASS' if inside else 'FAIL'})
             continue
 
-        # Engine alpha=0° produces moment along the My axis; alpha=90° along Mx.
-        # atan2(My,Mx) is 90° ahead of the engine alpha, so subtract pi/2 to align.
-        alpha_d = math.pi / 2.0 - math.atan2(Myd, Mxd)
+        # After Mx/My convention fix: alpha=0° → horizontal NA → Mx axis; alpha=90° → My axis.
+        # atan2(Myd, Mxd) directly gives the demand angle from the Mx axis = engine alpha.
+        alpha_d = math.pi / 2.0 - math.atan2(Mxd, Myd)
         if alpha_d < 0:
             alpha_d += 2.0 * math.pi
 

@@ -4632,16 +4632,21 @@ function pmmRender3D(data, payload, loadPts) {
 
   const surf = data.surface;
   const allMx = surf.Mx, allMy = surf.My, allP = surf.P;
-  const numPts = payload.num_points;               // points per alpha sweep
+  // After bar-transition clustering the engine may return more points per
+  // meridian than payload.num_points.  Use surf.num_points when available.
+  const numPts   = surf.num_points || payload.num_points;
   const numAlpha = Math.round(allP.length / numPts); // number of alpha angles
   const arrMax = (a) => a.reduce((m, v) => v > m ? v : m, -Infinity);
   const arrMin = (a) => a.reduce((m, v) => v < m ? v : m,  Infinity);
   const ext = Math.max(arrMax(allMx.map(Math.abs)), arrMax(allMy.map(Math.abs))) * 1.15;
 
-  // ── Resample meridians to common P levels ──────────────────────────
-  // The engine sweeps the same neutral-axis depths for every alpha, but each
-  // alpha produces different P values at the same index. Grid triangulation
-  // must connect points at the same P level, so resample to a uniform P grid.
+  // ── Build per-meridian reference arrays ────────────────────────────────
+  // The engine now returns a *uniform global P grid* for every meridian
+  // (all alphas share the same P value at each index k, after the engine's
+  // global-P-grid surface rebuild + outer-envelope pass).
+  // rMx/rMy/rP are therefore simply views into allMx/allMy/allP — but we
+  // keep a small outer-envelope safety scan so older engine responses or
+  // edge cases (residual numerical drift) are handled gracefully.
   const Pglo_min = arrMin(allP);
   const Pglo_max = arrMax(allP);
   const rMx = new Array(numAlpha * numPts);
@@ -4649,22 +4654,29 @@ function pmmRender3D(data, payload, loadPts) {
   const rP  = new Array(numAlpha * numPts);
   for (let a = 0; a < numAlpha; a++) {
     const base = a * numPts;
-    const mP  = allP .slice(base, base + numPts);  // monotonically increasing
+    const mP  = allP .slice(base, base + numPts);
     const mMx = allMx.slice(base, base + numPts);
     const mMy = allMy.slice(base, base + numPts);
     for (let k = 0; k < numPts; k++) {
       const Pt = Pglo_min + (Pglo_max - Pglo_min) * k / (numPts - 1);
-      let mx, my;
-      if (Pt <= mP[0]) {
-        mx = mMx[0]; my = mMy[0];
-      } else if (Pt >= mP[numPts - 1]) {
-        mx = mMx[numPts - 1]; my = mMy[numPts - 1];
-      } else {
-        let lo = 0, hi = numPts - 1;
-        while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (mP[mid] <= Pt) lo = mid; else hi = mid; }
-        const t = (Pt - mP[lo]) / (mP[hi] - mP[lo]);
-        mx = mMx[lo] + t * (mMx[hi] - mMx[lo]);
-        my = mMy[lo] + t * (mMy[hi] - mMy[lo]);
+      // Fast path: engine provides monotonic P → direct index copy
+      // Safety: full scan in case of residual non-monotonicity
+      let mx = 0, my = 0, bestM = -1;
+      for (let j = 0; j < numPts - 1; j++) {
+        const p1 = mP[j], p2 = mP[j + 1];
+        const dp = p2 - p1;
+        if (Math.abs(dp) < 1e-12) continue;
+        const t = (Pt - p1) / dp;
+        if (t < -1e-9 || t > 1 + 1e-9) continue;
+        const tc  = Math.max(0, Math.min(1, t));
+        const cMx = mMx[j] + tc * (mMx[j + 1] - mMx[j]);
+        const cMy = mMy[j] + tc * (mMy[j + 1] - mMy[j]);
+        const M   = cMx * cMx + cMy * cMy;
+        if (M > bestM) { bestM = M; mx = cMx; my = cMy; }
+      }
+      if (bestM < 0) {
+        mx = Pt <= mP[0] ? mMx[0] : mMx[numPts - 1];
+        my = Pt <= mP[0] ? mMy[0] : mMy[numPts - 1];
       }
       rMx[base + k] = mx;
       rMy[base + k] = my;
@@ -4672,13 +4684,40 @@ function pmmRender3D(data, payload, loadPts) {
     }
   }
 
-  const traces = [];
-
-  // ── Semi-transparent fill (mesh3d, explicit grid triangulation) ──
-  // Build quads between adjacent meridians on the resampled P grid.
-  const triI = [], triJ = [], triK = [];
+  // ── Angular super-sampling (4×): insert 3 interpolated meridians between ──
+  // each adjacent pair.  With typical 5° engine sweeps (72 real meridians)
+  // this gives 288 effective meridians → 1.25° apparent angular resolution,
+  // matching the density spColumn uses for its smooth 3-D surface.
+  const SUPER      = 4;
+  const numAlphaS  = numAlpha * SUPER;
+  const nVerts     = numAlphaS * numPts;
+  const sMx = new Array(nVerts);
+  const sMy = new Array(nVerts);
+  const sP  = new Array(nVerts);
   for (let a = 0; a < numAlpha; a++) {
     const a1 = (a + 1) % numAlpha;
+    for (let s = 0; s < SUPER; s++) {
+      const t  = s / SUPER;
+      const sa = a * SUPER + s;
+      for (let k = 0; k < numPts; k++) {
+        const b0 = a  * numPts + k;
+        const b1 = a1 * numPts + k;
+        sMx[sa * numPts + k] = rMx[b0] * (1 - t) + rMx[b1] * t;
+        sMy[sa * numPts + k] = rMy[b0] * (1 - t) + rMy[b1] * t;
+        sP [sa * numPts + k] = rP[b0];   // P identical for same k across all alphas
+      }
+    }
+  }
+
+  const traces = [];
+
+  // ── Semi-transparent fill (mesh3d + Gouraud shading via intensity) ──────
+  // Using `intensity` instead of flat `color` enables smooth per-vertex colour
+  // interpolation across each triangle (Gouraud shading), eliminating the
+  // visible facets that appear with a single flat colour.
+  const triI = [], triJ = [], triK = [];
+  for (let a = 0; a < numAlphaS; a++) {
+    const a1 = (a + 1) % numAlphaS;
     for (let i = 0; i < numPts - 1; i++) {
       const p00 = a  * numPts + i;
       const p10 = a1 * numPts + i;
@@ -4688,17 +4727,35 @@ function pmmRender3D(data, payload, loadPts) {
       triI.push(p10); triJ.push(p11); triK.push(p01);
     }
   }
+  // Normalise P [0=max-tension … 1=max-compression] for smooth colour gradient
+  const Prange    = (Pglo_max - Pglo_min) || 1;
+  const intensity = sP.map(p => (p - Pglo_min) / Prange);
+
   traces.push({
     type: 'mesh3d',
-    x: rMx, y: rMy, z: rP,
+    x: sMx, y: sMy, z: sP,
     i: triI, j: triJ, k: triK,
-    color: '#93c5fd',
-    opacity: 0.18,
+    intensity,
+    colorscale: [
+      [0.00, '#dbeafe'],   // tension zone  — pale blue
+      [0.45, '#93c5fd'],   // balanced zone — medium blue
+      [0.75, '#3b82f6'],   // compression   — vivid blue
+      [1.00, '#1e40af'],   // max compression — deep blue
+    ],
+    cmin: 0, cmax: 1,
     showscale: false,
+    opacity: 0.22,
     hoverinfo: 'none',
     name: 'Surface',
     flatshading: false,
-    lighting: { ambient: 0.9, diffuse: 0.3, specular: 0.0 },
+    lighting: {
+      ambient:   0.88,
+      diffuse:   0.45,
+      specular:  0.08,
+      roughness: 0.55,
+      fresnel:   0.10,
+    },
+    lightposition: { x: 2000, y: 1000, z: 8000 },
   });
 
   // ── Wireframe: meridian lines (one per alpha angle) ───────────────
@@ -4724,21 +4781,24 @@ function pmmRender3D(data, payload, loadPts) {
     showlegend: false,
   });
 
-  // ── Wireframe: horizontal ring lines (constant P-level cuts) ────────
-  // Take every rStep-th point along each meridian → forms a ring
+  // ── Wireframe: horizontal ring lines (true constant-P-level cuts) ──────
+  // Use the resampled (rMx/rMy/rP) data so each ring connects points at the
+  // SAME P level across all alpha angles → perfectly planar, smooth ellipses.
+  // Previously this used the raw constant-c-index data, where different alpha
+  // angles give different P at the same c, producing non-planar wavy rings.
   const numRings = 50;
   const rStep = Math.max(1, Math.floor(numPts / numRings));
   const mxR = [], myR = [], pR = [];
-  for (let i = 0; i < numPts; i += rStep) {
+  for (let k = 0; k < numPts; k += rStep) {
     for (let a = 0; a < numAlpha; a++) {
-      mxR.push(allMx[a * numPts + i]);
-      myR.push(allMy[a * numPts + i]);
-      pR.push(allP[a * numPts + i]);
+      mxR.push(rMx[a * numPts + k]);
+      myR.push(rMy[a * numPts + k]);
+      pR.push(rP [a * numPts + k]);
     }
-    // Close the ring by repeating first meridian point
-    mxR.push(allMx[0 * numPts + i]);
-    myR.push(allMy[0 * numPts + i]);
-    pR.push(allP[0 * numPts + i]);
+    // Close the ring by repeating the first meridian point at this P level
+    mxR.push(rMx[k]);
+    myR.push(rMy[k]);
+    pR.push (rP [k]);
     mxR.push(null); myR.push(null); pR.push(null);
   }
   traces.push({
@@ -4897,10 +4957,9 @@ function pmmRender2D(data, chartId, title, momentKey, payload, loadPts) {
   const palette = { '0': '#3b82f6', '90': '#22c55e', '180': '#f59e0b', '270': '#ef4444' };
   const labels  = { '0': 'α=0°', '90': 'α=90°', '180': 'α=180°', '270': 'α=270°' };
 
-  // For P–My only show the My-dominant sweeps (α=0°,180°); for P–Mx only Mx-dominant
-  // sweeps (α=90°,270°).  Showing the orthogonal sweeps produces near-zero-M jagged
-  // vertical lines in the centre of the chart that look like errors.
-  const relevantAngles = momentKey === 'My' ? new Set(['0', '180']) : new Set(['90', '270']);
+  // Mx (about X-axis) = horizontal NA → α=0°/180°; My (about Y-axis) = vertical NA → α=90°/270°.
+  // Only show the relevant meridians so orthogonal (near-zero) sweeps don't pollute the chart.
+  const relevantAngles = momentKey === 'My' ? new Set(['90', '270']) : new Set(['0', '180']);
 
   Object.entries(c2d).forEach(([angle, curve]) => {
     if (!relevantAngles.has(angle)) return;   // skip orthogonal sweeps
@@ -5008,7 +5067,7 @@ function pmmExport2DCSV(chartId, momentKey) {
   if (!_pmmResult) { alert('Generate the PMM diagram first.'); return; }
 
   const c2d    = _pmmResult.curves_2d;
-  const angles = momentKey === 'My' ? ['0', '180'] : ['90', '270'];
+  const angles = momentKey === 'My' ? ['90', '270'] : ['0', '180'];
   const rows   = [];
 
   // ── File header ─────────────────────────────────────────────────────────────
