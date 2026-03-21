@@ -594,14 +594,19 @@ def compute_pmm(sec: PMMSection) -> dict:
     all_My = new_all_My
 
     # ── 2D cardinal curves ───────────────────────────────────────────────────
-    # alpha_data already contains cleaned uniform-P meridians.  Assign by
-    # direct reference so that the caller's unit-conversion loop (which
-    # mutates alpha_data dicts in-place) also updates curves_2d automatically.
+    # alpha_data already contains cleaned uniform-P meridians.  Build
+    # curves_2d as INDEPENDENT copies so the caller can convert them
+    # without worrying about shared-reference aliasing with alpha_data.
     curves_2d = {}
     available = list(alpha_data.keys())
     for target in (0, 90, 180, 270):
         best = min(available, key=lambda a: abs(a - target))
-        curves_2d[str(target)] = alpha_data[best]   # shared reference — converted by caller
+        ad   = alpha_data[best]
+        curves_2d[str(target)] = {
+            'P':  list(ad['P']),
+            'Mx': list(ad['Mx']),
+            'My': list(ad['My']),
+        }
 
     return {
         'surface':    {'P': all_P, 'Mx': all_Mx, 'My': all_My,
