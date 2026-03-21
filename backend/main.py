@@ -1119,12 +1119,22 @@ def pmm_calculate(body: PMMRequest,
             r['surface']['P']  = [round(v * _KIPS_TO_KN,  2) for v in r['surface']['P']]
             r['surface']['Mx'] = [round(v * _KIN_TO_KNM,  3) for v in r['surface']['Mx']]
             r['surface']['My'] = [round(v * _KIN_TO_KNM,  3) for v in r['surface']['My']]
-            # Convert ALL alpha_data curves (curves_2d shares the same dict references,
-            # so they are converted automatically here — no separate loop needed)
+            # Convert ALL alpha_data curves.  curves_2d entries share the same
+            # dict objects, so they are updated automatically here as long as the
+            # engine uses direct references (no extra list creation in curves_2d).
             for adeg, curve in r.get('alpha_data', {}).items():
                 curve['P']  = [round(v * _KIPS_TO_KN,  2) for v in curve['P']]
                 curve['Mx'] = [round(v * _KIN_TO_KNM,  3) for v in curve['Mx']]
                 curve['My'] = [round(v * _KIN_TO_KNM,  3) for v in curve['My']]
+            # Safety net: convert curves_2d entries that are NOT already the
+            # same dict object as an alpha_data entry (guards against future
+            # engine changes that break the shared-reference assumption).
+            _alpha_ids = {id(c) for c in r.get('alpha_data', {}).values()}
+            for key, curve in r.get('curves_2d', {}).items():
+                if id(curve) not in _alpha_ids:
+                    curve['P']  = [round(v * _KIPS_TO_KN,  2) for v in curve['P']]
+                    curve['Mx'] = [round(v * _KIN_TO_KNM,  3) for v in curve['Mx']]
+                    curve['My'] = [round(v * _KIN_TO_KNM,  3) for v in curve['My']]
             r['Pmax']     = round(r['Pmax']     * _KIPS_TO_KN, 2)
             r['Pmin']     = round(r['Pmin']     * _KIPS_TO_KN, 2)
             r['Ag']       = round(r['Ag']       * _IN2_TO_MM2, 0)

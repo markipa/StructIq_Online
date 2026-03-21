@@ -593,18 +593,15 @@ def compute_pmm(sec: PMMSection) -> dict:
     all_Mx = new_all_Mx
     all_My = new_all_My
 
-    # ── 2D cardinal curves (outer-envelope of φ-reduced data) ───────────────
-    # alpha_data now contains already-cleaned uniform-P meridians; applying
-    # _outer_envelope_curve once more is effectively an identity pass — kept
-    # for robustness and to guarantee identical logic for both 2D and surface.
+    # ── 2D cardinal curves ───────────────────────────────────────────────────
+    # alpha_data already contains cleaned uniform-P meridians.  Assign by
+    # direct reference so that the caller's unit-conversion loop (which
+    # mutates alpha_data dicts in-place) also updates curves_2d automatically.
     curves_2d = {}
     available = list(alpha_data.keys())
     for target in (0, 90, 180, 270):
-        best  = min(available, key=lambda a: abs(a - target))
-        curve = alpha_data[best]
-        P_env, Mx_env, My_env = _outer_envelope_curve(
-            curve['P'], curve['Mx'], curve['My'])
-        curves_2d[str(target)] = {'P': P_env, 'Mx': Mx_env, 'My': My_env}
+        best = min(available, key=lambda a: abs(a - target))
+        curves_2d[str(target)] = alpha_data[best]   # shared reference — converted by caller
 
     return {
         'surface':    {'P': all_P, 'Mx': all_Mx, 'My': all_My,
