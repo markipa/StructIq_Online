@@ -424,31 +424,34 @@ def compute_pmm(sec: PMMSection) -> dict:
                 Mnx = Mcx + Mxs
                 Mny = Mcy + Mys
 
-                # ACI 318 §22.4 maximum axial capacity cap (flat top)
-                # Cap P but keep the computed moments so the 3-D surface has a
-                # proper flat circular disk at P = φPn,max (not a collapsed spike).
-                Pn_max = 0.85 * sec.fc * (Ag - Ast) + sec.fy * Ast  # ACI 318-19 Eq 22.4.2.2 (φ applied separately)
+                # ACI 318-19 §22.4.2.2: Tied column Pn,max = 0.80 × Po
+                # (0.80 accounts for accidental eccentricity and is NOT part of φ)
+                Po     = 0.85 * sec.fc * (Ag - Ast) + sec.fy * Ast
+                Pn_max = 0.80 * Po                   # ACI 318-19 Eq 22.4.2.2 tied
                 if Pn > Pn_max:
                     Pn = Pn_max
 
                 # ── Strain in extreme tension steel ─────────────────────
                 eps_t = min(eps_bars) if eps_bars else 0.0
 
-                # ── ACI 318 φ factor ────────────────────────────────────
+                # ── ACI 318-19 §21.2.2 φ factor ─────────────────────────
+                # Transition denominator is (0.005 − εy), not a hard-coded 0.003,
+                # so the formula works correctly for any steel grade.
+                eps_tc = 0.005   # ACI 318 tension-controlled strain limit
                 if sec.include_phi:
                     if eps_t >= -eps_y:
-                        phi = 0.65
-                    elif eps_t > -(eps_y + 0.003):
-                        phi = 0.65 + (-eps_t - eps_y) * (0.25 / 0.003)
+                        phi = 0.65                   # compression-controlled
+                    elif eps_t > -eps_tc:
+                        phi = 0.65 + (-eps_t - eps_y) * (0.25 / (eps_tc - eps_y))
                     else:
-                        phi = 0.90
+                        phi = 0.90                   # tension-controlled
                 else:
                     phi = 1.0
 
                 # ── Section status ──────────────────────────────────────
-                if   eps_t >= -eps_y:                  sc = 'CC'
-                elif eps_t <= -(eps_y + 0.003):        sc = 'TC'
-                else:                                   sc = 'TZ'
+                if   eps_t >= -eps_y:   sc = 'CC'
+                elif eps_t <= -eps_tc:  sc = 'TC'
+                else:                   sc = 'TZ'
 
                 P_list.append( round(phi * Pn,  2))
                 Mx_list.append(round(phi * Mnx, 2))
