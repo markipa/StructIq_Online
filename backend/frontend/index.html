@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml"  href="/app/favicon.svg">
   <link rel="icon" type="image/x-icon"   href="/favicon.ico">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/app/styles.css?v=58" />
+  <link rel="stylesheet" href="/app/styles.css?v=102" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
 <body>
@@ -130,6 +130,19 @@
           <rect x="6" y="4.5" width="6" height="9" rx="0.5" stroke-width="1.2" opacity="0.5"/>
         </svg>
         RCSGen Column
+        <span class="nav-plan-badge">PRO</span>
+      </a>
+
+      <a href="#" class="nav-item" data-target="pmm-panel" data-plan="pro">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 18 18" fill="none"
+             stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <ellipse cx="9" cy="9" rx="7" ry="5"/>
+          <line x1="9" y1="4" x2="9" y2="14"/>
+          <line x1="2" y1="9" x2="16" y2="9"/>
+          <path d="M4 6 Q9 2 14 6" stroke-width="1.2"/>
+          <path d="M4 12 Q9 16 14 12" stroke-width="1.2"/>
+        </svg>
+        P-M-M Diagram
         <span class="nav-plan-badge">PRO</span>
       </a>
 
@@ -1179,6 +1192,226 @@
       </div>
 
     </section><!-- /#rccolumn-panel -->
+
+
+    <!-- ══════════════════ P-M-M INTERACTION DIAGRAM PANEL ══════════════════ -->
+    <section id="pmm-panel" class="panel pmm-panel">
+
+      <!-- Header -->
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <h2 class="panel-title">P-M-M Interaction Diagram</h2>
+          <p class="panel-subtitle">ACI 318-19 · Biaxial bending interaction surface for RC columns</p>
+        </div>
+      </div>
+
+      <div class="pmm-layout">
+
+        <!-- ── Left: inputs ──────────────────────────────────── -->
+        <div class="pmm-inputs">
+
+          <div class="pmm-group">
+            <div class="pmm-group-title">SECTION</div>
+            <div class="pmm-row">
+              <label class="pmm-label">Width b</label>
+              <div class="pmm-input-unit">
+                <input id="pmm-b" type="number" class="pmm-input" value="400" min="100" step="10"/>
+                <span class="pmm-unit">mm</span>
+              </div>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">Depth h</label>
+              <div class="pmm-input-unit">
+                <input id="pmm-h" type="number" class="pmm-input" value="500" min="100" step="10"/>
+                <span class="pmm-unit">mm</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pmm-group">
+            <div class="pmm-group-title">MATERIALS</div>
+            <div class="pmm-row">
+              <label class="pmm-label">f'c</label>
+              <div class="pmm-input-unit">
+                <input id="pmm-fc" type="number" class="pmm-input" value="28" min="17" step="1"/>
+                <span class="pmm-unit">MPa</span>
+              </div>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">fy</label>
+              <div class="pmm-input-unit">
+                <input id="pmm-fy" type="number" class="pmm-input" value="420" min="250" step="10"/>
+                <span class="pmm-unit">MPa</span>
+              </div>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">Es</label>
+              <div class="pmm-input-unit">
+                <input id="pmm-es" type="number" class="pmm-input" value="200000" min="100000" step="1000"/>
+                <span class="pmm-unit">MPa</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pmm-group">
+            <div class="pmm-group-title">REINFORCEMENT</div>
+            <div class="pmm-row">
+              <label class="pmm-label">Cover</label>
+              <div class="pmm-input-unit">
+                <input id="pmm-cover" type="number" class="pmm-input" value="40" min="20" step="5"/>
+                <span class="pmm-unit">mm</span>
+              </div>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">Bars (b-dir)</label>
+              <input id="pmm-nbars-b" type="number" class="pmm-input" value="3" min="2" step="1"
+                     title="Bars on top/bottom faces including corners"/>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">Bars (h-dir)</label>
+              <input id="pmm-nbars-h" type="number" class="pmm-input" value="1" min="0" step="1"
+                     title="Extra bars on each side face, NOT counting corners"/>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">Bar Size</label>
+              <select id="pmm-barsize" class="pmm-input pmm-select">
+                <!-- populated by pmmInit() from /api/pmm/rebar-table?units=SI -->
+              </select>
+            </div>
+            <div id="pmm-rho-info" class="pmm-rho-info"></div>
+            <!-- Section preview -->
+            <div class="pmm-section-preview">
+              <svg id="pmm-section-svg" width="100%" viewBox="0 0 200 200"
+                   xmlns="http://www.w3.org/2000/svg"></svg>
+            </div>
+          </div>
+
+          <div class="pmm-group">
+            <div class="pmm-group-title">OPTIONS</div>
+            <label class="pmm-checkbox-row">
+              <input id="pmm-phi" type="checkbox" checked/>
+              Include φ factors (ACI 318)
+            </label>
+            <div class="pmm-row">
+              <label class="pmm-label">Resolution</label>
+              <select id="pmm-res" class="pmm-input pmm-select">
+                <option value="10:120">Fast (10°)</option>
+                <option value="5:225" selected>Normal (5°)</option>
+                <option value="3:300">Fine (3°)</option>
+              </select>
+            </div>
+          </div>
+
+          <button id="btn-pmm-etabs" class="pmm-etabs-btn">
+            <svg width="14" height="14" viewBox="0 0 18 18" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9h12M9 3l6 6-6 6"/>
+            </svg>
+            Import from ETABS
+          </button>
+
+          <button id="btn-pmm-generate" class="pmm-generate-btn">
+            <svg width="14" height="14" viewBox="0 0 18 18" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <polygon points="3,2 15,9 3,16"/>
+            </svg>
+            Generate Diagram
+          </button>
+
+          <div id="pmm-status" class="pmm-status"></div>
+
+          <!-- ── Optimize section ─────────────────────────── -->
+          <div class="pmm-group pmm-optimize-group">
+            <div class="pmm-group-title">OPTIMIZE DESIGN</div>
+            <div class="pmm-row">
+              <label class="pmm-label">Target DCR</label>
+              <div class="pmm-input-unit" style="max-width:110px">
+                <input id="pmm-opt-dcr" type="number" class="pmm-input"
+                       value="90" min="10" max="100" step="5"/>
+                <span class="pmm-unit">%</span>
+              </div>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">Max ρ limit</label>
+              <div class="pmm-input-unit" style="max-width:110px">
+                <input id="pmm-opt-maxrho" type="number" class="pmm-input"
+                       value="4" min="1" max="8" step="0.5"/>
+                <span class="pmm-unit">%</span>
+              </div>
+            </div>
+            <button id="btn-pmm-optimize" class="pmm-optimize-btn" onclick="pmmOptimize()">
+              ⚡ Optimize
+            </button>
+            <div id="pmm-opt-result" class="pmm-opt-result hidden"></div>
+          </div>
+
+          <!-- Results summary -->
+          <div id="pmm-summary" class="pmm-summary hidden">
+            <div class="pmm-summary-row"><span>Ag</span><span id="pmm-s-ag"></span></div>
+            <div class="pmm-summary-row"><span>Ast</span><span id="pmm-s-ast"></span></div>
+            <div class="pmm-summary-row"><span>ρ</span><span id="pmm-s-rho"></span></div>
+            <div class="pmm-summary-row"><span>φPn,max</span><span id="pmm-s-pmax"></span></div>
+            <div class="pmm-summary-row"><span>φPn,min</span><span id="pmm-s-pmin"></span></div>
+          </div>
+        </div><!-- /.pmm-inputs -->
+
+        <!-- ── Right: charts ─────────────────────────────────── -->
+        <div class="pmm-charts">
+          <div class="pmm-tabs">
+            <button class="pmm-tab active" data-tab="3d">3D Surface</button>
+            <button class="pmm-tab" data-tab="pmx">P – Mx</button>
+            <button class="pmm-tab" data-tab="pmy">P – My</button>
+            <button class="pmm-tab" data-tab="mxmy">Mx – My</button>
+          </div>
+          <!-- 3D chart + loads panel side-by-side -->
+          <div id="pmm-3d-wrapper" class="pmm-3d-wrapper">
+            <div class="pmm-3d-outer">
+              <div id="pmm-chart-3d" class="pmm-3d-chart"></div>
+              <div class="pmm-3d-view-btns">
+                <button class="pmm-3d-vbtn active" data-view="3d"    onclick="pmmSet3DView('3d')"    title="Perspective">3D</button>
+                <button class="pmm-3d-vbtn"        data-view="top"   onclick="pmmSet3DView('top')"   title="Top — Mx·My plane">Top</button>
+                <button class="pmm-3d-vbtn"        data-view="front" onclick="pmmSet3DView('front')" title="Front — P·Mx plane">Front</button>
+                <button class="pmm-3d-vbtn"        data-view="side"  onclick="pmmSet3DView('side')"  title="Side — P·My plane">Side</button>
+              </div>
+            </div>
+            <div id="pmm-chart-loads" class="pmm-loads-panel"></div>
+          </div>
+          <div id="pmm-chart-pmx" class="pmm-chart-area hidden"></div>
+          <div id="pmm-chart-pmy" class="pmm-chart-area hidden"></div>
+          <div id="pmm-mxmy-toolbar" class="pmm-mxmy-toolbar hidden">
+            <label for="pmm-mxmy-p-input">Axial load</label>
+            <div class="pmm-p-combo">
+              <input type="text" id="pmm-mxmy-p-input" class="pmm-mxmy-p-input"
+                     list="pmm-mxmy-p-list" placeholder="e.g. −1345"
+                     oninput="pmmMxMyUpdateP(this.value)"
+                     onblur="pmmMxMyPBlur()" />
+              <datalist id="pmm-mxmy-p-list"></datalist>
+              <button class="pmm-p-combo-drop" onmousedown="pmmMxMyOpenDrop(event)" title="Show demand P values">▾</button>
+              <div class="pmm-p-combo-spin">
+                <button onmousedown="pmmMxMyStepP(event,1)"  title="Previous P">∧</button>
+                <button onmousedown="pmmMxMyStepP(event,-1)" title="Next P">∨</button>
+              </div>
+            </div>
+            <span class="pmm-mxmy-p-hint">kN &nbsp;·&nbsp; compression = negative</span>
+          </div>
+          <div id="pmm-chart-mxmy" class="pmm-chart-area hidden"></div>
+          <div id="pmm-chart-empty" class="pmm-chart-empty">
+            <svg class="pmm-empty-icon" width="56" height="56" viewBox="0 0 64 64" fill="none"
+                 stroke="currentColor" stroke-width="1.4"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <ellipse cx="32" cy="32" rx="24" ry="16"/>
+              <line x1="32" y1="16" x2="32" y2="48"/>
+              <line x1="8"  y1="32" x2="56" y2="32"/>
+              <path d="M14 22 Q32 10 50 22" stroke-width="1"/>
+              <path d="M14 42 Q32 54 50 42" stroke-width="1"/>
+            </svg>
+            <div class="pmm-empty-title">No diagram yet</div>
+            <div class="pmm-empty-sub">Fill in the inputs and click Generate Diagram</div>
+          </div>
+        </div><!-- /.pmm-charts -->
+
+      </div><!-- /.pmm-layout -->
+    </section><!-- /#pmm-panel -->
 
 
     <!-- ══════════════════ RUN FILE CLEANER PANEL ══════════════════ -->
@@ -2237,6 +2470,6 @@
 </div>
 
 
-<script src="/app/app.js?v=58"></script>
+<script src="/app/app.js?v=105"></script>
 </body>
 </html>

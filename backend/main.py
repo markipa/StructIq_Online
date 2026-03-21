@@ -5,9 +5,22 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Dict, List, Optional
 from datetime import datetime
-from etabs_api import actions
+# Load actions.py from the filesystem so updates take effect without a full EXE rebuild.
+# In a frozen PyInstaller build the frozen module cache would otherwise shadow the file.
+import importlib.util as _ilu
+import sys as _sys, os as _os
+_here = getattr(_sys, '_MEIPASS', _os.path.dirname(_os.path.abspath(__file__)))
+_ap   = _os.path.join(_here, 'etabs_api', 'actions.py')
+if _os.path.isfile(_ap):
+    _spec = _ilu.spec_from_file_location('etabs_api.actions', _ap)
+    actions = _ilu.module_from_spec(_spec)
+    _sys.modules['etabs_api.actions'] = actions
+    _spec.loader.exec_module(actions)
+else:
+    from etabs_api import actions  # fallback for non-frozen dev environment
 import database
 import config
+import math
 import os
 
 try:
@@ -15,6 +28,39 @@ try:
     _HAS_REQUESTS = True
 except ImportError:
     _HAS_REQUESTS = False
+
+try:
+    from pmm_engine import (PMMSection, compute_pmm, check_demands,
+                             rect_coords, perimeter_bars, rect_bars_grid, REBAR_TABLE)
+    _HAS_PMM = True
+except ImportError:
+    _HAS_PMM = False
+
+# Cache for last computed PMM surface (used by /api/pmm/check)
+_pmm_cache: dict = {'alpha_data': None, 'Pmax': None, 'Pmin': None, 'si': True}
+
+# Unit conversion constants (engine works in kips / kip·in)
+_KN_TO_KIPS  = 1.0 / 4.44822
+_KNM_TO_KININ = 1.0 / 0.112985
+
+# SI rebar table: nominal diameter → area in mm²
+REBAR_TABLE_SI = {
+    "Ø8":  50.3,  "Ø10":  78.5,  "Ø12": 113.1,
+    "Ø16": 201.1, "Ø20": 314.2,  "Ø25": 490.9,
+    "Ø28": 615.8, "Ø32": 804.2,  "Ø36": 1017.9,
+    "Ø40": 1256.6,
+}
+
+# Unit conversion constants (SI → US customary, for PMM engine)
+_MM_TO_IN   = 1.0 / 25.4         # mm  → in
+_MPA_TO_KSI = 1.0 / 6.89476      # MPa → ksi
+_KN_TO_KIPS = 1.0 / 4.44822      # kN  → kips
+_KNM_TO_KIN = 1.0 / 0.112985     # kN·m → k·in  (8.8507 k·in = 1 kN·m)
+_IN_TO_MM   = 25.4
+_KSI_TO_MPA = 6.89476
+_KIPS_TO_KN = 4.44822
+_KIN_TO_KNM = 0.112985
+_IN2_TO_MM2 = 645.16
 
 app = FastAPI(title="StructIQ API")
 
@@ -211,10 +257,14 @@ def register(body: RegisterRequest):
     if cloud and "token" in cloud:
         database.update_cloud_token(user["id"], cloud["token"])
         cloud_plan = (cloud.get("user") or {}).get("plan")
-        if cloud_plan:
+        _is_admin = body.email.lower() in [e.lower() for e in config.ADMIN_EMAILS]
+        if cloud_plan and not _is_admin:
             database.update_last_cloud_sync(user["id"], cloud_plan)
 
-    return {"token": token, "user": database.get_user_by_id(user["id"])}
+    u = dict(database.get_user_by_id(user["id"]))
+    if u.get("email", "").lower() in [e.lower() for e in config.ADMIN_EMAILS]:
+        u["plan"] = "enterprise"
+    return {"token": token, "user": u}
 
 
 @app.post("/api/auth/login")
@@ -233,7 +283,8 @@ def login(body: LoginRequest):
     if cloud and "token" in cloud:
         database.update_cloud_token(row["id"], cloud["token"])
         cloud_plan = (cloud.get("user") or {}).get("plan")
-        if cloud_plan:
+        _is_admin = body.email.lower() in [e.lower() for e in config.ADMIN_EMAILS]
+        if cloud_plan and not _is_admin:
             database.update_last_cloud_sync(row["id"], cloud_plan)
 
     # Register session globally on Railway — enforces single-session (pro)
@@ -259,7 +310,9 @@ def login(body: LoginRequest):
         except Exception:
             pass  # Railway unreachable — allow offline login gracefully
 
-    user = database.get_user_by_id(row["id"])
+    user = dict(database.get_user_by_id(row["id"]))
+    if user.get("email", "").lower() in [e.lower() for e in config.ADMIN_EMAILS]:
+        user["plan"] = "enterprise"
     return {"token": token, "user": user}
 
 
@@ -298,10 +351,10 @@ def cloud_sync(request: Request, current_user: dict = Depends(get_current_user))
     synced = False
     source = "local"
 
-    # Admin accounts are already set to enterprise by get_current_user — never
-    # let Railway override that (Railway may have them as 'free').
-    if plan == "enterprise" and current_user.get("email", "").lower() in \
-            [e.lower() for e in config.ADMIN_EMAILS]:
+    # Admin accounts always get enterprise — never let Railway override that.
+    _email = current_user.get("email", "").lower()
+    _is_admin = _email in [e.lower() for e in config.ADMIN_EMAILS]
+    if _is_admin:
         return {"plan": "enterprise", "source": "local",
                 "synced": False, "session_valid": True}
 
@@ -742,6 +795,8 @@ def rc_column_write_sections(
     return res
 
 
+
+
 @app.get("/api/rc-column/debug/{section_name}")
 def rc_column_debug_raw(
     section_name: str,
@@ -952,3 +1007,550 @@ def browse_folder(current_user: dict = Depends(get_current_user)):
     if not val:
         return {"path": None, "cancelled": True}
     return {"path": val, "cancelled": False}
+
+# ============================================================
+#  P-M-M INTERACTION DIAGRAM  (ACI 318-19)
+# ============================================================
+
+class PMMRequest(BaseModel):
+    # Section geometry (rectangular)
+    b: float                           # width  — mm (SI) or in (US)
+    h: float                           # depth  — mm (SI) or in (US)
+    # Materials
+    fc: float                          # f'c — MPa (SI) or ksi (US)
+    fy: float                          # fy  — MPa (SI) or ksi (US)
+    Es: float = 200000.0               # Es  — MPa (SI) or ksi (US)
+    # Reinforcement
+    cover:    float                    # clear cover to bar centre — mm or in
+    nbars_b:  int   = 3               # bars on bottom/top face incl. corners (≥2)
+    nbars_h:  int   = 1               # bars on each side face excl. corners (≥0)
+    bar_size: str = "Ø20"             # rebar designation e.g. "Ø20" or "#8"
+    # Analysis options
+    include_phi:  bool  = True
+    alpha_steps:  float = 5.0
+    num_points:   int   = 225
+    # Unit system
+    units: str = "SI"                  # "SI" or "US"
+    # Optional demand point (in the same unit system as above)
+    demand_P:  Optional[float] = None
+    demand_Mx: Optional[float] = None
+    demand_My: Optional[float] = None
+
+
+@app.post("/api/pmm/calculate")
+def pmm_calculate(body: PMMRequest,
+                  current_user: dict = Depends(get_current_user)):
+    if not _HAS_PMM:
+        raise HTTPException(status_code=503,
+                            detail="PMM engine not available (shapely missing).")
+
+    si = body.units.upper() == "SI"
+
+    # Resolve bar area
+    if si:
+        bar_area_mm2 = REBAR_TABLE_SI.get(body.bar_size)
+        if bar_area_mm2 is None:
+            raise HTTPException(status_code=422,
+                                detail=f"Unknown bar size '{body.bar_size}'. "
+                                       f"Valid SI sizes: {list(REBAR_TABLE_SI.keys())}")
+        # Convert inputs to US customary for the engine (works in kips + inches)
+        b_in      = body.b      * _MM_TO_IN
+        h_in      = body.h      * _MM_TO_IN
+        fc_ksi    = body.fc     * _MPA_TO_KSI
+        fy_ksi    = body.fy     * _MPA_TO_KSI
+        Es_ksi    = body.Es     * _MPA_TO_KSI
+        cover_in  = body.cover  * _MM_TO_IN
+        bar_area  = bar_area_mm2 * (_MM_TO_IN ** 2)   # mm² → in²
+    else:
+        bar_area = REBAR_TABLE.get(body.bar_size)
+        if bar_area is None:
+            raise HTTPException(status_code=422,
+                                detail=f"Unknown bar size '{body.bar_size}'. "
+                                       f"Valid US sizes: {list(REBAR_TABLE.keys())}")
+        b_in = body.b; h_in = body.h
+        fc_ksi = body.fc; fy_ksi = body.fy; Es_ksi = body.Es
+        cover_in = body.cover; bar_area = bar_area
+
+    if b_in <= 0 or h_in <= 0:
+        raise HTTPException(status_code=422, detail="b and h must be positive.")
+    if fc_ksi <= 0 or fy_ksi <= 0:
+        raise HTTPException(status_code=422, detail="Material strengths must be positive.")
+    if cover_in < 1.5 / 25.4:
+        raise HTTPException(status_code=422, detail="Cover too small.")
+    nbars_b = max(2, body.nbars_b)
+    nbars_h = max(0, body.nbars_h)
+    if 2 * nbars_b + 2 * nbars_h < 4:
+        raise HTTPException(status_code=422, detail="Minimum 4 bars required.")
+
+    corners  = rect_coords(b_in, h_in)
+    areas, positions = rect_bars_grid(b_in, h_in, cover_in, nbars_b, nbars_h, bar_area)
+
+    sec = PMMSection(
+        corner_coords = corners,
+        fc            = fc_ksi,
+        fy            = fy_ksi,
+        Es            = Es_ksi,
+        alpha_steps   = body.alpha_steps,
+        num_points    = body.num_points,
+        include_phi   = body.include_phi,
+        bar_areas     = areas,
+        bar_positions = positions,
+    )
+
+    try:
+        result = compute_pmm(sec)
+    except Exception as exc:
+        raise HTTPException(status_code=500,
+                            detail=f"PMM computation failed: {exc}")
+
+    # Convert output back to SI if needed
+    if si:
+        def _cvt_surface(r):
+            r['surface']['P']  = [round(v * _KIPS_TO_KN,  2) for v in r['surface']['P']]
+            r['surface']['Mx'] = [round(v * _KIN_TO_KNM,  3) for v in r['surface']['Mx']]
+            r['surface']['My'] = [round(v * _KIN_TO_KNM,  3) for v in r['surface']['My']]
+            # Convert ALL alpha_data curves (curves_2d shares the same dict references,
+            # so they are converted automatically here — no separate loop needed)
+            for adeg, curve in r.get('alpha_data', {}).items():
+                curve['P']  = [round(v * _KIPS_TO_KN,  2) for v in curve['P']]
+                curve['Mx'] = [round(v * _KIN_TO_KNM,  3) for v in curve['Mx']]
+                curve['My'] = [round(v * _KIN_TO_KNM,  3) for v in curve['My']]
+            r['Pmax']     = round(r['Pmax']     * _KIPS_TO_KN, 2)
+            r['Pmin']     = round(r['Pmin']     * _KIPS_TO_KN, 2)
+            r['Ag']       = round(r['Ag']       * _IN2_TO_MM2, 0)
+            r['Ast']      = round(r['Ast']      * _IN2_TO_MM2, 1)
+            r['centroid'] = [round(v * _IN_TO_MM, 1) for v in r['centroid']]
+            return r
+        result = _cvt_surface(result)
+
+    # Cache results AFTER conversion so units are consistent (SI when si=True)
+    _pmm_cache['alpha_data'] = result.get('alpha_data', {})
+    _pmm_cache['Pmax']       = result.get('Pmax', 0)
+    _pmm_cache['Pmin']       = result.get('Pmin', 0)
+    _pmm_cache['si']         = si
+
+    if si:
+        result['units'] = 'SI'
+        # Convert demand point
+        if body.demand_P is not None:
+            result['demand'] = {
+                'P':  body.demand_P,
+                'Mx': body.demand_Mx or 0.0,
+                'My': body.demand_My or 0.0,
+            }
+        else:
+            result['demand'] = None
+    else:
+        result['units'] = 'US'
+        result['demand'] = None
+        if body.demand_P is not None:
+            result['demand'] = {
+                'P':  body.demand_P,
+                'Mx': body.demand_Mx or 0.0,
+                'My': body.demand_My or 0.0,
+            }
+
+    return result
+
+
+class PMMCheckRequest(BaseModel):
+    demands: list  # [{label, P (kN), Mx (kN·m), My (kN·m)}]
+
+@app.post("/api/pmm/check")
+def pmm_check(body: PMMCheckRequest,
+              current_user: dict = Depends(get_current_user)):
+    if not _HAS_PMM:
+        raise HTTPException(status_code=503, detail="PMM engine not available.")
+    if _pmm_cache['alpha_data'] is None:
+        raise HTTPException(status_code=400,
+                            detail="No PMM surface computed yet. Run Calculate first.")
+    ad   = _pmm_cache['alpha_data']
+    Pmax = _pmm_cache['Pmax']
+    Pmin = _pmm_cache['Pmin']
+
+    # alpha_data is already in the same units as the frontend (SI when si=True,
+    # engine units when si=False). No conversion needed — just pass demands through.
+    demands = [{'label': d.get('label', ''), 'P': float(d.get('P', 0)),
+                'Mx': float(d.get('Mx', 0)), 'My': float(d.get('My', 0))}
+               for d in body.demands]
+
+    raw = check_demands(ad, Pmax, Pmin, demands)
+    return {'results': raw}
+
+
+class PMMOptimizeRequest(BaseModel):
+    # Section geometry (fixed — no section size changes)
+    b_mm:     float
+    h_mm:     float
+    fc_mpa:   float
+    fy_mpa:   float
+    Es_mpa:   float = 200000.0
+    cover_mm: float          # distance from face to bar centre (mm)
+    include_phi: bool = True
+    # Bar diameter is FIXED — optimizer only adjusts bar count / arrangement
+    bar_size:    str   = "Ø20"
+    target_dcr:  float = 0.90
+    max_rho_pct: float = 4.0   # user-defined ρ upper limit (%)
+    demands: list = []
+
+
+# ---------------------------------------------------------------------------
+# Optimizer helpers
+# ---------------------------------------------------------------------------
+
+def _db_mm(area_mm2: float) -> float:
+    """Nominal bar diameter (mm) from cross-sectional area."""
+    return math.sqrt(4.0 * area_mm2 / math.pi)
+
+
+def _check_spacing_aci(b_mm: float, h_mm: float, cover_mm: float,
+                       nb: int, nh: int, db: float):
+    """
+    ACI 318-19 column longitudinal bar spacing checks.
+
+    §25.8.1   min clear spacing = max(1.5·db, 40 mm)  — ALL adjacent bar pairs
+    §25.7.2.3 max clear spacing = 150 mm               — ALL faces (incl. corner-only)
+
+    cover_mm = face → bar CENTRE distance.
+    Returns (ok, min_clear_mm, max_clear_mm)
+      min_clear_mm : smallest clear spacing across all bar pairs (governs §25.8.1)
+      max_clear_mm : largest clear spacing across all faces      (governs §25.7.2.3)
+    """
+    S_MIN = max(1.5 * db, 40.0)   # §25.8.1
+    S_MAX = 150.0                  # §25.7.2.3 — applies to ALL faces
+
+    all_sc: List[float] = []
+
+    # ── b-face (both corner-only nb=2 and with intermediates nb>2) ───────────
+    if nb >= 2:
+        cc_b = (b_mm - 2.0 * cover_mm) / (nb - 1)
+        sc_b = cc_b - db
+        if cc_b <= db or sc_b < S_MIN:           # bars overlap or min violated
+            return False, sc_b, sc_b
+        if sc_b > S_MAX:                         # max violated on ANY b-face spacing
+            return False, sc_b, sc_b
+        all_sc.append(sc_b)
+
+    # ── h-face ──────────────────────────────────────────────────────────────
+    if nh >= 1:                                  # intermediate bars on h-face
+        cc_h = (h_mm - 2.0 * cover_mm) / (nh + 1)
+        sc_h = cc_h - db
+        if cc_h <= db or sc_h < S_MIN:
+            return False, sc_h, sc_h
+        if sc_h > S_MAX:
+            return False, sc_h, sc_h
+        all_sc.append(sc_h)
+    else:                                        # corner bars only on h-face
+        sc_h = (h_mm - 2.0 * cover_mm) - db     # corner-to-corner clear
+        if sc_h <= 0:
+            return False, sc_h, sc_h
+        if sc_h > S_MAX:                         # max violated on corner-only h-face
+            return False, sc_h, sc_h
+        all_sc.append(sc_h)
+
+    min_c = min(all_sc) if all_sc else 0.0
+    max_c = max(all_sc) if all_sc else 0.0
+    return True, round(min_c, 1), round(max_c, 1)
+
+
+def _run_pmm_opt(b_in, h_in, fc_ksi, fy_ksi, Es_ksi, cover_in,
+                 nb, nh, bar_area_in2, include_phi, demands_si):
+    """
+    Run PMM for optimisation with same accuracy as the 'Fast (10°)' preset
+    (alpha_steps=10, num_points=120).  Coarser than this risks false DCR
+    readings near the surface boundary.
+    Returns max DCR (float) or None on error.
+    """
+    try:
+        corners = rect_coords(b_in, h_in)
+        areas, positions = rect_bars_grid(b_in, h_in, cover_in, nb, nh, bar_area_in2)
+        sec = PMMSection(
+            corner_coords=corners, fc=fc_ksi, fy=fy_ksi, Es=Es_ksi,
+            alpha_steps=10.0, num_points=120,   # matches UI "Fast (10°)" preset
+            include_phi=include_phi,
+            bar_areas=areas, bar_positions=positions,
+        )
+        result = compute_pmm(sec)
+    except Exception:
+        return None
+    for curve in result.get('alpha_data', {}).values():
+        curve['P']  = [v * _KIPS_TO_KN  for v in curve['P']]
+        curve['Mx'] = [v * _KIN_TO_KNM  for v in curve['Mx']]
+        curve['My'] = [v * _KIN_TO_KNM  for v in curve['My']]
+    Pmax = result['Pmax'] * _KIPS_TO_KN
+    Pmin = result['Pmin'] * _KIPS_TO_KN
+    checks = check_demands(result['alpha_data'], Pmax, Pmin, demands_si)
+    return max((c['DCR'] for c in checks), default=0.0)
+
+
+@app.post("/api/pmm/optimize")
+def pmm_optimize(body: PMMOptimizeRequest,
+                 current_user: dict = Depends(get_current_user)):
+    """
+    Optimise bar count/arrangement for a FIXED bar diameter and FIXED section size.
+
+    Strategy:
+      • Sort all ACI-spacing-valid (nb, nh) arrangements by ascending Ast (ρ_min → ρ_max).
+      • Compute DCR for each, starting from the lightest arrangement.
+      • Return the arrangement whose DCR is closest to target from below (DCR ≤ target).
+        – If even the maximum-steel arrangement gives DCR > target, return that maximum
+          arrangement with a warning flag so the caller knows the target was not met.
+      • Never modifies the section size or bar diameter.
+    """
+    if not _HAS_PMM:
+        raise HTTPException(status_code=503, detail="PMM engine not available.")
+    if not body.demands:
+        raise HTTPException(status_code=422, detail="At least one demand required.")
+
+    target  = float(body.target_dcr)
+    RHO_MIN = 0.01
+    RHO_MAX = min(float(body.max_rho_pct) / 100.0, 0.08)   # cap at ACI max 8 %
+
+    BAR_AREA_MAP = {
+        "Ø8":  50.3,  "Ø10":  78.5,  "Ø12": 113.1,
+        "Ø16": 201.1, "Ø20": 314.2,  "Ø25": 490.9,
+        "Ø28": 615.8, "Ø32": 804.2,  "Ø36": 1017.9, "Ø40": 1256.6,
+    }
+    bar_name = body.bar_size
+    area_mm2 = BAR_AREA_MAP.get(bar_name)
+    if area_mm2 is None:
+        raise HTTPException(status_code=422, detail=f"Unknown bar size '{bar_name}'.")
+
+    db           = _db_mm(area_mm2)
+    bar_area_in2 = area_mm2 * (_MM_TO_IN ** 2)
+    s_min_req    = round(max(1.5 * db, 40.0), 1)   # ACI §25.8.1
+
+    b_mm     = float(body.b_mm)
+    h_mm     = float(body.h_mm)
+    Ag_mm2   = b_mm * h_mm
+    b_in     = b_mm * _MM_TO_IN
+    h_in     = h_mm * _MM_TO_IN
+    fc_ksi   = body.fc_mpa  * _MPA_TO_KSI
+    fy_ksi   = body.fy_mpa  * _MPA_TO_KSI
+    Es_ksi   = body.Es_mpa  * _MPA_TO_KSI
+    cover_in = body.cover_mm * _MM_TO_IN
+
+    demands = [{'label': d.get('label', ''), 'P': float(d.get('P', 0)),
+                'Mx': float(d.get('Mx', 0)), 'My': float(d.get('My', 0))}
+               for d in body.demands]
+
+    # ── Build candidate arrangements ────────────────────────────────────────
+    # nb = bars per b-face (incl. corners): 2 … 6
+    # nh = intermediate bars per h-face:    0 … 4
+    candidates: List[tuple] = []
+    for nb in range(2, 7):
+        for nh in range(0, 5):
+            n_total = 2 * nb + 2 * nh
+            ast = n_total * area_mm2
+            rho = ast / Ag_mm2
+            if not (RHO_MIN <= rho <= RHO_MAX):
+                continue
+            ok, min_c, max_c = _check_spacing_aci(
+                b_mm, h_mm, body.cover_mm, nb, nh, db)
+            if not ok:
+                continue
+            candidates.append((ast, rho, nb, nh, n_total, min_c, max_c))
+
+    if not candidates:
+        raise HTTPException(
+            status_code=400,
+            detail="No feasible arrangement found within the ρ and spacing limits. "
+                   "Try a different bar size or adjust the ρ limit.")
+
+    candidates.sort(key=lambda x: x[0])   # ascending Ast (ρ_min → ρ_max)
+
+    # ── Evaluate each candidate, stop as soon as we find the lightest valid ─
+    best_valid    = None   # lightest arrangement with DCR ≤ target
+    best_valid_ast = None
+    heaviest      = None   # fallback: heaviest arrangement (max capacity)
+
+    for ast, rho, nb, nh, n_total, min_c, max_c in candidates:
+        # Once we have a valid design, only keep checking arrangements that are
+        # within 8 % more steel (catches equivalent arrangements at same Ast level).
+        if best_valid is not None and ast > best_valid_ast * 1.08:
+            break
+
+        max_dcr = _run_pmm_opt(b_in, h_in, fc_ksi, fy_ksi, Es_ksi,
+                               cover_in, nb, nh, bar_area_in2,
+                               body.include_phi, demands)
+        if max_dcr is None:
+            continue
+
+        entry = {
+            'ast': ast, 'rho': rho,
+            'nbars_b': nb, 'nbars_h': nh, 'n_total': n_total,
+            'bar_size': bar_name, 'area_mm2': area_mm2,
+            'min_clear_mm': min_c, 'max_clear_mm': max_c,
+            'max_dcr': max_dcr,
+        }
+        # Track heaviest evaluated (most capacity) as fallback
+        if heaviest is None or ast > heaviest['ast']:
+            heaviest = entry
+
+        if max_dcr <= target:
+            # Keep the arrangement closest to target (highest DCR ≤ target)
+            if best_valid is None or max_dcr > best_valid['max_dcr']:
+                best_valid = entry
+                best_valid_ast = ast
+
+    # If target not achieved, use the heaviest arrangement (best capacity available)
+    target_met = best_valid is not None
+    best = best_valid if target_met else heaviest
+
+    if best is None:
+        raise HTTPException(status_code=400,
+                            detail="Optimisation failed — no valid PMM result.")
+
+    nb     = best['nbars_b']
+    nh     = best['nbars_h']
+    ntotal = best['n_total']
+    arrangement = (f"{nb} bars/face · {ntotal} total" if nh == 0
+                   else f"{nb}+{nh} bars/face · {ntotal} total")
+
+    return {
+        'b_mm':               round(b_mm),
+        'h_mm':               round(h_mm),
+        'nbars_b':            nb,
+        'nbars_h':            nh,
+        'n_total':            ntotal,
+        'arrangement':        arrangement,
+        'bar_size':           best['bar_size'],
+        'rho_pct':            round(best['rho'] * 100, 2),
+        'achieved_dcr':       round(best['max_dcr'] * 100, 1),
+        'target_met':         target_met,
+        'min_clear_mm':  best['min_clear_mm'],
+        'max_clear_mm':  best['max_clear_mm'],
+        'min_clear_req': s_min_req,
+        'max_clear_req': 150.0,
+    }
+
+
+@app.get("/api/pmm/rebar-table")
+def pmm_rebar_table(units: str = "SI",
+                    current_user: dict = Depends(get_current_user)):
+    if not _HAS_PMM:
+        raise HTTPException(status_code=503, detail="PMM engine not available.")
+    return REBAR_TABLE_SI if units.upper() == "SI" else REBAR_TABLE
+
+
+def _get_pmm_column_sections_fallback() -> dict:
+    """Build PMM-ready ETABS column sections if actions helper is unavailable."""
+    try:
+        SapModel = actions.get_active_etabs()
+    except Exception:
+        SapModel = None
+    if not SapModel:
+        return {"error": "ETABS is not currently running."}
+
+    try:
+        try:
+            unit_code = SapModel.GetDatabaseUnits()
+        except Exception:
+            try:
+                unit_code = SapModel.GetPresentUnits()
+            except Exception:
+                unit_code = 6
+
+        base = actions.get_rc_column_sections()
+        if "error" in base:
+            return base
+        sections = base.get("sections", [])
+
+        mat_cache = {}
+
+        def _stress_to_mpa_local(v: float) -> float:
+            if hasattr(actions, "_stress_to_mpa"):
+                return float(actions._stress_to_mpa(v, unit_code))
+            if unit_code in (1, 2):
+                return v * 6.89476e-3
+            if unit_code in (3, 4):
+                return v * 6.89476
+            if unit_code in (5, 9):
+                return v
+            if unit_code == 6:
+                return v * 1e-3
+            if unit_code == 10:
+                return v * 1e-6
+            if unit_code == 7:
+                return v * 9.80665
+            if unit_code == 8:
+                return v * 9.80665e-3
+            return v
+
+        def _lookup_mat(mat_name: str):
+            if mat_name in mat_cache:
+                return mat_cache[mat_name]
+            result = {"fc_mpa": None, "fy_mpa": None, "Es_mpa": None}
+            try:
+                cr = SapModel.PropMaterial.GetOConcrete(mat_name)
+                if cr and int(cr[-1]) == 0:
+                    result["fc_mpa"] = round(_stress_to_mpa_local(float(cr[0])), 1)
+            except Exception:
+                pass
+            try:
+                rr = SapModel.PropMaterial.GetRebar(mat_name)
+                if rr and int(rr[-1]) == 0:
+                    result["fy_mpa"] = round(_stress_to_mpa_local(float(rr[0])), 1)
+                    result["Es_mpa"] = round(_stress_to_mpa_local(float(rr[2])), 0)
+            except Exception:
+                pass
+            mat_cache[mat_name] = result
+            return result
+
+        enriched = []
+        for sec in sections:
+            entry = dict(sec)
+            conc_props = _lookup_mat(sec.get("material", ""))
+            entry["fc_mpa"] = conc_props["fc_mpa"]
+            rebar_props = _lookup_mat(sec.get("fy_main", ""))
+            entry["fy_mpa"] = rebar_props["fy_mpa"]
+            entry["Es_mpa"] = rebar_props["Es_mpa"]
+            enriched.append(entry)
+
+        return {"status": "success", "sections": enriched}
+    except Exception as e:
+        return {"error": f"Failed to get PMM column sections: {str(e)}"}
+
+
+@app.get("/api/pmm/etabs-sections")
+def pmm_etabs_sections(current_user: dict = Depends(get_current_user)):
+    """Return all RC column sections from the active ETABS model for PMM use."""
+    helper = getattr(actions, "get_pmm_column_sections", None)
+    result = helper() if callable(helper) else _get_pmm_column_sections_fallback()
+    if "error" in result:
+        raise HTTPException(status_code=503, detail=result["error"])
+    return result
+
+
+@app.get("/api/pmm/etabs-combos")
+def pmm_etabs_combos(current_user: dict = Depends(get_current_user)):
+    """Return all load combinations and load cases from the active ETABS model."""
+    helper = getattr(actions, "get_etabs_combos", None)
+    if not callable(helper):
+        raise HTTPException(status_code=503, detail="get_etabs_combos not available.")
+    result = helper()
+    if "error" in result:
+        raise HTTPException(status_code=503, detail=result["error"])
+    return result
+
+
+class ETABSImportForcesRequest(BaseModel):
+    combo_names: list
+    load_type: str = "combo"   # "combo" or "case"
+
+
+@app.post("/api/pmm/etabs-import-forces")
+def pmm_etabs_import_forces(body: ETABSImportForcesRequest,
+                             current_user: dict = Depends(get_current_user)):
+    """
+    Get frame forces for currently selected columns in ETABS,
+    for the chosen load combinations / cases.
+    Returns {results: [{label, P_kN, M3_kNm, M2_kNm}, ...]}
+    """
+    helper = getattr(actions, "get_etabs_frame_forces", None)
+    if not callable(helper):
+        raise HTTPException(status_code=503, detail="get_etabs_frame_forces not available.")
+    result = helper(body.combo_names, body.load_type)
+    if "error" in result:
+        raise HTTPException(status_code=503, detail=result["error"])
+    return result

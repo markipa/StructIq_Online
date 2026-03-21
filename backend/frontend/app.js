@@ -129,7 +129,11 @@ async function syncCloudPlan() {
     const res = await authFetch('/api/cloud/sync');
     if (!res.ok) return;
     const data = await res.json();
-    if (data.plan) updatePlanBadge(data.plan);
+    // Only upgrade the plan — never let a cloud "free" response downgrade a
+    // locally-granted enterprise/pro plan (e.g. admin accounts).
+    if (data.plan && (PLAN_LEVEL[data.plan] || 0) >= (PLAN_LEVEL[currentUserPlan] || 0)) {
+      updatePlanBadge(data.plan);
+    }
     // Show a subtle indicator if synced from cloud
     if (data.synced && data.source === 'cloud') {
       const planEl = document.getElementById('user-pill-plan');
@@ -157,6 +161,7 @@ function bootApp() {
   // Kick off background tasks that need auth
   checkStatus();
   populateReactionCombos();
+  pmmInitRebarTable();  // fetch SI rebar table now that token is available
 }
 
 // ── State ──
@@ -3471,9 +3476,6 @@ function rccConfirmImport() {
 
 function rccOpenAddCol() {
   rccPopulateGenDropdowns();
-  ['rcc-gen-depth','rcc-gen-width'].forEach(id => {
-    document.getElementById(id).addEventListener('input', rccUpdateGenName);
-  });
   document.getElementById('rcc-addcol-modal').classList.remove('hidden');
 }
 
@@ -3724,9 +3726,9 @@ function rccCreateDrawing() {
     const oy   = 40 + padY + row * (cellH + padY);
 
     const maxDim = Math.max(s.depth, s.width, 1);
-    const scale  = Math.min((cellW - 60) / maxDim, (cellH - 80) / maxDim);
-    const cW     = s.depth * scale;
-    const cH     = s.width * scale;
+    const scale  = Math.min((cellW - 60) / s.width, (cellH - 80) / s.depth, (cellW - 60) / maxDim);
+    const cW     = s.width * scale;
+    const cH     = s.depth * scale;
     const cx     = ox + cellW / 2 - cW / 2;
     const cy     = oy + 20;
     const cvmm   = s.cover * scale;
@@ -3895,6 +3897,10 @@ function initRcColumn() {
     ?.addEventListener('input', function() {
       this.dataset.userEdited = this.value ? '1' : '';
     });
+  document.getElementById('rcc-gen-depth')
+    ?.addEventListener('input', rccUpdateGenName);
+  document.getElementById('rcc-gen-width')
+    ?.addEventListener('input', rccUpdateGenName);
 
   // View Sections modal
   document.getElementById('rcc-view-close')
@@ -4103,6 +4109,1822 @@ function cleanerShowResults(count, deleted, errors = [], totalBytes = 0) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────
+//  P-M-M INTERACTION DIAGRAM MODULE
+// ─────────────────────────────────────────────────────────────────
+
+let _pmmResult  = null;   // last computed result from backend
+let _pmmPayload = null;   // last request payload (for re-rendering)
+let _pmmLoads   = [];     // [{id, label, P, Mx, My, ...checkResult}]
+let _pmmLoadId  = 0;      // auto-increment id
+let _pmmLoadsInited = false;
+let _pmmSortCol = null;   // 'label'|'P'|'Mx'|'My'|'DCR'
+let _pmmSortDir = 1;      // 1=asc, -1=desc
+
+function pmmInitRebarTable() {
+  authFetch('/api/pmm/rebar-table?units=SI')
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (!data) return;
+      const sel = document.getElementById('pmm-barsize');
+      if (!sel) return;
+      sel.innerHTML = '';
+      Object.entries(data).forEach(([name, area]) => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = `${name}  (${area} mm²)`;
+        if (name === 'Ø20') opt.selected = true;
+        sel.appendChild(opt);
+      });
+      pmmUpdateRhoInfo();
+    })
+    .catch(() => {});
+}
+
+function pmmInit() {
+  pmmInitRebarTable();
+
+  // Wire tab buttons
+  document.querySelectorAll('.pmm-tab').forEach(btn => {
+    btn.addEventListener('click', () => pmmShowTab(btn.dataset.tab));
+  });
+
+  // Wire Generate button
+  document.getElementById('btn-pmm-generate')
+    ?.addEventListener('click', pmmGenerate);
+
+  // Wire Import from ETABS button
+  document.getElementById('btn-pmm-etabs')
+    ?.addEventListener('click', pmmImportETABS);
+
+  // Live rho preview + section drawing on input change
+  ['pmm-b','pmm-h','pmm-cover','pmm-nbars-b','pmm-nbars-h','pmm-barsize'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', () => {
+      pmmUpdateRhoInfo();
+      pmmDrawSection();
+    });
+  });
+  pmmUpdateRhoInfo();
+  pmmDrawSection();
+
+  // Always initialise the loads panel immediately (not tied to 3D tab click)
+  pmmLoadsInit();
+}
+
+function pmmUpdateRhoInfo() {
+  const b      = parseFloat(document.getElementById('pmm-b')?.value)        || 0;
+  const h      = parseFloat(document.getElementById('pmm-h')?.value)        || 0;
+  const nbarsB = parseInt(document.getElementById('pmm-nbars-b')?.value)    || 0;
+  const nbarsH = parseInt(document.getElementById('pmm-nbars-h')?.value)    || 0;
+  const n      = 2 * nbarsB + 2 * nbarsH;  // total bars
+  const barSel = document.getElementById('pmm-barsize');
+  const areaText = barSel?.selectedOptions[0]?.textContent || '';
+  const areaMatch = areaText.match(/\(([0-9.]+)\s*m/);
+  const ab    = areaMatch ? parseFloat(areaMatch[1]) : 0;
+  const info  = document.getElementById('pmm-rho-info');
+  if (!info) return;
+
+  if (b > 0 && h > 0 && n > 0 && ab > 0) {
+    const Ag  = b * h;
+    const Ast = n * ab;
+    const rho = (Ast / Ag * 100).toFixed(2);
+    const ok  = Ast / Ag >= 0.01 && Ast / Ag <= 0.08;
+    info.textContent = `${n} bars · ρ = ${rho}%  (ACI 318: 1–8%)`;
+    info.className   = 'pmm-rho-info' + (ok ? '' : ' pmm-rho-warn');
+  } else {
+    info.textContent = '';
+  }
+}
+
+async function pmmGenerate() {
+  const btn = document.getElementById('btn-pmm-generate');
+  const b     = parseFloat(document.getElementById('pmm-b').value);
+  const h     = parseFloat(document.getElementById('pmm-h').value);
+  const fc    = parseFloat(document.getElementById('pmm-fc').value);
+  const fy    = parseFloat(document.getElementById('pmm-fy').value);
+  const es    = parseFloat(document.getElementById('pmm-es').value);
+  const cover  = parseFloat(document.getElementById('pmm-cover').value);
+  const nbarsB = parseInt(document.getElementById('pmm-nbars-b').value);
+  const nbarsH = parseInt(document.getElementById('pmm-nbars-h').value) || 0;
+  const barSel  = document.getElementById('pmm-barsize');
+  const barSize = barSel?.value || 'Ø20';
+  const phi   = document.getElementById('pmm-phi')?.checked ?? true;
+  const resSel = document.getElementById('pmm-res');
+  const [alphaSteps, numPoints] = (resSel?.value || '5:225').split(':').map(Number);
+
+  if (!b || !h || !fc || !fy || !es || !cover || !nbarsB) {
+    pmmSetStatus('Please fill all required fields.', 'error'); return;
+  }
+  if (cover >= Math.min(b, h) / 2) {
+    pmmSetStatus('Cover is too large relative to section size.', 'error'); return;
+  }
+
+  btn.disabled   = true;
+  btn.textContent = 'Computing…';
+  pmmSetStatus('', '');
+
+  const payload = {
+    b, h, fc, fy, es,
+    cover, nbars_b: nbarsB, nbars_h: nbarsH, bar_size: barSize,
+    include_phi: phi,
+    alpha_steps: alphaSteps,
+    num_points:  numPoints,
+    units: 'SI',
+    demand_P:   parseFloat(document.getElementById('pmm-dp')?.value)  || null,
+    demand_Mx:  parseFloat(document.getElementById('pmm-dmx')?.value) || null,
+    demand_My:  parseFloat(document.getElementById('pmm-dmy')?.value) || null,
+  };
+
+  try {
+    const res2 = await authFetch('/api/pmm/calculate', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+    const data = await res2.json();
+    if (!res2.ok) throw new Error(data.detail || 'Calculation failed');
+
+    _pmmResult  = data;
+    _pmmPayload = payload;
+    // Clear stale check results when a new diagram is generated
+    _pmmLoads.forEach(l => { delete l.DCR; delete l.status; delete l.M_cap; delete l.M_demand; });
+    pmmShowSummary(data);
+    pmmRender3D(data, payload);
+    pmmRender2D(data, 'pmx', 'P–Mx', 'Mx', payload);
+    pmmRender2D(data, 'pmy', 'P–My', 'My', payload);
+    pmmShowTab('3d');
+    document.getElementById('pmm-chart-empty')?.classList.add('hidden');
+  } catch(e) {
+    pmmSetStatus(e.message, 'error');
+  } finally {
+    btn.disabled   = false;
+    btn.textContent = 'Generate Diagram';
+  }
+}
+
+function pmmShowSummary(data) {
+  document.getElementById('pmm-summary')?.classList.remove('hidden');
+  document.getElementById('pmm-s-ag').textContent   = `${data.Ag} mm²`;
+  document.getElementById('pmm-s-ast').textContent  = `${data.Ast} mm²`;
+  document.getElementById('pmm-s-rho').textContent  = `${data.rho}%`;
+  document.getElementById('pmm-s-pmax').textContent = `${data.Pmax} kN`;
+  document.getElementById('pmm-s-pmin').textContent = `${data.Pmin} kN`;
+}
+
+function pmmSetStatus(msg, type) {
+  const el = document.getElementById('pmm-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.className   = 'pmm-status' + (type === 'error' ? ' pmm-status-error' : '');
+}
+
+function pmmShowTab(tab) {
+  // 3D tab uses the wrapper (chart + loads panel)
+  const wrapper3d = document.getElementById('pmm-3d-wrapper');
+  const show3d = tab === '3d';
+  wrapper3d?.classList.toggle('hidden', !show3d);
+  document.querySelector('.pmm-tab[data-tab="3d"]')?.classList.toggle('active', show3d);
+  if (show3d) {
+    pmmLoadsInit();
+    if (_pmmResult) {
+      try { Plotly.Plots.resize(document.getElementById('pmm-chart-3d')); } catch(e) {}
+    }
+  }
+
+  // 2D tabs (P-Mx, P-My)
+  ['pmx','pmy'].forEach(t => {
+    const chartEl = document.getElementById(`pmm-chart-${t}`);
+    const tabBtn  = document.querySelector(`.pmm-tab[data-tab="${t}"]`);
+    const show    = t === tab;
+    chartEl?.classList.toggle('hidden', !show);
+    tabBtn?.classList.toggle('active', show);
+    if (show && _pmmResult && chartEl) {
+      try { Plotly.Plots.resize(chartEl); } catch(e) {}
+    }
+  });
+
+  // Mx-My tab — renders when clicked (never auto-triggered by load checks)
+  const mxmyEl      = document.getElementById('pmm-chart-mxmy');
+  const mxmyToolbar = document.getElementById('pmm-mxmy-toolbar');
+  const mxmyBtn     = document.querySelector('.pmm-tab[data-tab="mxmy"]');
+  const showMxMy    = tab === 'mxmy';
+  mxmyEl?.classList.toggle('hidden', !showMxMy);
+  mxmyToolbar?.classList.toggle('hidden', !showMxMy);
+  mxmyBtn?.classList.toggle('active', showMxMy);
+  if (showMxMy) pmmPopulateMxMyPDropdown();
+  if (showMxMy && _pmmResult) {
+    const checkedLoads = _pmmLoads.filter(l => l.status);
+    const autoEngineP  = checkedLoads.length ? -(+checkedLoads[0].P)
+                       : (_pmmLoads.length && _pmmLoads[0].P !== '' ? -(+_pmmLoads[0].P) : 0);
+    // Pre-fill input with the auto-detected P (user-facing: negative = compression)
+    const pInput = document.getElementById('pmm-mxmy-p-input');
+    if (pInput && pInput.value === '') pInput.value = (-autoEngineP).toFixed(1);
+    const userP   = pInput && pInput.value !== '' ? parseFloat(pInput.value) : -autoEngineP;
+    const Ptarget = isNaN(userP) ? autoEngineP : -userP;
+    const loadPts = checkedLoads.length ? checkedLoads : _pmmLoads.filter(l => l.P !== '');
+    pmmRenderMxMy(_pmmResult, _pmmPayload, Ptarget, loadPts);
+    try { Plotly.Plots.resize(mxmyEl); } catch(e) {}
+  }
+}
+
+function pmmMxMyUpdateP(val) {
+  if (!_pmmResult) return;
+  const userP = parseFloat(val);
+  if (isNaN(userP)) return;
+  const Ptarget = -userP;  // engine-sign: positive = compression
+  const loadPts = _pmmLoads.filter(l => l.P !== '');
+  pmmRenderMxMy(_pmmResult, _pmmPayload, Ptarget, loadPts);
+}
+
+let _pmmMxMyPSaved = null;
+
+// Dropdown arrow button — clear input so datalist shows all options
+function pmmMxMyOpenDrop(e) {
+  e.preventDefault();
+  const input = document.getElementById('pmm-mxmy-p-input');
+  _pmmMxMyPSaved = input.value;
+  input.value = '';
+  input.focus();
+}
+
+// Restore saved value if user dismisses without selecting
+function pmmMxMyPBlur() {
+  const input = document.getElementById('pmm-mxmy-p-input');
+  if (input.value === '' && _pmmMxMyPSaved !== null) {
+    input.value = _pmmMxMyPSaved;
+  }
+  _pmmMxMyPSaved = null;
+}
+
+// Step through demand P values (dir: +1 = next higher, -1 = next lower)
+function pmmMxMyStepP(e, dir) {
+  e.preventDefault();
+  const input = document.getElementById('pmm-mxmy-p-input');
+  const cur = parseFloat(input.value);
+  const vals = [...new Set(_pmmLoads.filter(l => l.P !== '').map(l => +l.P))].sort((a, b) => a - b);
+  let newVal;
+  if (vals.length === 0) {
+    newVal = (isNaN(cur) ? 0 : cur) + dir * 100;
+  } else if (isNaN(cur)) {
+    newVal = dir > 0 ? vals[vals.length - 1] : vals[0];
+  } else if (dir > 0) {
+    const next = vals.find(v => v > cur + 0.05);
+    newVal = next !== undefined ? next : vals[vals.length - 1];
+  } else {
+    const prev = [...vals].reverse().find(v => v < cur - 0.05);
+    newVal = prev !== undefined ? prev : vals[0];
+  }
+  input.value = newVal.toFixed(1);
+  pmmMxMyUpdateP(input.value);
+}
+
+function pmmPopulateMxMyPDropdown() {
+  const dl = document.getElementById('pmm-mxmy-p-list');
+  if (!dl) return;
+  const loads = _pmmLoads.filter(l => l.P !== '' && l.P != null);
+  // Group labels by unique P value
+  const map = new Map();
+  loads.forEach(l => {
+    const key = (+l.P).toFixed(1);
+    if (!map.has(key)) map.set(key, []);
+    if (l.label) map.get(key).push(l.label);
+  });
+  // Sort ascending (most negative = highest compression first)
+  const sorted = [...map.entries()].sort((a, b) => +a[0] - +b[0]);
+  dl.innerHTML = sorted.map(([p, labels]) => {
+    const desc = labels.length ? ` — ${labels.slice(0, 3).join(', ')}${labels.length > 3 ? '…' : ''}` : '';
+    return `<option value="${p}">${p} kN${desc}</option>`;
+  }).join('');
+}
+
+function pmmDrawSection() {
+  const svg = document.getElementById('pmm-section-svg');
+  if (!svg) return;
+
+  const b      = parseFloat(document.getElementById('pmm-b')?.value)      || 0;
+  const h      = parseFloat(document.getElementById('pmm-h')?.value)      || 0;
+  const cover  = parseFloat(document.getElementById('pmm-cover')?.value)  || 0;
+  const nbarsB = Math.max(2, parseInt(document.getElementById('pmm-nbars-b')?.value) || 2);
+  const nbarsH = Math.max(0, parseInt(document.getElementById('pmm-nbars-h')?.value) || 0);
+  const barSel = document.getElementById('pmm-barsize');
+  const areaText = barSel?.selectedOptions[0]?.textContent || '';
+  const areaMatch = areaText.match(/\(([0-9.]+)\s*m/);
+  const ab = areaMatch ? parseFloat(areaMatch[1]) : 0;
+  const barR = ab > 0 ? Math.sqrt(ab / Math.PI) : 0;  // bar radius in mm
+
+  if (b <= 0 || h <= 0) { svg.innerHTML = ''; return; }
+
+  // Canvas dimensions with margins
+  const W = 200, H = 200, pad = 14;
+  const scale = Math.min((W - 2 * pad) / b, (H - 2 * pad) / h);
+  const ox = (W - b * scale) / 2;   // origin x
+  const oy = (H - h * scale) / 2;   // origin y (top)
+
+  const px = x => ox + x * scale;
+  const py = y => oy + (h - y) * scale;   // flip y (SVG y grows down)
+
+  // Bar positions matching rect_bars_grid logic
+  const bars = [];
+  const x0 = cover, x1 = b - cover, y0 = cover, y1 = h - cover;
+  const bLen = x1 - x0, hLen = y1 - y0;
+
+  // Bottom face
+  for (let i = 0; i < nbarsB; i++) {
+    const x = nbarsB > 1 ? x0 + bLen * i / (nbarsB - 1) : (x0 + x1) / 2;
+    bars.push([x, y0]);
+  }
+  // Right face (intermediate only)
+  for (let j = 0; j < nbarsH; j++) {
+    bars.push([x1, y0 + hLen * (j + 1) / (nbarsH + 1)]);
+  }
+  // Top face
+  for (let i = nbarsB - 1; i >= 0; i--) {
+    const x = nbarsB > 1 ? x0 + bLen * i / (nbarsB - 1) : (x0 + x1) / 2;
+    bars.push([x, y1]);
+  }
+  // Left face (intermediate only)
+  for (let j = nbarsH - 1; j >= 0; j--) {
+    bars.push([x0, y0 + hLen * (j + 1) / (nbarsH + 1)]);
+  }
+
+  const barRpx = Math.max(2.5, Math.min(barR * scale, 6));
+  const coverPx = cover * scale;
+  const total = 2 * nbarsB + 2 * nbarsH;
+
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = `
+    <!-- Section outline -->
+    <rect x="${px(0)}" y="${py(h)}" width="${b * scale}" height="${h * scale}"
+          fill="#e8f0fe" stroke="#2563eb" stroke-width="1.5" rx="1"/>
+    <!-- Cover boundary -->
+    <rect x="${px(x0)}" y="${py(y1)}" width="${bLen * scale}" height="${hLen * scale}"
+          fill="none" stroke="#93c5fd" stroke-width="0.8" stroke-dasharray="3,2" rx="0"/>
+    <!-- Bars -->
+    ${bars.map(([bx, by]) =>
+      `<circle cx="${px(bx)}" cy="${py(by)}" r="${barRpx}"
+               fill="#1e5a8a" stroke="#fff" stroke-width="0.8"/>`
+    ).join('')}
+    <!-- Dimension labels -->
+    <text x="${W / 2}" y="${py(h) - 4}" text-anchor="middle"
+          font-size="9" fill="#475569" font-family="sans-serif">b = ${b} mm</text>
+    <text x="${px(0) - 4}" y="${H / 2}" text-anchor="middle"
+          font-size="9" fill="#475569" font-family="sans-serif"
+          transform="rotate(-90,${px(0) - 4},${H / 2})">h = ${h} mm</text>
+    <!-- Bar count -->
+    <text x="${W / 2}" y="${py(0) + 11}" text-anchor="middle"
+          font-size="8" fill="#64748b" font-family="sans-serif">${total} bars</text>
+  `;
+}
+
+async function pmmImportETABS() {
+  const btn = document.getElementById('btn-pmm-etabs');
+  if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+  pmmSetStatus('', '');
+
+  try {
+    const res = await authFetch('/api/pmm/etabs-sections');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'ETABS not connected');
+    }
+    const data = await res.json();
+    const sections = data.sections || [];
+    if (!sections.length) {
+      pmmSetStatus('No RC column sections found in ETABS model.', 'error');
+      return;
+    }
+
+    // If only one section, populate directly
+    if (sections.length === 1) {
+      pmmFillFromSection(sections[0]);
+      pmmSetStatus(`Imported: ${sections[0].name}`, '');
+      return;
+    }
+
+    // Multiple sections: show a picker modal
+    pmmShowSectionPicker(sections);
+  } catch (e) {
+    pmmSetStatus(e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Import from ETABS'; }
+  }
+}
+
+function pmmFillFromSection(sec) {
+  // sec: { name, b_mm, h_mm, cover_mm, nbars, rebar_size (label like "Ø20"),
+  //         fc_mpa, fy_mpa, Es_mpa }
+  const setVal = (id, v) => {
+    const el = document.getElementById(id);
+    if (el && v != null) el.value = v;
+  };
+  setVal('pmm-b',     Math.round(sec.b_mm));
+  setVal('pmm-h',     Math.round(sec.h_mm));
+  setVal('pmm-cover', Math.round(sec.cover_mm));
+  if (sec.nbars_b != null) setVal('pmm-nbars-b', sec.nbars_b);
+  if (sec.nbars_h != null) setVal('pmm-nbars-h', sec.nbars_h);
+  if (sec.fc_mpa  != null) setVal('pmm-fc', parseFloat(sec.fc_mpa.toFixed(1)));
+  if (sec.fy_mpa  != null) setVal('pmm-fy', parseFloat(sec.fy_mpa.toFixed(0)));
+  if (sec.Es_mpa  != null) setVal('pmm-es', parseFloat(sec.Es_mpa.toFixed(0)));
+
+  // Try to match bar size in select
+  const barSel = document.getElementById('pmm-barsize');
+  if (barSel && sec.rebar_size) {
+    const label = String(sec.rebar_size); // e.g. "Ø20" or diameter number
+    const matchOpt = [...barSel.options].find(o =>
+      o.value === label || o.value === `Ø${label}`
+    );
+    if (matchOpt) barSel.value = matchOpt.value;
+  }
+
+  pmmUpdateRhoInfo();
+  pmmDrawSection();
+}
+
+function pmmShowSectionPicker(sections) {
+  // Remove existing picker if any
+  document.getElementById('pmm-section-picker')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'pmm-section-picker';
+  overlay.style.cssText = `
+    position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,0.55);
+    display:flex;align-items:center;justify-content:center;`;
+
+  const box = document.createElement('div');
+  box.style.cssText = `
+    background:var(--bg-card);border-radius:10px;padding:20px;min-width:320px;
+    max-width:460px;max-height:70vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.18);`;
+
+  const title = document.createElement('div');
+  title.textContent = 'Select ETABS Section';
+  title.style.cssText = 'font-weight:600;font-size:14px;color:var(--t1);margin-bottom:12px;';
+  box.appendChild(title);
+
+  sections.forEach(sec => {
+    const row = document.createElement('button');
+    row.style.cssText = `
+      display:block;width:100%;text-align:left;padding:9px 12px;margin-bottom:6px;
+      border:1px solid var(--bdr-sm);border-radius:6px;background:var(--bg-input);
+      color:var(--t1);font-size:13px;cursor:pointer;line-height:1.4;`;
+    const _nb = sec.nbars != null ? sec.nbars
+              : (sec.nbars_b != null ? 2*(+sec.nbars_b) + 2*(+(sec.nbars_h||0)) : '—');
+    row.innerHTML = `<strong>${sec.name}</strong><br>
+      <span style="color:var(--t2);font-size:12px">
+        ${sec.b_mm}×${sec.h_mm} mm  |  ${_nb} bars  |
+        f'c ${sec.fc_mpa?.toFixed(0) ?? '—'} MPa  |  fy ${sec.fy_mpa?.toFixed(0) ?? '—'} MPa
+      </span>`;
+    row.addEventListener('click', () => {
+      overlay.remove();
+      pmmFillFromSection(sec);
+      pmmSetStatus(`Imported: ${sec.name}`, '');
+    });
+    row.addEventListener('mouseenter', () => row.style.background = 'var(--blue-tint)');
+    row.addEventListener('mouseleave', () => row.style.background = 'var(--bg-input)');
+    box.appendChild(row);
+  });
+
+  const cancel = document.createElement('button');
+  cancel.textContent = 'Cancel';
+  cancel.style.cssText = `
+    margin-top:8px;padding:7px 16px;border:1px solid var(--bdr-sm);
+    border-radius:6px;background:transparent;color:var(--t2);cursor:pointer;font-size:13px;`;
+  cancel.addEventListener('click', () => overlay.remove());
+  box.appendChild(cancel);
+
+  overlay.appendChild(box);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+function pmmRender3D(data, payload, loadPts) {
+  const el = document.getElementById('pmm-chart-3d');
+  if (!el) return;
+
+  const surf = data.surface;
+  const allMx = surf.Mx, allMy = surf.My, allP = surf.P;
+  const numPts = payload.num_points;               // points per alpha sweep
+  const numAlpha = Math.round(allP.length / numPts); // number of alpha angles
+  const arrMax = (a) => a.reduce((m, v) => v > m ? v : m, -Infinity);
+  const arrMin = (a) => a.reduce((m, v) => v < m ? v : m,  Infinity);
+  const ext = Math.max(arrMax(allMx.map(Math.abs)), arrMax(allMy.map(Math.abs))) * 1.15;
+
+  // ── Resample meridians to common P levels ──────────────────────────
+  // The engine sweeps the same neutral-axis depths for every alpha, but each
+  // alpha produces different P values at the same index. Grid triangulation
+  // must connect points at the same P level, so resample to a uniform P grid.
+  const Pglo_min = arrMin(allP);
+  const Pglo_max = arrMax(allP);
+  const rMx = new Array(numAlpha * numPts);
+  const rMy = new Array(numAlpha * numPts);
+  const rP  = new Array(numAlpha * numPts);
+  for (let a = 0; a < numAlpha; a++) {
+    const base = a * numPts;
+    const mP  = allP .slice(base, base + numPts);  // monotonically increasing
+    const mMx = allMx.slice(base, base + numPts);
+    const mMy = allMy.slice(base, base + numPts);
+    for (let k = 0; k < numPts; k++) {
+      const Pt = Pglo_min + (Pglo_max - Pglo_min) * k / (numPts - 1);
+      let mx, my;
+      if (Pt <= mP[0]) {
+        mx = mMx[0]; my = mMy[0];
+      } else if (Pt >= mP[numPts - 1]) {
+        mx = mMx[numPts - 1]; my = mMy[numPts - 1];
+      } else {
+        let lo = 0, hi = numPts - 1;
+        while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (mP[mid] <= Pt) lo = mid; else hi = mid; }
+        const t = (Pt - mP[lo]) / (mP[hi] - mP[lo]);
+        mx = mMx[lo] + t * (mMx[hi] - mMx[lo]);
+        my = mMy[lo] + t * (mMy[hi] - mMy[lo]);
+      }
+      rMx[base + k] = mx;
+      rMy[base + k] = my;
+      rP [base + k] = Pt;
+    }
+  }
+
+  const traces = [];
+
+  // ── Semi-transparent fill (mesh3d, explicit grid triangulation) ──
+  // Build quads between adjacent meridians on the resampled P grid.
+  const triI = [], triJ = [], triK = [];
+  for (let a = 0; a < numAlpha; a++) {
+    const a1 = (a + 1) % numAlpha;
+    for (let i = 0; i < numPts - 1; i++) {
+      const p00 = a  * numPts + i;
+      const p10 = a1 * numPts + i;
+      const p01 = a  * numPts + i + 1;
+      const p11 = a1 * numPts + i + 1;
+      triI.push(p00); triJ.push(p10); triK.push(p01);
+      triI.push(p10); triJ.push(p11); triK.push(p01);
+    }
+  }
+  traces.push({
+    type: 'mesh3d',
+    x: rMx, y: rMy, z: rP,
+    i: triI, j: triJ, k: triK,
+    color: '#93c5fd',
+    opacity: 0.18,
+    showscale: false,
+    hoverinfo: 'none',
+    name: 'Surface',
+    flatshading: false,
+    lighting: { ambient: 0.9, diffuse: 0.3, specular: 0.0 },
+  });
+
+  // ── Wireframe: meridian lines (one per alpha angle) ───────────────
+  // Surface data is ordered: numPts points for alpha[0], then alpha[1], etc.
+  // mStep by resolution: Fast(10°)→every 10th, Normal(5°)→every 5th, Fine(3°)→every 1st
+  const mStep = payload.alpha_steps >= 10 ? 10 : payload.alpha_steps >= 5 ? 5 : 1;
+  const mxM = [], myM = [], pM = [];
+  for (let a = 0; a < numAlpha; a += mStep) {
+    const base = a * numPts;
+    for (let i = 0; i < numPts; i++) {
+      mxM.push(allMx[base + i]);
+      myM.push(allMy[base + i]);
+      pM.push(allP[base + i]);
+    }
+    mxM.push(null); myM.push(null); pM.push(null); // NaN separator
+  }
+  traces.push({
+    type: 'scatter3d', mode: 'lines',
+    x: mxM, y: myM, z: pM,
+    line: { color: '#93c5fd', width: 1.5 },
+    hoverinfo: 'none',
+    name: 'Meridians',
+    showlegend: false,
+  });
+
+  // ── Wireframe: horizontal ring lines (constant P-level cuts) ────────
+  // Take every rStep-th point along each meridian → forms a ring
+  const numRings = 50;
+  const rStep = Math.max(1, Math.floor(numPts / numRings));
+  const mxR = [], myR = [], pR = [];
+  for (let i = 0; i < numPts; i += rStep) {
+    for (let a = 0; a < numAlpha; a++) {
+      mxR.push(allMx[a * numPts + i]);
+      myR.push(allMy[a * numPts + i]);
+      pR.push(allP[a * numPts + i]);
+    }
+    // Close the ring by repeating first meridian point
+    mxR.push(allMx[0 * numPts + i]);
+    myR.push(allMy[0 * numPts + i]);
+    pR.push(allP[0 * numPts + i]);
+    mxR.push(null); myR.push(null); pR.push(null);
+  }
+  traces.push({
+    type: 'scatter3d', mode: 'lines',
+    x: mxR, y: myR, z: pR,
+    line: { color: '#bfdbfe', width: 1 },
+    hoverinfo: 'none',
+    name: 'Rings',
+    showlegend: false,
+  });
+
+  // ── P = 0 horizontal reference plane ────────────────────────────
+  traces.push({
+    type: 'mesh3d',
+    x: [-ext,  ext,  ext, -ext],
+    y: [-ext, -ext,  ext,  ext],
+    z: [   0,    0,    0,    0],
+    i: [0, 0], j: [1, 2], k: [2, 3],
+    color: '#22c55e',
+    opacity: 0.10,
+    showscale: false,
+    hoverinfo: 'none',
+    name: 'P = 0',
+  });
+
+  // ── Load demand points (DCR-colored bubbles) ──────────────────────
+  if (loadPts && loadPts.length) {
+    const DCR_MAX = 1.2;
+    // Step colorscale: cyan→green→yellow→orange→hotpink→darkred
+    const dcrColorscale = [
+      [0,        '#00D9D9'], [0.1667, '#00D9D9'],
+      [0.1667,   '#00CC00'], [0.3333, '#00CC00'],
+      [0.3333,   '#FFFF00'], [0.5000, '#FFFF00'],
+      [0.5000,   '#FF8800'], [0.6667, '#FF8800'],
+      [0.6667,   '#FF0080'], [0.8333, '#FF0080'],
+      [0.8333,   '#CC0000'], [1.0000, '#CC0000'],
+    ];
+    traces.push({
+      type: 'scatter3d', mode: 'markers',
+      x: loadPts.map(p => p.Mx),
+      y: loadPts.map(p => p.My),
+      z: loadPts.map(p => -(+p.P)),
+      text: loadPts.map(p => p.label || 'Load'),
+      marker: {
+        size: 9,
+        symbol: 'circle',
+        color: loadPts.map(p => Math.min(parseFloat(p.DCR) || 0, DCR_MAX)),
+        colorscale: dcrColorscale,
+        cmin: 0,
+        cmax: DCR_MAX,
+        showscale: true,
+        colorbar: {
+          title: { text: 'DCR', side: 'right', font: { size: 11 } },
+          thickness: 14,
+          len: 0.6,
+          x: 1.02,
+          tickvals: [0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2],
+          ticktext: ['0%', '20%', '40%', '60%', '80%', '100%', '>100%'],
+          tickfont: { size: 10 },
+        },
+        line: { color: '#fff', width: 1 },
+      },
+      name: 'Loads',
+      hovertemplate: loadPts.map(p =>
+        `${p.label||'Load'}<br>P: ${p.P} kN<br>Mx: ${p.Mx} kN·m<br>My: ${p.My} kN·m<br>DCR: ${(parseFloat(p.DCR)*100).toFixed(1)}%<extra></extra>`
+      ),
+    });
+  } else if (payload.demand_P != null && payload.demand_Mx != null && payload.demand_My != null) {
+    traces.push({
+      type: 'scatter3d', mode: 'markers',
+      x: [payload.demand_Mx], y: [payload.demand_My], z: [payload.demand_P],
+      marker: { size: 7, color: '#ef4444', symbol: 'diamond',
+                line: { color: '#fff', width: 1.5 } },
+      name: 'Demand',
+      hovertemplate: `Demand<br>P: ${payload.demand_P} kN<br>Mx: ${payload.demand_Mx} kN·m<br>My: ${payload.demand_My} kN·m<extra></extra>`,
+    });
+  }
+
+  // ── Smart P-axis scaling ──────────────────────────────────────────
+  // Collect full range: surface P + any demand load P (engine-sign)
+  let PsmartMin = arrMin(allP), PsmartMax = arrMax(allP);
+  if (loadPts && loadPts.length) {
+    loadPts.forEach(p => {
+      const pz = -(+p.P);   // engine-sign (positive = compression)
+      if (pz < PsmartMin) PsmartMin = pz;
+      if (pz > PsmartMax) PsmartMax = pz;
+    });
+  }
+  const Pspan  = PsmartMax - PsmartMin || 1;
+  // Pick a "nice" tick interval ≈ Pspan / 5
+  const rawStep  = Pspan / 5;
+  const stepExp  = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const stepFrac = rawStep / stepExp;
+  const Pdtick   = stepFrac < 1.5 ? stepExp
+                 : stepFrac < 3   ? 2 * stepExp
+                 : stepFrac < 7   ? 5 * stepExp
+                 :                 10 * stepExp;
+  // Snap axis bounds outward to next tick, add one extra tick of breathing room
+  const PaxMin = (Math.floor(PsmartMin / Pdtick) - 1) * Pdtick;
+  const PaxMax = (Math.ceil (PsmartMax / Pdtick) + 1) * Pdtick;
+
+  // ── Smart aspect ratio: compress tall P axis so surface isn't a spike ──
+  // Compare visible P span vs Mx/My span; clamp result to [0.5, 1.5]
+  const mSpan    = 2 * ext;           // full Mx/My width
+  const pSpanVis = PaxMax - PaxMin;   // visible P height
+  const zAspect  = Math.min(Math.max(pSpanVis / mSpan, 0.5), 1.5);
+
+  const layout = {
+    paper_bgcolor: '#ffffff',
+    plot_bgcolor:  '#ffffff',
+    margin: { l: 0, r: 0, t: 36, b: 0 },
+    scene: {
+      bgcolor: '#ffffff',
+      aspectmode: 'manual',
+      aspectratio: { x: 1, y: 1, z: zAspect },
+      xaxis: { title: 'Mx (kN·m)', color: '#475569', gridcolor: '#cbd5e1', zeroline: true, zerolinecolor: '#94a3b8' },
+      yaxis: { title: 'My (kN·m)', color: '#475569', gridcolor: '#cbd5e1', zeroline: true, zerolinecolor: '#94a3b8' },
+      zaxis: {
+        title: 'P (kN)', color: '#475569', gridcolor: '#cbd5e1',
+        zeroline: true, zerolinecolor: '#94a3b8',
+        range: [PaxMin, PaxMax],
+        dtick: Pdtick,
+        tick0: 0,
+      },
+      camera: { eye: { x: 1.6, y: 1.6, z: 1.1 } },
+    },
+    showlegend: false,
+    title: { text: 'P-M-M Interaction Surface', font: { color: '#0f172a', size: 13 }, x: 0.5 },
+  };
+
+  Plotly.react(el, traces, layout, { responsive: true, displayModeBar: false });
+}
+
+const _pmm3DViews = {
+  '3d':    { eye: { x: 1.6,   y: 1.6,   z: 1.1   }, up: { x:0, y:0, z:1 } },
+  'top':   { eye: { x: 0.001, y: 0.001, z: 2.5   }, up: { x:0, y:1, z:0 } },
+  'front': { eye: { x: 0.001, y: 2.5,   z: 0.001 }, up: { x:0, y:0, z:1 } },
+  'side':  { eye: { x: 2.5,   y: 0.001, z: 0.001 }, up: { x:0, y:0, z:1 } },
+};
+
+function pmmSet3DView(view) {
+  const el = document.getElementById('pmm-chart-3d');
+  if (!el || !el._fullLayout) return;
+  const cam = _pmm3DViews[view];
+  if (!cam) return;
+  Plotly.relayout(el, { 'scene.camera': { eye: cam.eye, up: cam.up, center: {x:0,y:0,z:0} } });
+  document.querySelectorAll('.pmm-3d-vbtn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+}
+
+function pmmRender2D(data, chartId, title, momentKey, payload, loadPts) {
+  const el = document.getElementById(`pmm-chart-${chartId}`);
+  if (!el) return;
+
+  const c2d    = data.curves_2d;
+  const traces = [];
+  const palette = { '0': '#3b82f6', '90': '#22c55e', '180': '#f59e0b', '270': '#ef4444' };
+  const labels  = { '0': 'α=0°', '90': 'α=90°', '180': 'α=180°', '270': 'α=270°' };
+
+  Object.entries(c2d).forEach(([angle, curve]) => {
+    const mArr = momentKey === 'Mx' ? curve.Mx : curve.My;
+    traces.push({
+      type: 'scatter', mode: 'lines',
+      x: mArr, y: curve.P,
+      line: { color: palette[angle] || '#888', width: 2 },
+      name: labels[angle] || `α=${angle}°`,
+      hovertemplate: `${momentKey}: %{x:.1f} kN·m<br>P: %{y:.1f} kN<extra></extra>`,
+    });
+  });
+
+  // Load demand markers
+  if (loadPts && loadPts.length) {
+    const pass = loadPts.filter(p => p.status === 'PASS');
+    const fail = loadPts.filter(p => p.status === 'FAIL');
+    if (pass.length) traces.push({
+      type: 'scatter', mode: 'markers',
+      x: pass.map(p => momentKey === 'Mx' ? p.Mx : p.My), y: pass.map(p => -(+p.P)),
+      marker: { size: 9, color: '#16a34a', symbol: 'circle',
+                line: { color: '#fff', width: 1 } },
+      name: 'PASS',
+      hovertemplate: `%{text}<br>${momentKey}: %{x:.1f} kN·m<br>P: %{y:.1f} kN<extra></extra>`,
+      text: pass.map(p => `${p.label||'Load'} DCR:${p.DCR}`),
+    });
+    if (fail.length) traces.push({
+      type: 'scatter', mode: 'markers',
+      x: fail.map(p => momentKey === 'Mx' ? p.Mx : p.My), y: fail.map(p => -(+p.P)),
+      marker: { size: 10, color: '#dc2626', symbol: 'x',
+                line: { color: '#dc2626', width: 2 } },
+      name: 'FAIL',
+      hovertemplate: `%{text}<br>${momentKey}: %{x:.1f} kN·m<br>P: %{y:.1f} kN<extra></extra>`,
+      text: fail.map(p => `${p.label||'Load'} DCR:${p.DCR}`),
+    });
+  } else {
+    const dM = momentKey === 'Mx' ? payload.demand_Mx : payload.demand_My;
+    if (payload.demand_P != null && dM != null) {
+      traces.push({
+        type: 'scatter', mode: 'markers',
+        x: [dM], y: [payload.demand_P],
+        marker: { size: 10, color: '#fff', symbol: 'diamond',
+                  line: { color: '#3b82f6', width: 2 } },
+        name: 'Demand',
+        hovertemplate: `Demand<br>${momentKey}: ${dM} kN·m<br>P: ${payload.demand_P} kN<extra></extra>`,
+      });
+    }
+  }
+
+  const layout = {
+    paper_bgcolor: '#ffffff',
+    plot_bgcolor:  '#f8fafc',
+    margin: { l: 56, r: 20, t: 36, b: 50 },
+    xaxis: {
+      title: { text: `${momentKey} (kN·m)`, font: { color: '#475569' } },
+      color: '#475569', gridcolor: '#e2e8f0', zeroline: true, zerolinecolor: '#94a3b8',
+    },
+    yaxis: {
+      title: { text: 'P (kN)', font: { color: '#475569' } },
+      color: '#475569', gridcolor: '#e2e8f0', zeroline: true, zerolinecolor: '#94a3b8',
+    },
+    legend: { font: { color: '#475569' }, bgcolor: 'rgba(255,255,255,0.8)' },
+    title: { text: title, font: { color: '#0f172a', size: 13 }, x: 0.5 },
+  };
+
+  Plotly.react(el, traces, layout, { responsive: true, displayModeBar: false });
+}
+
+// ── PMM boundary helpers (shared by Mx-My chart and DCR update) ──────────────
+
+/** Compute the Mx-My boundary polygon at the given Ptarget (engine-sign kN). */
+function pmmBoundaryAtP(data, payload, Ptarget) {
+  const surf = data.surface;
+  const allMx = surf.Mx, allMy = surf.My, allP = surf.P;
+  const numPts   = payload.num_points;
+  const numAlpha = Math.round(allP.length / numPts);
+  const bndMx = [], bndMy = [];
+  for (let a = 0; a < numAlpha; a++) {
+    const base = a * numPts;
+    const mP  = allP .slice(base, base + numPts);
+    const mMx = allMx.slice(base, base + numPts);
+    const mMy = allMy.slice(base, base + numPts);
+    let mx, my;
+    if (Ptarget <= mP[0]) {
+      mx = mMx[0]; my = mMy[0];
+    } else if (Ptarget >= mP[numPts - 1]) {
+      mx = mMx[numPts - 1]; my = mMy[numPts - 1];
+    } else {
+      let lo = 0, hi = numPts - 1;
+      while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (mP[mid] <= Ptarget) lo = mid; else hi = mid; }
+      const t = (Ptarget - mP[lo]) / (mP[hi] - mP[lo]);
+      mx = mMx[lo] + t * (mMx[hi] - mMx[lo]);
+      my = mMy[lo] + t * (mMy[hi] - mMy[lo]);
+    }
+    bndMx.push(mx); bndMy.push(my);
+  }
+  bndMx.push(bndMx[0]); bndMy.push(bndMy[0]);
+  return { bndMx, bndMy };
+}
+
+/** Ray from origin in direction (dx, dy) intersected with boundary polygon. */
+function pmmRayBoundaryIntersect(dx, dy, bx, by) {
+  const n = bx.length - 1;
+  let bestT = Infinity, rx = null, ry = null;
+  for (let i = 0; i < n; i++) {
+    const Ax = bx[i], Ay = by[i], Bx = bx[i+1], By = by[i+1];
+    const dBx = Bx - Ax, dBy = By - Ay;
+    const det = dx * dBy - dy * dBx;
+    if (Math.abs(det) < 1e-10) continue;
+    const t = (Ax * dBy - Ay * dBx) / det;
+    const s = (Ax * dy  - Ay * dx ) / det;
+    if (t > 1e-9 && s >= -1e-9 && s <= 1 + 1e-9 && t < bestT) {
+      bestT = t; rx = t * dx; ry = t * dy;
+    }
+  }
+  return rx !== null ? { x: rx, y: ry } : null;
+}
+
+/**
+ * For each load in `loads`, compute boundary-based M_cap / DCR using the
+ * boundary at that demand's own P level, then update p.M_cap, p.DCR, p.status.
+ */
+function pmmUpdateDCRFromBoundary(loads) {
+  if (!_pmmResult || !_pmmPayload) return;
+  loads.forEach(p => {
+    const mx = +p.Mx, my = +p.My;
+    const Md = p.M_demand != null ? +p.M_demand : Math.sqrt(mx*mx + my*my);
+    if (Md < 1e-9) return;
+    const Ptarget = -(+p.P);   // engine-sign: positive = compression
+    const { bndMx, bndMy } = pmmBoundaryAtP(_pmmResult, _pmmPayload, Ptarget);
+    const cap = pmmRayBoundaryIntersect(mx, my, bndMx, bndMy);
+    if (!cap) return;
+    const M_geo = Math.sqrt(cap.x*cap.x + cap.y*cap.y);
+    if (M_geo < 1e-9) return;
+    p.M_cap  = +M_geo.toFixed(3);
+    p.DCR    = +(Md / M_geo).toFixed(3);
+    p.status = p.DCR <= 1.0 ? 'PASS' : 'FAIL';
+  });
+}
+
+// ── PMM Mx-My slice chart ─────────────────────────────────────────────────────
+function pmmRenderMxMy(data, payload, Ptarget, loadPts) {
+  const el = document.getElementById('pmm-chart-mxmy');
+  if (!el) return;
+
+  const { bndMx, bndMy } = pmmBoundaryAtP(data, payload, Ptarget);
+
+  const traces = [];
+
+  // Capacity boundary — filled with spline smoothing
+  traces.push({
+    type: 'scatter', mode: 'lines',
+    x: bndMx, y: bndMy,
+    fill: 'toself', fillcolor: 'rgba(59,130,246,0.12)',
+    line: { color: '#3b82f6', width: 2, shape: 'spline', smoothing: 1.3 },
+    name: 'Capacity',
+    hovertemplate: 'Mx: %{x:.1f} kN·m<br>My: %{y:.1f} kN·m<extra></extra>',
+  });
+
+  // Demand points — p.P is stored ETABS-sign (negative=compression); Ptarget is engine-sign (positive)
+  // So compare -(+p.P) against Ptarget for the P-level filter
+  if (loadPts && loadPts.length) {
+    const tol = Math.max(50, Math.abs(Ptarget) * 0.15 + 50);
+    const near = loadPts.filter(p => Math.abs(-(+p.P) - Ptarget) <= tol);
+    if (near.length) {
+      // Pass 1: intersect each demand with the displayed boundary at Ptarget → update M_cap/DCR/status.
+      near.forEach(p => {
+        const mx = +p.Mx, my = +p.My;
+        const Md = p.M_demand != null ? +p.M_demand : Math.sqrt(mx*mx + my*my);
+        if (Md < 1e-9) return;
+        const cap = pmmRayBoundaryIntersect(mx, my, bndMx, bndMy);
+        if (!cap) return;
+        const M_geo = Math.sqrt(cap.x*cap.x + cap.y*cap.y);
+        if (M_geo < 1e-9) return;
+        p._capX  = cap.x;
+        p._capY  = cap.y;
+        p.M_cap  = +M_geo.toFixed(3);
+        p.DCR    = +(Md / M_geo).toFixed(3);
+        p.status = p.DCR <= 1.0 ? 'PASS' : 'FAIL';
+      });
+
+      // Pass 2: draw radial projection lines using the updated geometric cap points.
+      near.forEach(p => {
+        const mx = +p.Mx, my = +p.My;
+        const Md = p.M_demand != null ? +p.M_demand : 0;
+        if (Md < 1e-6 || p._capX == null) return;
+        const capMx = p._capX, capMy = p._capY;
+        const M_geo = p.M_cap;
+        const col = p.status !== 'FAIL' ? '#16a34a' : '#dc2626';
+        // Dashed line: origin → capacity boundary
+        traces.push({
+          type: 'scatter', mode: 'lines',
+          x: [0, capMx], y: [0, capMy],
+          line: { color: col, width: 1.2, dash: 'dot' },
+          showlegend: false, hoverinfo: 'skip',
+        });
+        // Solid line: origin → demand point
+        traces.push({
+          type: 'scatter', mode: 'lines',
+          x: [0, mx], y: [0, my],
+          line: { color: col, width: 2 },
+          showlegend: false, hoverinfo: 'skip',
+        });
+        // Diamond marker at capacity boundary
+        traces.push({
+          type: 'scatter', mode: 'markers',
+          x: [capMx], y: [capMy],
+          marker: { symbol: 'diamond', size: 7, color: col,
+                    line: { color: '#fff', width: 1 } },
+          showlegend: false,
+          hovertemplate: `M_cap (boundary): ${M_geo.toFixed(2)} kN·m<extra></extra>`,
+        });
+      });
+
+      const pass = near.filter(p => p.status !== 'FAIL');
+      const fail = near.filter(p => p.status === 'FAIL');
+      [pass, fail].forEach((pts, fi) => {
+        if (!pts.length) return;
+        const col = fi ? '#dc2626' : '#16a34a';
+        traces.push({
+          type: 'scatter', mode: 'markers+text',
+          x: pts.map(p => +p.Mx), y: pts.map(p => +p.My),
+          text: pts.map(p => p.label || ''),
+          textposition: 'top center',
+          textfont: { size: 9, color: col },
+          marker: { symbol: 'star', size: 10, color: col,
+                    line: { color: '#fff', width: 1 } },
+          name: fi ? 'FAIL' : 'PASS',
+          hovertemplate: pts.map(p => {
+            const dcr = p.DCR != null ? (parseFloat(p.DCR)*100).toFixed(1)+'%' : '–';
+            const md  = p.M_demand != null ? (+p.M_demand).toFixed(2) : '–';
+            const mc  = p.M_cap    != null ? (+p.M_cap   ).toFixed(2) : '–';
+            return `${p.label||''}<br>Mx: ${(+p.Mx).toFixed(2)} kN·m<br>My: ${(+p.My).toFixed(2)} kN·m<br>M_d: ${md} kN·m<br>M_cap: ${mc} kN·m<br>DCR: ${dcr}<extra></extra>`;
+          }),
+        });
+      });
+    }
+  }
+
+  // Title shows user-facing P (negative = compression, matching ETABS convention)
+  const Pdisplay = (-Ptarget).toFixed(1);
+  const layout = {
+    paper_bgcolor: '#ffffff', plot_bgcolor: '#f8fafc',
+    margin: { l: 64, r: 40, t: 48, b: 64 },
+    title: {
+      text: `Mx–My Interaction  |  P = ${Pdisplay} kN`,
+      font: { size: 13, color: '#1e293b' }, x: 0.5,
+    },
+    xaxis: {
+      title: { text: 'Mx (kN·m)', font: { color: '#475569' } },
+      color: '#475569', gridcolor: '#e2e8f0',
+      zeroline: true, zerolinecolor: '#94a3b8', zerolinewidth: 1,
+      scaleanchor: 'y', scaleratio: 1,
+    },
+    yaxis: {
+      title: { text: 'My (kN·m)', font: { color: '#475569' } },
+      color: '#475569', gridcolor: '#e2e8f0',
+      zeroline: true, zerolinecolor: '#94a3b8', zerolinewidth: 1,
+    },
+    showlegend: true,
+    legend: { x: 1, xanchor: 'right', y: 1, bgcolor: 'rgba(255,255,255,0.85)',
+              bordercolor: '#e2e8f0', borderwidth: 1, font: { size: 11 } },
+  };
+
+  Plotly.react(el, traces, layout, { responsive: true, displayModeBar: false });
+  // Refresh the loads table so DCR/status columns reflect the boundary-based values
+  pmmRenderLoadsRows();
+}
+
+// ── PMM Loads Panel ──────────────────────────────────────────────────────────
+
+function pmmLoadsInit() {
+  if (_pmmLoadsInited) return;
+  _pmmLoadsInited = true;
+  const panel = document.getElementById('pmm-chart-loads');
+  if (!panel) return;
+  panel.innerHTML = `
+    <div class="pmm-loads-header">
+      <span class="pmm-loads-title">Demand Loads</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="pmm-loads-btn-add" id="btn-add-row" onclick="pmmAddLoad()">+ Row</button>
+        <button class="pmm-loads-btn-copy" onclick="pmmCopyLoadsToClipboard()" title="Copy table to clipboard (paste into Excel)">📋 Copy</button>
+        <button class="pmm-loads-btn-export" onclick="pmmExportReport()" title="Export Word report">📄 Export</button>
+        <button class="pmm-loads-btn-check" id="btn-pmm-check" onclick="pmmCheckLoads()">⚡ Check DCR</button>
+      </div>
+    </div>
+    <div class="pmm-loads-tabs">
+      <button class="pmm-loads-tab active" id="tab-manual" onclick="pmmSwitchTab('manual')">Manual</button>
+      <button class="pmm-loads-tab" id="tab-etabs" onclick="pmmSwitchTab('etabs')">ETABS Import</button>
+    </div>
+    <div id="pmm-loads-manual-panel">
+      <div class="pmm-loads-hint-row">— paste from Excel (Tab/Enter separated)</div>
+      <div class="pmm-loads-table-wrap" id="pmm-loads-table-wrap">
+        <table class="pmm-loads-table" id="pmm-loads-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th class="col-label pmm-sort-th" onclick="pmmSortLoads('label')" id="sth-label">Label</th>
+              <th class="col-num pmm-sort-th"   onclick="pmmSortLoads('P')"     id="sth-P">P (kN)</th>
+              <th class="col-num pmm-sort-th"   onclick="pmmSortLoads('Mx')"    id="sth-Mx">Mx (kN·m)</th>
+              <th class="col-num pmm-sort-th"   onclick="pmmSortLoads('My')"    id="sth-My">My (kN·m)</th>
+              <th class="col-res" id="sth-Md"  title="Total moment demand = √(Mx²+My²)">M_d (kN·m)</th>
+              <th class="col-res" id="sth-Mc"  title="Moment capacity at demand P-level and direction">M_cap (kN·m)</th>
+              <th class="col-res" id="sth-al"  title="Demand angle α">α (°)</th>
+              <th class="col-dcr pmm-sort-th"   onclick="pmmSortLoads('DCR')"   id="sth-DCR">DCR</th>
+              <th class="col-st">Status</th>
+              <th class="col-del"></th>
+            </tr>
+            <tr class="pmm-filter-row">
+              <th></th>
+              <th><input class="pmm-filter-input" id="flt-label" type="text" placeholder="Filter…" oninput="pmmApplyLoadsFilter()" /></th>
+              <th><input class="pmm-filter-input" id="flt-p"     type="number" placeholder="≥" step="any" oninput="pmmApplyLoadsFilter()" /></th>
+              <th><input class="pmm-filter-input" id="flt-mx"    type="number" placeholder="≥" step="any" oninput="pmmApplyLoadsFilter()" /></th>
+              <th><input class="pmm-filter-input" id="flt-my"    type="number" placeholder="≥" step="any" oninput="pmmApplyLoadsFilter()" /></th>
+              <th></th><th></th><th></th>
+              <th><input class="pmm-filter-input" id="flt-dcr"   type="number" placeholder="≥%" step="1"  oninput="pmmApplyLoadsFilter()" /></th>
+              <th><select class="pmm-filter-select" id="flt-status" onchange="pmmApplyLoadsFilter()">
+                    <option value="">All</option>
+                    <option value="PASS">PASS</option>
+                    <option value="FAIL">FAIL</option>
+                  </select></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="pmm-loads-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="pmm-loads-etabs-panel" class="hidden">
+      <div class="pmm-etabs-steps">
+        <span class="pmm-etabs-step"><b>1.</b> Select columns in ETABS</span>
+        <span class="pmm-etabs-sep">→</span>
+        <span class="pmm-etabs-step"><b>2.</b> Choose combinations below</span>
+        <span class="pmm-etabs-sep">→</span>
+        <span class="pmm-etabs-step"><b>3.</b> Click Import</span>
+      </div>
+      <div class="pmm-etabs-type-row">
+        <label class="pmm-etabs-radio"><input type="radio" name="pmm-etabs-type" value="combo" checked> Combinations</label>
+        <label class="pmm-etabs-radio"><input type="radio" name="pmm-etabs-type" value="case"> Load Cases</label>
+        <button class="pmm-loads-btn-add" onclick="pmmEtabsFetchCombos()" style="margin-left:auto">↻ Refresh from ETABS</button>
+      </div>
+      <div class="pmm-etabs-search-row">
+        <input type="text" id="pmm-etabs-search" class="pmm-etabs-search" placeholder="Filter combinations…" oninput="pmmEtabsFilter()" />
+        <span id="pmm-etabs-count" class="pmm-etabs-count"></span>
+      </div>
+      <div class="pmm-etabs-combos-wrap" id="pmm-etabs-combos-wrap">
+        <div class="pmm-etabs-combo-hint">Click ↻ Refresh to load combinations from ETABS</div>
+      </div>
+      <div class="pmm-etabs-actions">
+        <button class="pmm-etabs-selall" onclick="pmmEtabsSelectAll(true)">Select All</button>
+        <button class="pmm-etabs-selall" onclick="pmmEtabsSelectAll(false)">Clear All</button>
+        <button class="pmm-etabs-selall" onclick="pmmEtabsSelectFiltered(true)">Select Filtered</button>
+        <button class="pmm-loads-btn-check" id="btn-etabs-import" onclick="pmmEtabsImport()" style="margin-left:auto">⬇ Import Selected Members</button>
+      </div>
+      <div class="pmm-etabs-note" id="pmm-etabs-note"></div>
+    </div>
+    <div class="pmm-loads-note" id="pmm-loads-note">Enter loads and click ⚡ Check DCR after generating the diagram.</div>
+  `;
+  // Pre-populate with 8 blank rows
+  for (let i = 0; i < 8; i++) {
+    _pmmLoadId++;
+    _pmmLoads.push({ id: _pmmLoadId, label: `LC${_pmmLoadId}`, P: '', Mx: '', My: '' });
+  }
+  pmmRenderLoadsRows();
+}
+
+function pmmAddLoad() {
+  pmmSyncLoadValues();
+  _pmmLoadId++;
+  _pmmLoads.push({ id: _pmmLoadId, label: `LC${_pmmLoadId}`, P: '', Mx: '', My: '' });
+  pmmRenderLoadsRows();
+  // Scroll to bottom and focus new row label
+  const wrap = document.getElementById('pmm-loads-table-wrap');
+  if (wrap) wrap.scrollTop = wrap.scrollHeight;
+  setTimeout(() => {
+    const rows = document.querySelectorAll('#pmm-loads-tbody tr');
+    rows[rows.length - 1]?.querySelector('.ld-label')?.focus();
+  }, 30);
+}
+
+function pmmDeleteLoad(id) {
+  pmmSyncLoadValues();
+  _pmmLoads = _pmmLoads.filter(l => l.id !== id);
+  pmmRenderLoadsRows();
+}
+
+function pmmCopyLoadsToClipboard() {
+  pmmSyncLoadValues();
+  const header = ['Label', 'P (kN)', 'Mx (kN·m)', 'My (kN·m)', 'DCR (%)', 'Status'];
+  const rows = _pmmLoads
+    .filter(l => l.P !== '' || l.Mx !== '' || l.My !== '')
+    .map(l => [
+      l.label,
+      l.P  !== '' ? l.P  : 0,
+      l.Mx !== '' ? l.Mx : 0,
+      l.My !== '' ? l.My : 0,
+      l.DCR  != null ? Math.round(parseFloat(l.DCR) * 100) : '',
+      l.status != null ? l.status : ''
+    ]);
+  if (rows.length === 0) { alert('No load data to copy.'); return; }
+  const tsv = [header, ...rows].map(r => r.join('\t')).join('\n');
+  navigator.clipboard.writeText(tsv).then(() => {
+    const btn = document.querySelector('.pmm-loads-btn-copy');
+    if (btn) { btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = '📋 Copy'; }, 1500); }
+  }).catch(() => {
+    // fallback for older browsers
+    const ta = document.createElement('textarea');
+    ta.value = tsv; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    const btn = document.querySelector('.pmm-loads-btn-copy');
+    if (btn) { btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = '📋 Copy'; }, 1500); }
+  });
+}
+
+async function pmmExportReport() {
+  if (!_pmmResult || !_pmmPayload) {
+    alert('Generate the PMM diagram first before exporting.');
+    return;
+  }
+  const btn = document.querySelector('.pmm-loads-btn-export');
+  if (btn) { btn.textContent = '⏳ Exporting…'; btn.disabled = true; }
+
+  try {
+    // Capture chart images as base64 PNG
+    async function chartImage(id) {
+      const el = document.getElementById(id);
+      if (!el || !el._fullLayout) return '';
+      try { return await Plotly.toImage(el, { format: 'png', width: 800, height: 500 }); }
+      catch { return ''; }
+    }
+
+    pmmSyncLoadValues();
+
+    const [img3d, imgPmx, imgPmy] = await Promise.all([
+      chartImage('pmm-chart-3d'),
+      chartImage('pmm-chart-pmx'),
+      chartImage('pmm-chart-pmy'),
+    ]);
+
+    // Build result summary from cached result
+    const summary = {
+      Pmax:    _pmmResult.Pmax    ?? '–',
+      Pmin:    _pmmResult.Pmin    ?? '–',
+      Ast:     _pmmResult.Ast     ?? '–',
+      rho_pct: _pmmResult.rho_pct ?? '–',
+    };
+
+    const res = await fetch('/api/pmm/export-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken()}` },
+      body: JSON.stringify({
+        payload:        _pmmPayload,
+        loads:          _pmmLoads,
+        result_summary: summary,
+        chart_3d:       img3d,
+        chart_pmx:      imgPmx,
+        chart_pmy:      imgPmy,
+      }),
+    });
+
+    if (!res.ok) {
+      let msg = `Export failed (HTTP ${res.status})`;
+      try { const e = await res.json(); msg = e.detail || msg; } catch {}
+      throw new Error(msg);
+    }
+
+    // Trigger download
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const cd = res.headers.get('Content-Disposition') || '';
+    const fnMatch = cd.match(/filename="([^"]+)"/);
+    a.download = fnMatch ? fnMatch[1] : 'PMM_Report.docx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert(`Export failed: ${err.message}`);
+  } finally {
+    if (btn) { btn.textContent = '📄 Export'; btn.disabled = false; }
+  }
+}
+
+// ── Tab switcher ──────────────────────────────────────────────
+function pmmSwitchTab(tab) {
+  const manual = document.getElementById('pmm-loads-manual-panel');
+  const etabs  = document.getElementById('pmm-loads-etabs-panel');
+  const tabMan = document.getElementById('tab-manual');
+  const tabEtabs = document.getElementById('tab-etabs');
+  const btnAdd  = document.getElementById('btn-add-row');
+  const btnCopy = document.querySelector('.pmm-loads-btn-copy');
+  const btnCheck = document.getElementById('btn-pmm-check');
+  if (tab === 'manual') {
+    manual?.classList.remove('hidden');
+    etabs?.classList.add('hidden');
+    tabMan?.classList.add('active');
+    tabEtabs?.classList.remove('active');
+    if (btnAdd)  btnAdd.style.display  = '';
+    if (btnCopy) btnCopy.style.display = '';
+    if (btnCheck) btnCheck.style.display = '';
+  } else {
+    manual?.classList.add('hidden');
+    etabs?.classList.remove('hidden');
+    tabMan?.classList.remove('active');
+    tabEtabs?.classList.add('active');
+    if (btnAdd)  btnAdd.style.display  = 'none';
+    if (btnCopy) btnCopy.style.display = 'none';
+    if (btnCheck) btnCheck.style.display = 'none';
+  }
+}
+
+// ── ETABS Import ───────────────────────────────────────────────
+// ── ETABS combo prefix detection & grouping ──────────────────────────────────
+function _etabsPrefix(name) {
+  const m = name.match(/^([A-Za-z]+)/);
+  return m ? m[1] : 'Other';
+}
+
+function _etabsGroupItems(items) {
+  const map = {}, order = [];
+  items.forEach(name => {
+    const p = _etabsPrefix(name);
+    if (!map[p]) { map[p] = []; order.push(p); }
+    map[p].push(name);
+  });
+  return order.map(p => ({ prefix: p, items: map[p] }));
+}
+
+function pmmEtabsRenderGroups(items) {
+  const wrap = document.getElementById('pmm-etabs-combos-wrap');
+  if (!wrap) return;
+  const groups = _etabsGroupItems(items);
+  wrap.innerHTML = groups.map(g => `
+    <div class="pmm-group" data-group="${g.prefix}">
+      <div class="pmm-group-header" onclick="pmmEtabsToggleGroup('${g.prefix}')">
+        <input type="checkbox" class="pmm-group-cb" data-group="${g.prefix}" checked
+               onclick="event.stopPropagation()"
+               onchange="pmmEtabsGroupCheck('${g.prefix}', this.checked)">
+        <span class="pmm-group-name">${g.prefix}</span>
+        <span class="pmm-group-count">(${g.items.length})</span>
+        <span class="pmm-group-arrow">▼</span>
+      </div>
+      <div class="pmm-group-items">
+        ${g.items.map(name => `
+          <label class="pmm-etabs-combo-item">
+            <input type="checkbox" class="pmm-etabs-cb" value="${name}" checked
+                   data-group="${g.prefix}"
+                   onchange="pmmEtabsUpdateGroupState('${g.prefix}')">
+            <span>${name}</span>
+          </label>`).join('')}
+      </div>
+    </div>`).join('');
+  pmmEtabsUpdateCount();
+}
+
+function pmmEtabsToggleGroup(prefix) {
+  const grp = document.querySelector(`.pmm-group[data-group="${prefix}"]`);
+  if (!grp) return;
+  const collapsed = grp.classList.toggle('collapsed');
+  const arrow = grp.querySelector('.pmm-group-arrow');
+  if (arrow) arrow.textContent = collapsed ? '▶' : '▼';
+}
+
+function pmmEtabsGroupCheck(prefix, checked) {
+  document.querySelectorAll(`.pmm-etabs-cb[data-group="${prefix}"]`)
+    .forEach(cb => cb.checked = checked);
+  pmmEtabsUpdateCount();
+}
+
+function pmmEtabsUpdateGroupState(prefix) {
+  const cbs = [...document.querySelectorAll(`.pmm-etabs-cb[data-group="${prefix}"]`)];
+  const gcb = document.querySelector(`.pmm-group-cb[data-group="${prefix}"]`);
+  if (!gcb) return;
+  const n = cbs.filter(cb => cb.checked).length;
+  gcb.indeterminate = n > 0 && n < cbs.length;
+  gcb.checked = n === cbs.length;
+  pmmEtabsUpdateCount();
+}
+
+async function pmmEtabsFetchCombos() {
+  const wrap = document.getElementById('pmm-etabs-combos-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<div class="pmm-etabs-combo-hint">Loading from ETABS…</div>';
+  try {
+    const res = await fetch('/api/pmm/etabs-combos', {
+      headers: { Authorization: `Bearer ${authToken()}` }
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed'); }
+    const data = await res.json();
+    const type = document.querySelector('input[name="pmm-etabs-type"]:checked')?.value || 'combo';
+    const items = type === 'case' ? data.cases : data.combinations;
+    if (!items || items.length === 0) {
+      wrap.innerHTML = '<div class="pmm-etabs-combo-hint">No items found in ETABS model.</div>';
+      return;
+    }
+    const srch = document.getElementById('pmm-etabs-search');
+    if (srch) srch.value = '';
+    pmmEtabsRenderGroups(items);
+  } catch (err) {
+    wrap.innerHTML = `<div class="pmm-etabs-combo-hint" style="color:#f66">${err.message}</div>`;
+  }
+}
+
+function pmmEtabsSelectAll(check) {
+  document.querySelectorAll('.pmm-etabs-cb').forEach(cb => cb.checked = check);
+  document.querySelectorAll('.pmm-group-cb').forEach(cb => {
+    cb.checked = check; cb.indeterminate = false;
+  });
+  pmmEtabsUpdateCount();
+}
+
+function pmmEtabsSelectFiltered(check) {
+  // Check/uncheck only visible items
+  document.querySelectorAll('.pmm-group:not(.hidden)').forEach(grp => {
+    grp.querySelectorAll('.pmm-etabs-combo-item:not(.hidden) .pmm-etabs-cb')
+       .forEach(cb => cb.checked = check);
+    pmmEtabsUpdateGroupState(grp.dataset.group);
+  });
+  pmmEtabsUpdateCount();
+}
+
+function pmmEtabsFilter() {
+  const q = (document.getElementById('pmm-etabs-search')?.value || '').toLowerCase();
+  document.querySelectorAll('.pmm-group').forEach(grp => {
+    let anyVisible = false;
+    grp.querySelectorAll('.pmm-etabs-combo-item').forEach(item => {
+      const name = item.querySelector('span')?.textContent?.toLowerCase() || '';
+      const show = !q || name.includes(q);
+      item.classList.toggle('hidden', !show);
+      if (show) anyVisible = true;
+    });
+    grp.classList.toggle('hidden', !anyVisible);
+    // Auto-expand groups that have matches when filtering
+    if (q && anyVisible) {
+      grp.classList.remove('collapsed');
+      const arrow = grp.querySelector('.pmm-group-arrow');
+      if (arrow) arrow.textContent = '▼';
+    }
+  });
+  pmmEtabsUpdateCount();
+}
+
+function pmmEtabsUpdateCount() {
+  const total   = document.querySelectorAll('.pmm-etabs-cb').length;
+  const checked = document.querySelectorAll('.pmm-etabs-cb:checked').length;
+  const countEl = document.getElementById('pmm-etabs-count');
+  if (countEl && total > 0) countEl.textContent = `${checked} / ${total} selected`;
+}
+
+async function pmmEtabsImport() {
+  const note = document.getElementById('pmm-etabs-note');
+  const btn  = document.getElementById('btn-etabs-import');
+  const checked = [...document.querySelectorAll('.pmm-etabs-cb:checked')].map(cb => cb.value);
+  if (checked.length === 0) {
+    if (note) { note.textContent = '⚠ Select at least one combination.'; note.style.color = '#f90'; }
+    return;
+  }
+  const loadType = document.querySelector('input[name="pmm-etabs-type"]:checked')?.value || 'combo';
+  if (btn) { btn.textContent = '⏳ Importing…'; btn.disabled = true; }
+  if (note) { note.textContent = ''; }
+  try {
+    const res = await fetch('/api/pmm/etabs-import-forces', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken()}` },
+      body: JSON.stringify({ combo_names: checked, load_type: loadType })
+    });
+    if (!res.ok) {
+      let errMsg = `Import failed (HTTP ${res.status})`;
+      try { const e = await res.json(); errMsg = e.detail || errMsg; } catch {}
+      throw new Error(errMsg);
+    }
+    const data = await res.json();
+    const rows = data.results || [];
+    if (rows.length === 0) { throw new Error('No force data returned. Ensure columns are selected in ETABS.'); }
+
+    // Clear existing loads before importing fresh from ETABS
+    _pmmLoads = [];
+    _pmmLoadId = 0;
+    rows.forEach(r => {
+      _pmmLoadId++;
+      _pmmLoads.push({
+        id:    _pmmLoadId,
+        label: r.label,
+        P:     r.P_kN,
+        Mx:    r.M3_kNm,   // M3 = strong-axis moment → Mx in PMM
+        My:    r.M2_kNm,   // M2 = weak-axis moment   → My in PMM
+      });
+    });
+    // Ensure at least a few blank rows remain for manual additions
+    if (_pmmLoads.length < 3) {
+      for (let i = _pmmLoads.length; i < 3; i++) {
+        _pmmLoadId++;
+        _pmmLoads.push({ id: _pmmLoadId, label: `LC${_pmmLoadId}`, P: '', Mx: '', My: '' });
+      }
+    }
+
+    // Switch back to Manual tab to show imported rows
+    pmmSwitchTab('manual');
+    pmmRenderLoadsRows();
+    pmmPopulateMxMyPDropdown();
+    document.getElementById('pmm-loads-note').textContent =
+      `✓ ${rows.length} load(s) imported from ETABS. Click ⚡ Check DCR to evaluate.`;
+    if (note) note.textContent = '';
+  } catch (err) {
+    if (note) { note.textContent = `⚠ ${err.message}`; note.style.color = '#f66'; }
+  } finally {
+    if (btn) { btn.textContent = '⬇ Import Selected Members'; btn.disabled = false; }
+  }
+}
+
+function pmmSyncLoadValues() {
+  _pmmLoads.forEach(l => {
+    const row = document.querySelector(`tr[data-load-id="${l.id}"]`);
+    if (!row) return;
+    l.label = row.querySelector('.ld-label')?.value ?? l.label;
+    const pv  = row.querySelector('.ld-P')?.value;
+    const mxv = row.querySelector('.ld-Mx')?.value;
+    const myv = row.querySelector('.ld-My')?.value;
+    l.P  = pv  !== '' ? (parseFloat(pv)  || 0) : '';
+    l.Mx = mxv !== '' ? (parseFloat(mxv) || 0) : '';
+    l.My = myv !== '' ? (parseFloat(myv) || 0) : '';
+  });
+}
+
+// Paste from Excel: Tab-separated columns, newline-separated rows
+function pmmHandlePaste(e, loadId, fieldName) {
+  const raw = (e.clipboardData || window.clipboardData).getData('text/plain');
+  if (!raw) return;
+  // Let normal single-value paste through
+  if (!raw.includes('\t') && !raw.includes('\n') && !raw.includes('\r')) return;
+  e.preventDefault();
+  pmmSyncLoadValues();
+
+  const rows = raw.trim().split(/\r?\n/).map(r => r.split('\t'));
+  const allFields = ['label', 'P', 'Mx', 'My'];
+  const startFi   = Math.max(0, allFields.indexOf(fieldName));
+  const startLi   = Math.max(0, _pmmLoads.findIndex(l => l.id === loadId));
+
+  rows.forEach((cols, ri) => {
+    const li = startLi + ri;
+    // Grow list if needed
+    while (_pmmLoads.length <= li) {
+      _pmmLoadId++;
+      _pmmLoads.push({ id: _pmmLoadId, label: `LC${_pmmLoadId}`, P: '', Mx: '', My: '' });
+    }
+    const load = _pmmLoads[li];
+    // Clear stale DCR when data changes
+    delete load.DCR; delete load.status;
+    cols.forEach((val, ci) => {
+      const fi = startFi + ci;
+      if (fi >= allFields.length) return;
+      const f = allFields[fi];
+      const v = val.trim().replace(',', '.');  // handle European decimals
+      if (f === 'label') { load.label = v || load.label; }
+      else {
+        const n = parseFloat(v);
+        load[f] = isNaN(n) ? '' : n;
+      }
+    });
+  });
+  pmmRenderLoadsRows();
+}
+
+function pmmRenderLoadsRows() {
+  const tbody = document.getElementById('pmm-loads-tbody');
+  if (!tbody) return;
+  _pmmUpdateSortHeaders();
+  tbody.innerHTML = _pmmSortedLoads().map((l, idx) => {
+    let dcrCell = '<span style="color:var(--t3)">–</span>';
+    if (l.DCR != null) {
+      const dv = parseFloat(l.DCR);
+      let bg = '#00D9D9', fg = '#000';
+      if      (dv > 1.0) { bg = '#CC0000'; fg = '#fff'; }
+      else if (dv > 0.8) { bg = '#FF0080'; fg = '#fff'; }
+      else if (dv > 0.6) { bg = '#FF8800'; fg = '#fff'; }
+      else if (dv > 0.4) { bg = '#FFFF00'; fg = '#333'; }
+      else if (dv > 0.2) { bg = '#00CC00'; fg = '#000'; }
+      dcrCell = `<span class="pmm-dcr-chip" style="background:${bg};color:${fg}">${Math.round(dv*100)}%</span>`;
+    }
+    const stCell = l.status
+      ? `<span class="${l.status==='PASS'?'pmm-st-pass':'pmm-st-fail'}">${l.status}</span>`
+      : '<span style="color:var(--t3)">–</span>';
+    const pVal  = l.P  !== '' ? l.P  : '';
+    const mxVal = l.Mx !== '' ? l.Mx : '';
+    const myVal = l.My !== '' ? l.My : '';
+    return `<tr data-load-id="${l.id}">
+      <td><span class="ld-rownum">${idx + 1}</span></td>
+      <td><input class="ld-label" type="text"   value="${l.label}"
+            onpaste="pmmHandlePaste(event,${l.id},'label')"
+            onchange="pmmClearRowDCR(${l.id})" /></td>
+      <td><input class="ld-P"     type="number" value="${pVal}"  step="any" placeholder="0"
+            onpaste="pmmHandlePaste(event,${l.id},'P')"
+            onchange="pmmClearRowDCR(${l.id})" /></td>
+      <td><input class="ld-Mx"    type="number" value="${mxVal}" step="any" placeholder="0"
+            onpaste="pmmHandlePaste(event,${l.id},'Mx')"
+            onchange="pmmClearRowDCR(${l.id})" /></td>
+      <td><input class="ld-My"    type="number" value="${myVal}" step="any" placeholder="0"
+            onpaste="pmmHandlePaste(event,${l.id},'My')"
+            onchange="pmmClearRowDCR(${l.id})" /></td>
+      <td class="td-num">${l.M_demand  != null ? (+l.M_demand ).toFixed(1) : '–'}</td>
+      <td class="td-num">${l.M_cap    != null ? (+l.M_cap   ).toFixed(1) : '–'}</td>
+      <td class="td-num">${l.alpha_deg != null ? (+l.alpha_deg).toFixed(1) : '–'}</td>
+      <td class="td-dcr">${dcrCell}</td>
+      <td class="td-st">${stCell}</td>
+      <td><button class="pmm-del" title="Delete row" onclick="pmmDeleteLoad(${l.id})">×</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function pmmSortLoads(col) {
+  if (_pmmSortCol === col) {
+    _pmmSortDir *= -1;           // toggle direction
+  } else {
+    _pmmSortCol = col;
+    _pmmSortDir = 1;             // new column → start ascending
+  }
+  pmmSyncLoadValues();
+  pmmRenderLoadsRows();
+  pmmApplyLoadsFilter();
+}
+
+function _pmmSortedLoads() {
+  if (!_pmmSortCol) return _pmmLoads;
+  const col = _pmmSortCol, dir = _pmmSortDir;
+  return [..._pmmLoads].sort((a, b) => {
+    let av = a[col], bv = b[col];
+    if (col === 'label') return dir * String(av ?? '').localeCompare(String(bv ?? ''));
+    av = av === '' || av == null ? null : parseFloat(av);
+    bv = bv === '' || bv == null ? null : parseFloat(bv);
+    if (av == null && bv == null) return 0;
+    if (av == null) return 1;   // blanks to bottom
+    if (bv == null) return -1;
+    return dir * (av - bv);
+  });
+}
+
+function _pmmUpdateSortHeaders() {
+  ['label','P','Mx','My','DCR'].forEach(col => {
+    const th = document.getElementById(`sth-${col}`);
+    if (!th) return;
+    // strip old indicator
+    th.textContent = th.textContent.replace(/\s*[▲▼↑↓]$/, '');
+    if (_pmmSortCol === col) th.textContent += _pmmSortDir === 1 ? ' ▲' : ' ▼';
+  });
+}
+
+function pmmApplyLoadsFilter() {
+  const label  = (document.getElementById('flt-label')?.value  || '').toLowerCase();
+  const minP   = document.getElementById('flt-p')?.value;
+  const minMx  = document.getElementById('flt-mx')?.value;
+  const minMy  = document.getElementById('flt-my')?.value;
+  const minDcr = document.getElementById('flt-dcr')?.value;
+  const status = document.getElementById('flt-status')?.value || '';
+
+  document.querySelectorAll('#pmm-loads-tbody tr').forEach(row => {
+    const lbl  = (row.querySelector('.ld-label')?.value || '').toLowerCase();
+    const p    = parseFloat(row.querySelector('.ld-P')?.value  || '');
+    const mx   = parseFloat(row.querySelector('.ld-Mx')?.value || '');
+    const my   = parseFloat(row.querySelector('.ld-My')?.value || '');
+    const chip = row.querySelector('.pmm-dcr-chip');
+    const dcr  = chip ? parseFloat(chip.textContent) : NaN;
+    const st   = row.querySelector('.pmm-st-pass, .pmm-st-fail')?.textContent || '';
+
+    let show = true;
+    if (label  && !lbl.includes(label))               show = false;
+    if (minP   !== '' && !isNaN(p)   && p   < parseFloat(minP))  show = false;
+    if (minMx  !== '' && !isNaN(mx)  && mx  < parseFloat(minMx)) show = false;
+    if (minMy  !== '' && !isNaN(my)  && my  < parseFloat(minMy)) show = false;
+    if (minDcr !== '' && !isNaN(dcr) && dcr < parseFloat(minDcr)) show = false;
+    if (status && st !== status)                       show = false;
+
+    row.style.display = show ? '' : 'none';
+  });
+}
+
+function pmmClearRowDCR(id) {
+  const l = _pmmLoads.find(x => x.id === id);
+  if (l) { delete l.DCR; delete l.status; delete l.M_cap; delete l.M_demand; delete l.alpha_deg; }
+}
+
+async function pmmCheckLoads() {
+  if (!_pmmResult) {
+    const note = document.getElementById('pmm-loads-note');
+    if (note) note.textContent = '⚠ Generate the PMM diagram first, then click Check DCR.';
+    return;
+  }
+  pmmSyncLoadValues();
+  // Only send rows that have at least a P value entered
+  const activeDemands = _pmmLoads.filter(l => l.P !== '');
+  if (!activeDemands.length) {
+    const note = document.getElementById('pmm-loads-note');
+    if (note) note.textContent = '⚠ Enter at least one load (P value required).';
+    return;
+  }
+  const btn = document.getElementById('btn-pmm-check');
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    const res = await authFetch('/api/pmm/check', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ demands: activeDemands.map(l => ({
+        label: l.label, P: -(+l.P), Mx: +(l.Mx || 0), My: +(l.My || 0)
+      })) }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Check failed');
+    // Map results back — preserve user-entered P (ETABS sign: compression = negative)
+    data.results.forEach((r, i) => {
+      const load = activeDemands[i];
+      if (load) { load.M_demand = r.M_demand; load.alpha_deg = r.alpha_deg;
+                  load.M_cap = r.M_cap; load.DCR = r.DCR; load.status = r.status; }
+    });
+    // Replace engine DCR with boundary-based DCR (each demand at its own P level)
+    pmmUpdateDCRFromBoundary(activeDemands);
+    pmmPopulateMxMyPDropdown();
+    pmmRenderLoadsRows();
+    const checkedLoads = activeDemands.filter(l => l.status);
+    pmmRender3D(_pmmResult, _pmmPayload, checkedLoads);
+    pmmRender2D(_pmmResult, 'pmx', 'P–Mx', 'Mx', _pmmPayload, checkedLoads);
+    pmmRender2D(_pmmResult, 'pmy', 'P–My', 'My', _pmmPayload, checkedLoads);
+    const note = document.getElementById('pmm-loads-note');
+    const nFail = checkedLoads.filter(l => l.status === 'FAIL').length;
+    if (note) note.textContent = nFail > 0
+      ? `⚠ ${nFail} load(s) FAIL. Review DCR column.`
+      : `✓ All ${checkedLoads.length} load(s) PASS.`;
+  } catch(e) {
+    alert('Check error: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⚡ Check DCR'; }
+  }
+}
+
+// ── PMM Design Optimizer ─────────────────────────────────────────────────────
+
+async function pmmOptimize() {
+  if (!_pmmResult) { alert('Generate diagram first.'); return; }
+  pmmSyncLoadValues();
+  const activeDemands = _pmmLoads.filter(l => l.P !== '');
+  if (!activeDemands.length) { alert('Enter at least one demand load (P value required).'); return; }
+
+  const btn      = document.getElementById('btn-pmm-optimize');
+  const resultEl = document.getElementById('pmm-opt-result');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Optimizing…'; }
+  if (resultEl) resultEl.classList.add('hidden');
+
+  try {
+    const targetDCR = (parseFloat(document.getElementById('pmm-opt-dcr')?.value)    || 90)  / 100;
+    const maxRho    = (parseFloat(document.getElementById('pmm-opt-maxrho')?.value) || 4.0);
+
+    const body = {
+      b_mm:        parseFloat(document.getElementById('pmm-b').value),
+      h_mm:        parseFloat(document.getElementById('pmm-h').value),
+      fc_mpa:      parseFloat(document.getElementById('pmm-fc').value),
+      fy_mpa:      parseFloat(document.getElementById('pmm-fy').value),
+      Es_mpa:      parseFloat(document.getElementById('pmm-es').value) || 200000,
+      cover_mm:    parseFloat(document.getElementById('pmm-cover').value),
+      include_phi: document.getElementById('pmm-phi')?.checked ?? true,
+      bar_size:    document.getElementById('pmm-barsize')?.value || 'Ø20',
+      target_dcr:  targetDCR,
+      max_rho_pct: maxRho,
+      demands: activeDemands.map(l => ({ label: l.label, P: -(+l.P), Mx: +(l.Mx||0), My: +(l.My||0) })),
+    };
+
+    const res  = await authFetch('/api/pmm/optimize', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Optimization failed');
+
+    // ── Min clear spacing (ACI §25.8.1) ──────────────────────────────────
+    const minOk  = data.min_clear_mm >= data.min_clear_req;
+    const minCol = minOk ? '#4ade80' : '#f97316';
+
+    // ── Max clear spacing (ACI §25.7.2.3) — all faces ────────────────────
+    const maxOk  = data.max_clear_mm <= (data.max_clear_req ?? 150);
+    const maxCol = maxOk ? '#4ade80' : '#f97316';
+    const maxSpacingRow = `<div class="pmm-opt-row">
+         <span class="pmm-opt-lbl">Max spacing</span>
+         <strong style="color:${maxCol}">${maxOk?'✓':'⚠'} ${data.max_clear_mm} mm
+           <span class="pmm-opt-note">(ACI max ${data.max_clear_req ?? 150} mm)</span>
+         </strong>
+       </div>`;
+
+    // ── Target not achievable warning ─────────────────────────────────────
+    const targetNote = !data.target_met
+      ? `<div class="pmm-opt-grew">⚠ Target DCR not achievable with ${data.bar_size} at ρ ≤ ${maxRho}%. Showing max-capacity arrangement.</div>`
+      : '';
+
+    resultEl.innerHTML = `
+      <div class="pmm-opt-title">✦ Optimal Design</div>
+      <div class="pmm-opt-row">
+        <span class="pmm-opt-lbl">Arrangement</span>
+        <strong>${data.arrangement}</strong>
+      </div>
+      <div class="pmm-opt-row">
+        <span class="pmm-opt-lbl">Bar size</span>
+        <strong>${data.bar_size}</strong>
+      </div>
+      <div class="pmm-opt-row">
+        <span class="pmm-opt-lbl">ρ</span>
+        <strong>${data.rho_pct}%</strong>
+      </div>
+      <div class="pmm-opt-row">
+        <span class="pmm-opt-lbl">Min spacing</span>
+        <strong style="color:${minCol}">${minOk?'✓':'⚠'} ${data.min_clear_mm} mm
+          <span class="pmm-opt-note">(ACI min ${data.min_clear_req} mm)</span>
+        </strong>
+      </div>
+      ${maxSpacingRow}
+      <div class="pmm-opt-row">
+        <span class="pmm-opt-lbl">Achieved DCR</span>
+        <strong class="pmm-opt-dcr-val">${Math.round(data.achieved_dcr)}%</strong>
+      </div>
+      ${targetNote}
+      <button class="pmm-opt-apply-btn"
+        onclick="pmmApplyOptimized(${data.b_mm},${data.h_mm},'${data.bar_size}',${data.nbars_b},${data.nbars_h})">
+        ✓ Apply to Section
+      </button>`;
+    resultEl.classList.remove('hidden');
+
+  } catch(e) {
+    alert('Optimize error: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⚡ Optimize'; }
+  }
+}
+
+async function pmmApplyOptimized(b, h, barSize, nbarsB, nbarsH) {
+  // 1. Update section inputs
+  document.getElementById('pmm-b').value = b;
+  document.getElementById('pmm-h').value = h;
+  if (nbarsB != null) document.getElementById('pmm-nbars-b').value = nbarsB;
+  if (nbarsH != null) document.getElementById('pmm-nbars-h').value = nbarsH;
+  const sel = document.getElementById('pmm-barsize');
+  if (sel) {
+    for (const opt of sel.options) {
+      if (opt.value === barSize) { sel.value = barSize; break; }
+    }
+  }
+
+  // 2. Refresh ρ info and section preview immediately
+  pmmUpdateRhoInfo();
+  pmmDrawSection();
+
+  // 3. Hide the result card
+  document.getElementById('pmm-opt-result')?.classList.add('hidden');
+
+  // 4. Generate diagram with the updated section
+  await pmmGenerate();
+
+  // 5. Auto-check loads so DCR badges refresh straight away
+  if (_pmmLoads.length > 0) {
+    await pmmCheckLoads();
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-cleaner-browse')?.addEventListener('click', cleanerBrowse);
   document.getElementById('btn-cleaner-scan')?.addEventListener('click', cleanerScan);
@@ -4113,4 +5935,5 @@ document.addEventListener('DOMContentLoaded', () => {
     const hidden = list.classList.toggle('hidden');
     btn.textContent = hidden ? 'Show files' : 'Hide files';
   });
+  pmmInit();
 });
