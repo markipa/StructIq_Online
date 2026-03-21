@@ -1324,6 +1324,140 @@ def write_rc_column_sections(sections_list: list):
             "error_count": error_count, "errors": errors}
 
 
+def _to_kN(force: float, unit_code: int) -> float:
+    """Convert force from ETABS present units to kN.
+    ETABS eUnits: 1=lb_in 2=lb_ft 3=kip_in 4=kip_ft
+                  5=kN_mm 6=kN_m  7=kgf_mm 8=kgf_m
+                  9=N_mm  10=N_m  11=Ton_mm 12=Ton_m
+    """
+    if unit_code in (1, 2):   return force * 0.00444822   # lb → kN
+    if unit_code in (3, 4):   return force * 4.44822      # kip → kN
+    if unit_code in (5, 6):   return force                # kN_mm / kN_m: already kN
+    if unit_code in (7, 8):   return force * 0.00980665   # kgf → kN
+    if unit_code in (9, 10):  return force * 0.001        # N → kN
+    if unit_code in (11, 12): return force * 9.80665      # metric ton-force → kN
+    return force
+
+
+def _to_kNm(moment: float, unit_code: int) -> float:
+    """Convert moment from ETABS present units to kN·m.
+    ETABS eUnits: 1=lb_in 2=lb_ft 3=kip_in 4=kip_ft
+                  5=kN_mm 6=kN_m  7=kgf_mm 8=kgf_m
+                  9=N_mm  10=N_m  11=Ton_mm 12=Ton_m
+    """
+    if unit_code == 1:    return moment * 0.000112985   # lb·in   → kN·m
+    if unit_code == 2:    return moment * 0.00135582    # lb·ft   → kN·m
+    if unit_code == 3:    return moment * 0.112985      # kip·in  → kN·m
+    if unit_code == 4:    return moment * 1.35582       # kip·ft  → kN·m
+    if unit_code == 5:    return moment * 0.001         # kN·mm   → kN·m
+    if unit_code == 6:    return moment                 # kN·m    → kN·m
+    if unit_code == 7:    return moment * 9.80665e-6    # kgf·mm  → kN·m
+    if unit_code == 8:    return moment * 0.00980665    # kgf·m   → kN·m
+    if unit_code == 9:    return moment * 1e-6          # N·mm    → kN·m
+    if unit_code == 10:   return moment * 0.001         # N·m     → kN·m
+    if unit_code == 11:   return moment * 0.00980665    # Ton·mm  → kN·m  (1 t·mm = 9.80665 kN·mm = 9.80665e-3 kN·m)
+    if unit_code == 12:   return moment * 9.80665       # Ton·m   → kN·m
+    return moment
+
+
+def get_etabs_combos():
+    """Return all load combinations and load cases from the active ETABS model."""
+    SapModel = get_active_etabs()
+    if not SapModel:
+        return {"error": "ETABS is not currently running."}
+    try:
+        combo_ret = SapModel.RespCombo.GetNameList()
+        combos = list(combo_ret[1]) if combo_ret and int(combo_ret[-1]) == 0 else []
+        case_ret = SapModel.LoadCases.GetNameList()
+        cases = [c for c in list(case_ret[1]) if not c.startswith("~")] \
+                if case_ret and int(case_ret[-1]) == 0 else []
+        return {"status": "success", "combinations": combos, "cases": cases}
+    except Exception as e:
+        return {"error": f"Failed to get load combinations: {str(e)}"}
+
+
+def get_etabs_frame_forces(combo_names: list, load_type: str = "combo"):
+    """
+    Get frame forces for currently selected frame objects in ETABS,
+    for the specified load combinations or load cases.
+    Returns {results: [{label, P_kN, M3_kNm, M2_kNm}, ...]}
+    P sign: ETABS compression = negative P; we negate so PMM receives positive compression.
+    """
+    SapModel = get_active_etabs()
+    if not SapModel:
+        return {"error": "ETABS is not currently running."}
+    # Frame force results are returned in the PRESENT units, not database units
+    try:
+        unit_code = SapModel.GetPresentUnits()
+    except Exception:
+        unit_code = 6  # assume kN-m
+
+    try:
+        # --- 1. Get selected frame objects ---
+        sel_ret = SapModel.SelectObj.GetSelected()
+        # Returns: (count, type_array, name_array, retcode)
+        if not sel_ret or int(sel_ret[-1]) != 0 or sel_ret[0] == 0:
+            return {"error": "No objects selected in ETABS. Please select columns first."}
+
+        obj_count = int(sel_ret[0])
+        obj_types = sel_ret[1]   # 1=point, 2=frame, 3=area, 4=solid, 5=link
+        obj_names = sel_ret[2]
+        frame_names = [obj_names[i] for i in range(obj_count) if int(obj_types[i]) == 2]
+
+        if not frame_names:
+            return {"error": "No frame objects selected. Please select columns in ETABS first."}
+
+        # --- 2. Set up output results ---
+        SapModel.Results.Setup.DeselectAllCasesAndCombosForOutput()
+        for name in combo_names:
+            if load_type == "case":
+                SapModel.Results.Setup.SetCaseSelectedForOutput(name, True)
+            else:
+                SapModel.Results.Setup.SetComboSelectedForOutput(name, True)
+
+        # --- 3. Loop frames and extract forces ---
+        results = []
+        for frame_name in frame_names:
+            # eItemType=0 means Object (frame by name)
+            ret = SapModel.Results.FrameForce(frame_name, 0)
+            # ret = (NumberResults, Obj, ObjSta, Elm, ElmSta, LoadCase,
+            #         StepType, StepNum, P, V2, V3, T, M2, M3, retcode)
+            if not ret or int(ret[-1]) != 0 or int(ret[0]) == 0:
+                continue
+
+            n        = int(ret[0])
+            stations = ret[2]   # station positions along element
+            lc_names = ret[5]   # LoadCase label per result row
+            P_raw    = ret[8]   # axial force (ETABS: compression = negative)
+            M2_raw   = ret[12]  # weak-axis moment
+            M3_raw   = ret[13]  # strong-axis moment
+
+            # Group by load case, pick the station with maximum |P|
+            best: dict = {}
+            for i in range(n):
+                lc = lc_names[i]
+                if lc not in best or abs(P_raw[i]) > abs(best[lc]["P"]):
+                    best[lc] = {"P": P_raw[i], "M2": M2_raw[i], "M3": M3_raw[i]}
+
+            for lc, forces in best.items():
+                P_kN   = _to_kN(forces["P"],  unit_code)
+                M3_kNm = _to_kNm(forces["M3"], unit_code)
+                M2_kNm = _to_kNm(forces["M2"], unit_code)
+                results.append({
+                    "label":   f"{frame_name}/{lc}",
+                    "P_kN":    round(P_kN, 2),     # ETABS sign: compression = negative P
+                    "M3_kNm":  round(M3_kNm, 2),
+                    "M2_kNm":  round(M2_kNm, 2),
+                })
+
+        if not results:
+            return {"error": "No force results returned. Ensure selected frames have results for the chosen combinations."}
+
+        return {"status": "success", "results": results}
+    except Exception as e:
+        return {"error": f"Failed to get frame forces: {str(e)}"}
+
+
 def debug_rc_column_raw(section_name: str):
     """Return raw comtypes output for GetRectangle + GetRebarColumn on one section."""
     SapModel = get_active_etabs()
