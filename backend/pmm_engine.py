@@ -212,10 +212,13 @@ def _outer_envelope_curve(P_raw, Mx_raw, My_raw, n_out=None,
                 best_M2 = M2
                 best_mx = cMx
                 best_my = cMy
-        if best_M2 >= 0:
-            P_out.append(round(Pt,      2))
-            Mx_out.append(round(best_mx, 2))
-            My_out.append(round(best_my, 2))
+        # Always emit exactly n_out points so every meridian has the same length.
+        # When Pt is outside this meridian's P_raw range, best_M2 stays -1 and
+        # best_mx/best_my stay 0 — the zero-moment anchor is the correct value
+        # (pure tension / beyond compression limit → zero moment capacity).
+        P_out.append(round(Pt,       2))
+        Mx_out.append(round(best_mx, 2))
+        My_out.append(round(best_my, 2))
 
     return P_out, Mx_out, My_out
 
