@@ -1273,6 +1273,10 @@ def _boundary_dcr_py(surface_si: dict, num_points: int,
     n_total   = len(allP)
     num_alpha = round(n_total / num_points)
 
+    # Global P range — demands outside this range can never pass
+    global_Pmin = min(allP)
+    global_Pmax = max(allP)
+
     max_dcr = 0.0
     for d in demands_si:
         dx, dy = float(d['Mx']), float(d['My'])
@@ -1280,6 +1284,11 @@ def _boundary_dcr_py(surface_si: dict, num_points: int,
         if Md < 1e-9:
             continue
         Ptarget = float(d['P'])   # engine-sign: positive = compression
+
+        # Demand outside the surface's P range → impossible, treat as max DCR
+        if Ptarget < global_Pmin - 1e-6 or Ptarget > global_Pmax + 1e-6:
+            max_dcr = max(max_dcr, 999.0)
+            continue
 
         # ── Build boundary polygon at Ptarget ──────────────────────────
         bx: list = []
@@ -1352,8 +1361,8 @@ def _run_pmm_opt(b_in, h_in, fc_ksi, fy_ksi, Es_ksi, cover_in,
         areas, positions = rect_bars_grid(b_in, h_in, cover_in, nb, nh, bar_area_in2)
         sec = PMMSection(
             corner_coords=corners, fc=fc_ksi, fy=fy_ksi, Es=Es_ksi,
-            alpha_steps=10.0, num_points=120,   # matches UI "Fast (10°)" preset
-            include_phi=include_phi,
+            alpha_steps=5.0, num_points=225,   # matches UI "Normal (5°)" preset
+            include_phi=include_phi,            # same resolution as the display
             bar_areas=areas, bar_positions=positions,
         )
         result = compute_pmm(sec)
@@ -1368,7 +1377,7 @@ def _run_pmm_opt(b_in, h_in, fc_ksi, fy_ksi, Es_ksi, cover_in,
             'Mx': [v * _KIN_TO_KNM  for v in surf['Mx']],
             'My': [v * _KIN_TO_KNM  for v in surf['My']],
         }
-        return _boundary_dcr_py(surf_si, 120, demands_si)
+        return _boundary_dcr_py(surf_si, 225, demands_si)
 
     # Fallback: engine DCR (less conservative but avoids silent failure)
     for curve in result.get('alpha_data', {}).values():
