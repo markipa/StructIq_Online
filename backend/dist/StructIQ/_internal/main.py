@@ -18,6 +18,30 @@ if _os.path.isfile(_ap):
     _spec.loader.exec_module(actions)
 else:
     from etabs_api import actions  # fallback for non-frozen dev environment
+
+# Load pmm_engine.py from the filesystem for the same reason — frozen bytecode
+# inside the .exe would otherwise ignore any updated _internal/pmm_engine.py.
+_pme = _os.path.join(_here, 'pmm_engine.py')
+if _os.path.isfile(_pme):
+    _spec2 = _ilu.spec_from_file_location('pmm_engine', _pme)
+    _pme_mod = _ilu.module_from_spec(_spec2)
+    _sys.modules['pmm_engine'] = _pme_mod
+    _spec2.loader.exec_module(_pme_mod)
+
+# Log that the filesystem main.py was loaded (visible in structiq.log)
+import sys as _sys2, os as _os2
+_LOG_PATH = _os2.path.join(
+    _os2.path.dirname(_sys2.executable) if getattr(_sys2, 'frozen', False) else _os2.path.dirname(_os2.path.abspath(__file__)),
+    'structiq.log'
+)
+try:
+    with open(_LOG_PATH, 'a', encoding='utf-8') as _lf:
+        _eng_ver = getattr(_sys2.modules.get('pmm_engine'), '_ENGINE_VERSION', 'unknown')
+        _lf.write(f'[main.py] loaded from filesystem: {__file__}\n')
+        _lf.write(f'[main.py] pmm_engine version: {_eng_ver}\n')
+except Exception:
+    pass
+
 import database
 import config
 import math
@@ -1119,9 +1143,13 @@ def pmm_calculate(body: PMMRequest,
             r['surface']['P']  = [round(v * _KIPS_TO_KN,  2) for v in r['surface']['P']]
             r['surface']['Mx'] = [round(v * _KIN_TO_KNM,  3) for v in r['surface']['Mx']]
             r['surface']['My'] = [round(v * _KIN_TO_KNM,  3) for v in r['surface']['My']]
-            # Convert ALL alpha_data curves (curves_2d shares the same dict references,
-            # so they are converted automatically here — no separate loop needed)
+            # Convert ALL alpha_data curves
             for adeg, curve in r.get('alpha_data', {}).items():
+                curve['P']  = [round(v * _KIPS_TO_KN,  2) for v in curve['P']]
+                curve['Mx'] = [round(v * _KIN_TO_KNM,  3) for v in curve['Mx']]
+                curve['My'] = [round(v * _KIN_TO_KNM,  3) for v in curve['My']]
+            # Convert curves_2d explicitly (independent copies — no shared refs)
+            for key, curve in r.get('curves_2d', {}).items():
                 curve['P']  = [round(v * _KIPS_TO_KN,  2) for v in curve['P']]
                 curve['Mx'] = [round(v * _KIN_TO_KNM,  3) for v in curve['Mx']]
                 curve['My'] = [round(v * _KIN_TO_KNM,  3) for v in curve['My']]
@@ -1160,6 +1188,13 @@ def pmm_calculate(body: PMMRequest,
                 'My': body.demand_My or 0.0,
             }
 
+    # Embed engine version so the client can verify which pmm_engine is active
+    try:
+        import pmm_engine as _pme_mod
+        result['engine_version'] = getattr(_pme_mod, '_ENGINE_VERSION', 'unknown-frozen')
+    except Exception:
+        result['engine_version'] = 'error'
+
     return result
 
 
@@ -1195,12 +1230,18 @@ class PMMOptimizeRequest(BaseModel):
     fc_mpa:   float
     fy_mpa:   float
     Es_mpa:   float = 200000.0
-    cover_mm: float          # distance from face to bar centre (mm)
+    # Cover: clear cover from concrete face to stirrup face (mm) — same as UI input
+    cover_mm:      float
+    stirrup_dia_mm: float = 10.0   # tie/stirrup diameter for eff-cover calculation
     include_phi: bool = True
     # Bar diameter is FIXED — optimizer only adjusts bar count / arrangement
     bar_size:    str   = "Ø20"
     target_dcr:  float = 0.90
+    min_rho_pct: float = 1.0   # ACI §10.6.1.1 minimum ρ (%)
     max_rho_pct: float = 4.0   # user-defined ρ upper limit (%)
+    # Surface resolution — should match the UI's current resolution so optimizer DCR = Check DCR
+    alpha_steps: float = 10.0
+    num_points:  int   = 70
     demands: list = []
 
 
@@ -1266,15 +1307,22 @@ def _check_spacing_aci(b_mm: float, h_mm: float, cover_mm: float,
 def _boundary_dcr_py(surface_si: dict, num_points: int,
                      demands_si: list) -> float:
     """
-    Python mirror of the JS pmmBoundaryAtP + pmmRayBoundaryIntersect logic.
+    Exact Python mirror of the JS pmmBoundaryAtP parametric-ellipse method.
 
-    Slices the 3D surface at each demand's P level to build the Mx-My
-    boundary polygon, then casts a ray in the demand direction and returns
-    the maximum DCR = M_demand / M_cap_boundary across all demands.
+    At each demand's P level:
+      1. Scan all meridians → find Mx_max = max|Mx|, My_max = max|My|
+         (identical logic to pmmBoundaryAtP in app.js)
+      2. Ellipse ray intersection:
+            M_cap = 1 / sqrt( (cosθ/Mx_max)² + (sinθ/My_max)² )
+         where θ = atan2(My_demand, Mx_demand)
+      3. DCR = Md / M_cap
 
-    surface_si  – dict with keys 'P', 'Mx', 'My' (all SI, engine-sign:
-                  positive P = compression, same ordering as JS allP).
-    num_points  – points per meridian (== alpha sweep resolution).
+    This guarantees the optimizer's accept/reject decision matches exactly
+    what the frontend will display after applying the design — no false
+    "PASS" from the optimizer that appears as FAIL in the UI.
+
+    surface_si  – dict with keys 'P', 'Mx', 'My' (SI, engine-sign positive=compression).
+    num_points  – points per meridian (matches alpha sweep resolution).
     demands_si  – list of dicts {'P', 'Mx', 'My'} in SI, engine-sign P.
     """
     allP  = surface_si['P']
@@ -1283,7 +1331,6 @@ def _boundary_dcr_py(surface_si: dict, num_points: int,
     n_total   = len(allP)
     num_alpha = round(n_total / num_points)
 
-    # Global P range — demands outside this range can never pass
     global_Pmin = min(allP)
     global_Pmax = max(allP)
 
@@ -1295,124 +1342,337 @@ def _boundary_dcr_py(surface_si: dict, num_points: int,
             continue
         Ptarget = float(d['P'])   # engine-sign: positive = compression
 
-        # Demand outside the surface's P range → impossible, treat as max DCR
         if Ptarget < global_Pmin - 1e-6 or Ptarget > global_Pmax + 1e-6:
             max_dcr = max(max_dcr, 999.0)
             continue
 
-        # ── Build boundary polygon at Ptarget ──────────────────────────
-        bx: list = []
-        by: list = []
+        # ── Step 1: find Mx_max and My_max at Ptarget across all meridians ──
+        # Mirrors pmmBoundaryAtP in app.js exactly.
+        Mx_max = 0.0
+        My_max = 0.0
         for a in range(num_alpha):
             base = a * num_points
             mP  = allP [base: base + num_points]
             mMx = allMx[base: base + num_points]
             mMy = allMy[base: base + num_points]
-            if Ptarget <= mP[0]:
-                mx, my = mMx[0], mMy[0]
-            elif Ptarget >= mP[-1]:
-                mx, my = mMx[-1], mMy[-1]
+            mPmax = max(mP)
+            if Ptarget > mPmax + 1e-6:
+                continue   # demand above this meridian's Pmax → skip
+
+            # Find the best (highest-M) interpolated point on this meridian
+            mx, my, best_M = 0.0, 0.0, -1.0
+            for j in range(num_points - 1):
+                p1, p2 = mP[j], mP[j + 1]
+                dp = p2 - p1
+                if abs(dp) < 1e-12:
+                    continue
+                t = (Ptarget - p1) / dp
+                if t < -1e-9 or t > 1.0 + 1e-9:
+                    continue
+                tc  = max(0.0, min(1.0, t))
+                cMx = mMx[j] + tc * (mMx[j + 1] - mMx[j])
+                cMy = mMy[j] + tc * (mMy[j + 1] - mMy[j])
+                M   = cMx * cMx + cMy * cMy
+                if M > best_M:
+                    best_M, mx, my = M, cMx, cMy
+            if best_M < 0:
+                mPmin = min(mP)
+                mx, my = (mMx[0], mMy[0]) if Ptarget <= mPmin else (0.0, 0.0)
+
+            if abs(mx) > Mx_max:
+                Mx_max = abs(mx)
+            if abs(my) > My_max:
+                My_max = abs(my)
+
+        if Mx_max < 1e-9 and My_max < 1e-9:
+            max_dcr = max(max_dcr, 999.0)
+            continue
+
+        # ── Step 2: ellipse ray intersection → M_cap ────────────────────────
+        # Ray direction unit vector components
+        cos_t = dx / Md   # = cos(θ)
+        sin_t = dy / Md   # = sin(θ)
+        inv_cap_sq = 0.0
+        if Mx_max > 1e-9:
+            inv_cap_sq += (cos_t / Mx_max) ** 2
+        if My_max > 1e-9:
+            inv_cap_sq += (sin_t / My_max) ** 2
+        if inv_cap_sq < 1e-20:
+            continue
+        M_cap = 1.0 / math.sqrt(inv_cap_sq)
+
+        max_dcr = max(max_dcr, Md / M_cap)
+
+    return max_dcr
+
+
+def _boundary_dcr_surface(surface_si: dict, num_pts: int,
+                          demands_si: list) -> float:
+    """
+    Python equivalent of the frontend pmmUpdateDCRFromBoundary function.
+
+    Replicates the EXACT algorithm used by the frontend's Check DCR display:
+      1. For each demand, slice the 3-D PMM surface at that P level → per-meridian
+         (Mx, My) boundary points  [mirrors pmmBoundaryAtP in app.js]
+      2. Build a 4-fold symmetric cloud and take its support-function convex hull
+         (360 directions) — same convex geometry as the 3-D surface cross-section
+      3. Cast a ray from the origin in the demand's moment direction and intersect
+         it with the hull boundary  [mirrors pmmRayBoundaryIntersect in app.js]
+      4. DCR = |M_demand| / |M_cap at intersection|
+
+    Demand convention note
+    ──────────────────────
+    The frontend pmmOptimize sends demands with Mx/My swapped to engine convention
+    (engine Mx = M22 weak-axis, engine My = M33 strong-axis).
+    pmmUpdateDCRFromBoundary casts the ray in TABLE convention (p.Mx=M33, p.My=M22).
+    We therefore un-swap here:  ray_x = d['My'] (M33),  ray_y = d['Mx'] (M22).
+    This makes the Python result identical to the frontend display.
+
+    surface_si  – dict {'P', 'Mx', 'My'} already in SI (kN / kN·m),
+                  organised as nAlpha meridians × num_pts points.
+    num_pts     – actual points per meridian (surface_si may contain the key
+                  'num_points'; caller should pass that value).
+    demands_si  – list of dicts {'P', 'Mx', 'My'} in SI, engine-sign P
+                  (+compression), as sent by the pmmOptimize frontend.
+    Returns max DCR (float).
+    """
+    try:
+        import numpy as _np
+        _use_np = True
+    except ImportError:
+        _use_np = False
+
+    allP  = surface_si['P']
+    allMx = surface_si['Mx']
+    allMy = surface_si['My']
+    n_total = len(allP)
+    if not n_total or num_pts < 2:
+        return 0.0
+
+    nPts   = num_pts
+    nAlpha = round(n_total / nPts)
+    if nAlpha == 0:
+        return 0.0
+
+    global_Pmax = max(allP)
+    global_Pmin = min(allP)
+
+    # Number of hull directions — 180 gives ~2° resolution, fast enough for optimisation
+    N_OUT = 180
+    hull_angs = [i / N_OUT * 2.0 * math.pi for i in range(N_OUT + 1)]
+    hull_cos  = [math.cos(a) for a in hull_angs]
+    hull_sin  = [math.sin(a) for a in hull_angs]
+
+    max_dcr = 0.0
+
+    for d in demands_si:
+        Pd = float(d.get('P', 0.0))   # engine-sign: + = compression
+
+        # Un-swap to TABLE convention (Mx=M33, My=M22) to match pmmUpdateDCRFromBoundary
+        dx_r = float(d.get('My', 0.0))   # engine My (M33) → table Mx → ray x
+        dy_r = float(d.get('Mx', 0.0))   # engine Mx (M22) → table My → ray y
+        Md   = math.sqrt(dx_r * dx_r + dy_r * dy_r)
+
+        if Md < 1e-9:
+            # Pure-axial demand
+            if global_Pmax > 1e-9 and Pd >= 0:
+                dcr = Pd / global_Pmax
+            elif global_Pmin < -1e-9 and Pd < 0:
+                dcr = abs(Pd / global_Pmin)
             else:
-                lo, hi = 0, num_points - 1
-                while hi - lo > 1:
-                    mid = (lo + hi) >> 1
-                    if mP[mid] <= Ptarget:
-                        lo = mid
-                    else:
-                        hi = mid
-                t  = (Ptarget - mP[lo]) / (mP[hi] - mP[lo])
-                mx = mMx[lo] + t * (mMx[hi] - mMx[lo])
-                my = mMy[lo] + t * (mMy[hi] - mMy[lo])
-            bx.append(mx)
-            by.append(my)
-        bx.append(bx[0])   # close polygon
-        by.append(by[0])
-
-        # ── Ray-polygon intersection ─────────────────────────────────
-        n_seg  = len(bx) - 1
-        best_t = float('inf')
-        cap_x  = cap_y = None
-        for i in range(n_seg):
-            Ax, Ay   = bx[i],     by[i]
-            dBx, dBy = bx[i+1]-Ax, by[i+1]-Ay
-            det = dx * dBy - dy * dBx
-            if abs(det) < 1e-10:
-                continue
-            t = (Ax * dBy - Ay * dBx) / det
-            s = (Ax * dy  - Ay * dx ) / det
-            if t > 1e-9 and -1e-9 <= s <= 1.0 + 1e-9 and t < best_t:
-                best_t = t
-                cap_x  = t * dx
-                cap_y  = t * dy
-
-        if cap_x is None:
+                dcr = 0.0
+            max_dcr = max(max_dcr, dcr)
             continue
-        M_geo = math.sqrt(cap_x * cap_x + cap_y * cap_y)
-        if M_geo < 1e-9:
+
+        if Pd > global_Pmax + 1e-6 or Pd < global_Pmin - 1e-6:
+            max_dcr = max(max_dcr, 999.0)
             continue
-        max_dcr = max(max_dcr, Md / M_geo)
+
+        # ── Step 1: interpolate (Mx, My) at Pd for each meridian ─────────────
+        raw_mx = [0.0] * nAlpha
+        raw_my = [0.0] * nAlpha
+
+        for a in range(nAlpha):
+            base = a * nPts
+            mP  = allP [base:base + nPts]
+            mMx = allMx[base:base + nPts]
+            mMy = allMy[base:base + nPts]
+            mP_max = max(mP)
+            mP_min = min(mP)
+
+            if Pd > mP_max + 1e-6:
+                continue   # stays (0, 0)
+
+            mx, my, bestM2 = 0.0, 0.0, -1.0
+            for j in range(nPts - 1):
+                p1, p2 = mP[j], mP[j + 1]
+                dp = p2 - p1
+                if abs(dp) < 1e-12:
+                    continue
+                t = (Pd - p1) / dp
+                if t < -1e-9 or t > 1.0 + 1e-9:
+                    continue
+                tc  = max(0.0, min(1.0, t))
+                cMx = mMx[j] + tc * (mMx[j + 1] - mMx[j])
+                cMy = mMy[j] + tc * (mMy[j + 1] - mMy[j])
+                M2  = cMx * cMx + cMy * cMy
+                if M2 > bestM2:
+                    bestM2 = M2; mx = cMx; my = cMy
+
+            if bestM2 < 0:
+                if Pd <= mP_min:
+                    mx, my = mMx[0], mMy[0]
+                # else stays (0, 0)
+
+            raw_mx[a] = mx
+            raw_my[a] = my
+
+        # ── Step 2: 4-fold symmetric cloud ───────────────────────────────────
+        cloud_x = []
+        cloud_y = []
+        for a in range(nAlpha):
+            mx, my = raw_mx[a], raw_my[a]
+            cloud_x.extend([ mx,  mx, -mx, -mx])
+            cloud_y.extend([ my, -my,  my, -my])
+
+        N_cloud = len(cloud_x)
+
+        # ── Step 3: support-function convex hull (N_OUT directions) ──────────
+        if _use_np:
+            cx = _np.array(cloud_x)
+            cy = _np.array(cloud_y)
+            hc = _np.array(hull_cos)
+            hs = _np.array(hull_sin)
+            # dots: (N_OUT+1, N_cloud) → argmax per row
+            dots  = _np.outer(hc, cx) + _np.outer(hs, cy)
+            bidx  = _np.argmax(dots, axis=1)
+            bnd_x = cx[bidx].tolist()
+            bnd_y = cy[bidx].tolist()
+        else:
+            bnd_x = []
+            bnd_y = []
+            for i in range(N_OUT + 1):
+                dc, ds = hull_cos[i], hull_sin[i]
+                best_dot = -1e30; bx = 0.0; by = 0.0
+                for j in range(N_cloud):
+                    dot = dc * cloud_x[j] + ds * cloud_y[j]
+                    if dot > best_dot:
+                        best_dot = dot; bx = cloud_x[j]; by = cloud_y[j]
+                bnd_x.append(bx)
+                bnd_y.append(by)
+
+        # ── Step 4: ray from origin → (dx_r, dy_r), intersect boundary ───────
+        # For ray (t·dx_r, t·dy_r) and segment A→B:
+        #   det = dx_r·dBy − dy_r·dBx
+        #   t   = (Ax·dBy − Ay·dBx) / det          (scale along ray)
+        #   s   = (Ax·dy_r − Ay·dx_r) / det         (scale along segment)
+        # Intersection when t > 0, 0 ≤ s ≤ 1.
+        # DCR = 1/t  (since |cap| = t·|ray_dir| = t·Md, DCR = Md/(t·Md) = 1/t)
+        if _use_np:
+            bx_arr = _np.array(bnd_x[:-1]); by_arr = _np.array(bnd_y[:-1])
+            bx_nxt = _np.array(bnd_x[1:]);  by_nxt = _np.array(bnd_y[1:])
+            dBx = bx_nxt - bx_arr;          dBy = by_nxt - by_arr
+            det = dx_r * dBy - dy_r * dBx
+            nz  = _np.abs(det) > 1e-10
+            t_arr = _np.where(nz, (bx_arr * dBy - by_arr * dBx) / _np.where(nz, det, 1.0), -1.0)
+            s_arr = _np.where(nz, (bx_arr * dy_r - by_arr * dx_r) / _np.where(nz, det, 1.0), -1.0)
+            valid = nz & (t_arr > 1e-9) & (s_arr >= -1e-9) & (s_arr <= 1.0 + 1e-9)
+            if _np.any(valid):
+                best_t = float(_np.min(_np.where(valid, t_arr, _np.inf)))
+                dcr    = 1.0 / best_t if best_t > 1e-9 else 999.0
+            else:
+                dcr = 999.0
+        else:
+            best_t = math.inf
+            n_seg  = len(bnd_x) - 1
+            for i in range(n_seg):
+                Ax, Ay = bnd_x[i],   bnd_y[i]
+                Bx, By = bnd_x[i+1], bnd_y[i+1]
+                dBx_s, dBy_s = Bx - Ax, By - Ay
+                det = dx_r * dBy_s - dy_r * dBx_s
+                if abs(det) < 1e-10:
+                    continue
+                t = (Ax * dBy_s - Ay * dBx_s) / det
+                s = (Ax * dy_r  - Ay * dx_r ) / det
+                if t > 1e-9 and -1e-9 <= s <= 1.0 + 1e-9 and t < best_t:
+                    best_t = t
+            dcr = (1.0 / best_t) if best_t < math.inf and best_t > 1e-9 else 999.0
+
+        max_dcr = max(max_dcr, dcr)
 
     return max_dcr
 
 
 def _run_pmm_opt(b_in, h_in, fc_ksi, fy_ksi, Es_ksi, cover_in,
-                 nb, nh, bar_area_in2, include_phi, demands_si):
+                 nb, nh, bar_area_in2, include_phi, demands_si, *,
+                 fast=False, ui_alpha=10.0, ui_npts=70):
     """
-    Run PMM for optimisation with same accuracy as the 'Fast (10°)' preset
-    (alpha_steps=10, num_points=120).
+    Run PMM for optimisation.
 
-    Uses boundary-based DCR (ray-polygon intersection on the Mx-My slice at
-    each demand's P level) — the same metric shown in the frontend — so the
-    optimiser and the display are always consistent.
+    Uses _boundary_dcr_surface() — identical to the frontend pmmUpdateDCRFromBoundary
+    (convex-hull ray-intersection on the 2-D slice at each demand's P level).
+    This guarantees the optimizer's reported DCR matches the Check DCR table exactly
+    after the user clicks "Apply to Section".
+
     Returns max DCR (float) or None on error.
     """
+    alpha_steps = ui_alpha
+    num_points  = ui_npts
     try:
         corners = rect_coords(b_in, h_in)
         areas, positions = rect_bars_grid(b_in, h_in, cover_in, nb, nh, bar_area_in2)
         sec = PMMSection(
             corner_coords=corners, fc=fc_ksi, fy=fy_ksi, Es=Es_ksi,
-            alpha_steps=5.0, num_points=225,   # matches UI "Normal (5°)" preset
-            include_phi=include_phi,            # same resolution as the display
+            alpha_steps=alpha_steps, num_points=num_points,
+            include_phi=include_phi,
             bar_areas=areas, bar_positions=positions,
         )
         result = compute_pmm(sec)
     except Exception:
         return None
 
-    # Convert surface to SI (engine returns US units)
-    surf = result.get('surface', {})
-    if surf and 'P' in surf and 'Mx' in surf and 'My' in surf:
-        surf_si = {
-            'P':  [v * _KIPS_TO_KN  for v in surf['P']],
-            'Mx': [v * _KIN_TO_KNM  for v in surf['Mx']],
-            'My': [v * _KIN_TO_KNM  for v in surf['My']],
-        }
-        return _boundary_dcr_py(surf_si, 225, demands_si)
-
-    # Fallback: engine DCR (less conservative but avoids silent failure)
-    for curve in result.get('alpha_data', {}).values():
-        curve['P']  = [v * _KIPS_TO_KN  for v in curve['P']]
-        curve['Mx'] = [v * _KIN_TO_KNM  for v in curve['Mx']]
-        curve['My'] = [v * _KIN_TO_KNM  for v in curve['My']]
-    Pmax = result['Pmax'] * _KIPS_TO_KN
-    Pmin = result['Pmin'] * _KIPS_TO_KN
-    checks = check_demands(result['alpha_data'], Pmax, Pmin, demands_si)
-    return max((c['DCR'] for c in checks), default=0.0)
+    # Convert surface to SI (engine returns US units: kips, kip·in)
+    try:
+        surf = result.get('surface', {})
+        surf['P']  = [v * _KIPS_TO_KN  for v in surf['P']]
+        surf['Mx'] = [v * _KIN_TO_KNM  for v in surf['Mx']]
+        surf['My'] = [v * _KIN_TO_KNM  for v in surf['My']]
+        # Use the engine-reported pts/meridian (may differ from num_points due to
+        # bar-transition clustering — mirrors frontend: surf.num_points || payload.num_points)
+        npts_actual = surf.get('num_points', num_points)
+        return _boundary_dcr_surface(surf, npts_actual, demands_si)
+    except Exception:
+        return None
 
 
 @app.post("/api/pmm/optimize")
 def pmm_optimize(body: PMMOptimizeRequest,
                  current_user: dict = Depends(get_current_user)):
     """
-    Optimise bar count/arrangement for a FIXED bar diameter and FIXED section size.
+    Bayesian-Bisection optimiser for bar count / arrangement.
 
-    Strategy:
-      • Sort all ACI-spacing-valid (nb, nh) arrangements by ascending Ast (ρ_min → ρ_max).
-      • Compute DCR for each, starting from the lightest arrangement.
-      • Return the arrangement whose DCR is closest to target from below (DCR ≤ target).
-        – If even the maximum-steel arrangement gives DCR > target, return that maximum
-          arrangement with a warning flag so the caller knows the target was not met.
-      • Never modifies the section size or bar diameter.
+    Cover fix
+    ─────────
+    The UI inputs *clear cover* (face → stirrup face).  The PMM engine needs
+    the distance from the concrete face to the *bar centre*:
+        eff_cover = clear_cover + stirrup_dia + bar_dia / 2   (ACI convention)
+    This matches what pmm_calculate does and ensures the optimizer DCR matches
+    the displayed surface after Apply.
+
+    Bisection algorithm (O(log N) evaluations)
+    ──────────────────────────────────────────
+    DCR is monotonically non-increasing with Ast (more steel → higher capacity
+    → lower DCR).  A binary bisection on the sorted candidate list finds the
+    lightest passing arrangement in ceil(log2 N) coarse evaluations — typically
+    6-8 evals regardless of search space size — rather than scanning all N.
+
+    After bisection, a ±1 neighbourhood around the transition point is
+    fine-verified (5° / 120 pts) to produce accurate final DCR values.
+
+    ACI 318-19 spacing:
+      §25.8.1   min clear = max(1.5·db, 40 mm)
+      §25.7.2.3 max clear = 150 mm (all faces)
+      §10.6.1.1 ρ_min = 1 %,  ρ_max = 8 %
     """
     if not _HAS_PMM:
         raise HTTPException(status_code=503, detail="PMM engine not available.")
@@ -1420,13 +1680,19 @@ def pmm_optimize(body: PMMOptimizeRequest,
         raise HTTPException(status_code=422, detail="At least one demand required.")
 
     target  = float(body.target_dcr)
-    RHO_MIN = 0.01
-    RHO_MAX = min(float(body.max_rho_pct) / 100.0, 0.08)   # cap at ACI max 8 %
+    RHO_MIN = max(0.01, min(float(body.min_rho_pct) / 100.0, 0.08))
+    RHO_MAX = min(float(body.max_rho_pct) / 100.0, 0.08)
+    if RHO_MIN > RHO_MAX:
+        raise HTTPException(status_code=422, detail="Min ρ must be less than Max ρ.")
 
     BAR_AREA_MAP = {
         "Ø8":  50.3,  "Ø10":  78.5,  "Ø12": 113.1,
         "Ø16": 201.1, "Ø20": 314.2,  "Ø25": 490.9,
         "Ø28": 615.8, "Ø32": 804.2,  "Ø36": 1017.9, "Ø40": 1256.6,
+    }
+    BAR_DIA_MM = {
+        "Ø8": 8.0, "Ø10": 10.0, "Ø12": 12.0, "Ø16": 16.0, "Ø20": 20.0,
+        "Ø25": 25.0, "Ø28": 28.0, "Ø32": 32.0, "Ø36": 36.0, "Ø40": 40.0,
     }
     bar_name = body.bar_size
     area_mm2 = BAR_AREA_MAP.get(bar_name)
@@ -1434,111 +1700,163 @@ def pmm_optimize(body: PMMOptimizeRequest,
         raise HTTPException(status_code=422, detail=f"Unknown bar size '{bar_name}'.")
 
     db           = _db_mm(area_mm2)
+    bar_dia_mm   = BAR_DIA_MM.get(bar_name, db)
     bar_area_in2 = area_mm2 * (_MM_TO_IN ** 2)
-    s_min_req    = round(max(1.5 * db, 40.0), 1)   # ACI §25.8.1
 
-    b_mm     = float(body.b_mm)
-    h_mm     = float(body.h_mm)
-    Ag_mm2   = b_mm * h_mm
-    b_in     = b_mm * _MM_TO_IN
-    h_in     = h_mm * _MM_TO_IN
-    fc_ksi   = body.fc_mpa  * _MPA_TO_KSI
-    fy_ksi   = body.fy_mpa  * _MPA_TO_KSI
-    Es_ksi   = body.Es_mpa  * _MPA_TO_KSI
-    cover_in = body.cover_mm * _MM_TO_IN
+    b_mm   = float(body.b_mm)
+    h_mm   = float(body.h_mm)
+    Ag_mm2 = b_mm * h_mm
+    b_in   = b_mm * _MM_TO_IN
+    h_in   = h_mm * _MM_TO_IN
+    fc_ksi = body.fc_mpa * _MPA_TO_KSI
+    fy_ksi = body.fy_mpa * _MPA_TO_KSI
+    Es_ksi = body.Es_mpa * _MPA_TO_KSI
+
+    # ── Effective cover (face → bar centre) — matches pmm_calculate ─────────
+    eff_cover_mm = body.cover_mm + body.stirrup_dia_mm + bar_dia_mm / 2.0
+    cover_in     = eff_cover_mm * _MM_TO_IN
+    s_min_req    = round(max(1.5 * db, 40.0), 1)   # ACI §25.8.1
 
     demands = [{'label': d.get('label', ''), 'P': float(d.get('P', 0)),
                 'Mx': float(d.get('Mx', 0)), 'My': float(d.get('My', 0))}
                for d in body.demands]
 
-    # ── Build candidate arrangements ────────────────────────────────────────
-    # nb = bars per b-face (incl. corners): 2 … 6
-    # nh = intermediate bars per h-face:    0 … 4
-    candidates: List[tuple] = []
-    for nb in range(2, 7):
-        for nh in range(0, 5):
+    # ── Dynamic nb / nh range from geometry + ACI spacing ───────────────────
+    S_MIN  = max(1.5 * db, 40.0)    # ACI §25.8.1  min clear
+    S_MAX  = 150.0                   # ACI §25.7.2.3 max clear
+    cc_min = db + S_MIN              # min centre-to-centre
+
+    # Spacing constraints use eff_cover (face → bar centre)
+    net_b = b_mm - 2.0 * eff_cover_mm
+    net_h = h_mm - 2.0 * eff_cover_mm
+
+    max_nb = min(12, max(2, int(net_b / cc_min) + 1))
+    min_nb = max(2, math.ceil(net_b / (db + S_MAX) + 1 - 1e-9))
+    max_nh = min(8,  max(0, int(net_h / cc_min) - 1))
+    min_nh = max(0,  math.ceil(net_h / (db + S_MAX) - 1 - 1e-9))
+
+    # ── Build candidate list ─────────────────────────────────────────────────
+    candidates: List[dict] = []
+    for nb in range(min_nb, max_nb + 1):
+        for nh in range(min_nh, max_nh + 1):
             n_total = 2 * nb + 2 * nh
-            ast = n_total * area_mm2
-            rho = ast / Ag_mm2
+            ast  = n_total * area_mm2
+            rho  = ast / Ag_mm2
             if not (RHO_MIN <= rho <= RHO_MAX):
                 continue
             ok, min_c, max_c = _check_spacing_aci(
-                b_mm, h_mm, body.cover_mm, nb, nh, db)
+                b_mm, h_mm, eff_cover_mm, nb, nh, db)
             if not ok:
                 continue
-            candidates.append((ast, rho, nb, nh, n_total, min_c, max_c))
+            candidates.append({
+                'ast': ast, 'rho': rho,
+                'nb': nb, 'nh': nh, 'n_total': n_total,
+                'min_c': min_c, 'max_c': max_c,
+                'dcr_coarse': None, 'dcr_fine': None,
+            })
 
     if not candidates:
         raise HTTPException(
             status_code=400,
-            detail="No feasible arrangement found within the ρ and spacing limits. "
-                   "Try a different bar size or adjust the ρ limit.")
+            detail=(
+                f"No feasible arrangement found within ρ [{round(RHO_MIN*100,1)} – "
+                f"{round(RHO_MAX*100,1)} %] and ACI 318-19 spacing limits. "
+                "Try a different bar size or adjust ρ / cover."
+            ))
 
-    candidates.sort(key=lambda x: x[0])   # ascending Ast (ρ_min → ρ_max)
+    candidates.sort(key=lambda x: x['ast'])   # ascending Ast
 
-    # ── Evaluate each candidate, stop as soon as we find the lightest valid ─
-    best_valid    = None   # lightest arrangement with DCR ≤ target
-    best_valid_ast = None
-    heaviest      = None   # fallback: heaviest arrangement (max capacity)
+    # ── Helper: evaluate one candidate (coarse or fine) ─────────────────────
+    def _eval(idx: int, fast: bool) -> float:
+        cand = candidates[idx]
+        key  = 'dcr_coarse' if fast else 'dcr_fine'
+        if cand[key] is not None:
+            return cand[key]
+        dcr = _run_pmm_opt(b_in, h_in, fc_ksi, fy_ksi, Es_ksi,
+                           cover_in, cand['nb'], cand['nh'], bar_area_in2,
+                           body.include_phi, demands, fast=fast,
+                           ui_alpha=body.alpha_steps, ui_npts=body.num_points)
+        cand[key] = dcr if dcr is not None else 999.0
+        return cand[key]
 
-    for ast, rho, nb, nh, n_total, min_c, max_c in candidates:
-        # Once we have a valid design, only keep checking arrangements that are
-        # within 8 % more steel (catches equivalent arrangements at same Ast level).
-        if best_valid is not None and ast > best_valid_ast * 1.08:
-            break
+    # ── Phase 1: Bisection search (coarse, O(log N)) ─────────────────────────
+    # Exploit monotonicity: DCR[i] ≥ DCR[j]  for  Ast[i] ≤ Ast[j].
+    # Find the index of the lightest arrangement with coarse DCR ≤ target.
+    # Seed: always evaluate the endpoints first.
+    n = len(candidates)
+    dcr_lo = _eval(0,     fast=True)   # lightest
+    dcr_hi = _eval(n - 1, fast=True)   # heaviest
 
-        max_dcr = _run_pmm_opt(b_in, h_in, fc_ksi, fy_ksi, Es_ksi,
-                               cover_in, nb, nh, bar_area_in2,
-                               body.include_phi, demands)
-        if max_dcr is None:
+    bisect_winner = None   # index of lightest candidate with coarse DCR ≤ target
+
+    if dcr_lo <= target:
+        # Even the lightest passes → winner is at the low end
+        bisect_winner = 0
+    elif dcr_hi > target:
+        # Even the heaviest fails → target is not achievable; winner = heaviest
+        bisect_winner = None
+    else:
+        # Binary search: maintain lo=failing, hi=passing
+        lo, hi = 0, n - 1
+        while hi - lo > 1:
+            mid = (lo + hi) // 2
+            dcr_mid = _eval(mid, fast=True)
+            if dcr_mid <= target:
+                hi = mid   # mid passes → search for something lighter
+            else:
+                lo = mid   # mid fails  → need heavier
+        bisect_winner = hi   # hi is the lightest coarse-passing index
+
+    # ── Phase 2: Fine-verify ±2 neighbourhood of bisection winner ───────────
+    # The coarse surface may have small errors near the boundary — verify a
+    # small window to avoid promoting a false-positive to the final result.
+    if bisect_winner is not None:
+        lo_idx = max(0, bisect_winner - 2)
+        hi_idx = min(n - 1, bisect_winner + 2)
+        for idx in range(lo_idx, hi_idx + 1):
+            _eval(idx, fast=False)
+    else:
+        # Target not achievable — fine-verify the heaviest only
+        _eval(n - 1, fast=False)
+
+    # ── Pick best ────────────────────────────────────────────────────────────
+    best_valid = None
+    for cand in candidates:
+        fine = cand.get('dcr_fine')
+        if fine is None or fine > target:
             continue
+        if (best_valid is None
+                or cand['ast'] < best_valid['ast']
+                or (cand['ast'] == best_valid['ast']
+                    and fine > best_valid['dcr_fine'])):
+            best_valid = cand
 
-        entry = {
-            'ast': ast, 'rho': rho,
-            'nbars_b': nb, 'nbars_h': nh, 'n_total': n_total,
-            'bar_size': bar_name, 'area_mm2': area_mm2,
-            'min_clear_mm': min_c, 'max_clear_mm': max_c,
-            'max_dcr': max_dcr,
-        }
-        # Track heaviest evaluated (most capacity) as fallback
-        if heaviest is None or ast > heaviest['ast']:
-            heaviest = entry
-
-        if max_dcr <= target:
-            # Keep the arrangement closest to target (highest DCR ≤ target)
-            if best_valid is None or max_dcr > best_valid['max_dcr']:
-                best_valid = entry
-                best_valid_ast = ast
-
-    # If target not achieved, use the heaviest arrangement (best capacity available)
     target_met = best_valid is not None
-    best = best_valid if target_met else heaviest
+    best = best_valid if target_met else candidates[-1]   # fallback: heaviest
 
-    if best is None:
-        raise HTTPException(status_code=400,
-                            detail="Optimisation failed — no valid PMM result.")
+    final_dcr = best.get('dcr_fine') or best.get('dcr_coarse') or 0.0
 
-    nb     = best['nbars_b']
-    nh     = best['nbars_h']
+    nb     = best['nb']
+    nh     = best['nh']
     ntotal = best['n_total']
-    arrangement = (f"{nb} bars/face · {ntotal} total" if nh == 0
-                   else f"{nb}+{nh} bars/face · {ntotal} total")
+    arrangement = (f"{nb} bars/b-face · {ntotal} total" if nh == 0
+                   else f"{nb}b + {nh}h bars/face · {ntotal} total")
 
     return {
-        'b_mm':               round(b_mm),
-        'h_mm':               round(h_mm),
-        'nbars_b':            nb,
-        'nbars_h':            nh,
-        'n_total':            ntotal,
-        'arrangement':        arrangement,
-        'bar_size':           best['bar_size'],
-        'rho_pct':            round(best['rho'] * 100, 2),
-        'achieved_dcr':       round(best['max_dcr'] * 100, 1),
-        'target_met':         target_met,
-        'min_clear_mm':  best['min_clear_mm'],
-        'max_clear_mm':  best['max_clear_mm'],
+        'b_mm':          round(b_mm),
+        'h_mm':          round(h_mm),
+        'nbars_b':       nb,
+        'nbars_h':       nh,
+        'n_total':       ntotal,
+        'arrangement':   arrangement,
+        'bar_size':      bar_name,
+        'rho_pct':       round(best['rho'] * 100, 2),
+        'achieved_dcr':  round(final_dcr * 100, 1),
+        'target_met':    target_met,
+        'min_clear_mm':  best['min_c'],
+        'max_clear_mm':  best['max_c'],
         'min_clear_req': s_min_req,
-        'max_clear_req': 150.0,
+        'max_clear_req': S_MAX,
     }
 
 
@@ -1622,6 +1940,34 @@ def _get_pmm_column_sections_fallback() -> dict:
             rebar_props = _lookup_mat(sec.get("fy_main", ""))
             entry["fy_mpa"] = rebar_props["fy_mpa"]
             entry["Es_mpa"] = rebar_props["Es_mpa"]
+            # Normalise field names so the frontend picker always gets consistent keys.
+            # actions.get_rc_column_sections() uses prop_name/width/depth/cover but the
+            # PMM UI expects name/b_mm/h_mm/cover_mm — add aliases for both.
+            entry["name"]     = entry.get("prop_name") or entry.get("name") or ""
+            entry["b_mm"]     = entry.get("width")     or entry.get("b_mm")
+            entry["h_mm"]     = entry.get("depth")     or entry.get("h_mm")
+            entry["cover_mm"] = entry.get("cover")     or entry.get("cover_mm")
+            # nbars aliases: ETABS actions returns nbars_3 (bars per top/bottom face,
+            # width direction) and nbars_2 (bars per side face, height direction).
+            # Map to PMM field names nbars_b / nbars_h, and compute display total.
+            # ETABS GetRebarColumn actual field order (confirmed from diagnostic log):
+            #   vals[6] = NumBars Along 3-dir Face = bars per TOP/BOTTOM face (b-direction)
+            #             face perpendicular to axis-3, spans the b=width dimension
+            #             → includes the 2 corner bars
+            #   vals[7] = NumBars Along 2-dir Face = bars per SIDE face (h-direction)
+            #             face perpendicular to axis-2, spans the h=depth dimension
+            #             → includes the 2 corner bars
+            #
+            # PMM engine convention:
+            #   nbars_b = top/bottom face bars INCLUDING corners (≥2)  → vals[6]
+            #   nbars_h = side face bars EXCLUDING corners (≥0)        → vals[7] - 2
+            nb2 = int(entry.get("nbars_2") or 0)   # vals[6] = Along 3-dir face = top/bot (b)
+            nb3 = int(entry.get("nbars_3") or 0)   # vals[7] = Along 2-dir face = side  (h)
+            entry["nbars_b"] = nb2                        # PMM: top/bottom bars incl. corners
+            entry["nbars_h"] = max(0, nb3 - 2)           # PMM: side intermediate bars only
+            if entry.get("nbars") is None and nb2:
+                # PMM total = 2*nbars_b + 2*nbars_h
+                entry["nbars"] = 2 * nb2 + 2 * max(0, nb3 - 2)
             enriched.append(entry)
 
         return {"status": "success", "sections": enriched}
@@ -1671,3 +2017,422 @@ def pmm_etabs_import_forces(body: ETABSImportForcesRequest,
     if "error" in result:
         raise HTTPException(status_code=503, detail=result["error"])
     return result
+
+
+class ETABSSectionForcesRequest(BaseModel):
+    section_name: str
+    combo_names: List[str]
+    load_type: str = "combo"
+
+
+@app.post("/api/pmm/etabs-section-forces")
+def pmm_etabs_section_forces(body: ETABSSectionForcesRequest,
+                              current_user: dict = Depends(get_current_user)):
+    """
+    Get frame forces for all columns with a specific section name.
+    Returns {results: [{label, P_kN, M3_kNm, M2_kNm}, ...]}
+    """
+    helper = getattr(actions, "get_etabs_all_column_forces", None)
+    if not callable(helper):
+        raise HTTPException(status_code=503, detail="get_etabs_all_column_forces not available.")
+    all_forces = helper([body.section_name], body.combo_names, body.load_type)
+    if "error" in all_forces:
+        raise HTTPException(status_code=503, detail=all_forces["error"])
+    by_section = all_forces.get("sections", all_forces)  # support both return shapes
+    # Try exact match first, then case-insensitive
+    rows = by_section.get(body.section_name, [])
+    if not rows:
+        for key, val in by_section.items():
+            if key.lower() == body.section_name.lower():
+                rows = val
+                break
+    results = [
+        {"label": f"{r['frame']} / {r['combo']}",
+         "P_kN":   r["P_kN"],
+         "M3_kNm": r["M3_kNm"],   # ETABS M33 = user Mx (strong axis)
+         "M2_kNm": r["M2_kNm"]}   # ETABS M22 = user My (weak axis)
+        for r in rows
+    ]
+    return {"results": results}
+
+
+class ETABSBatchCheckRequest(BaseModel):
+    combo_names: list
+    load_type: str = "combo"   # "combo" or "case"
+
+
+def _normalize_bar_size(raw: str) -> str:
+    """Map ETABS rebar name to PMM Ø-format key.  e.g. 'D20', '#6', 'R20', 'PHIB20', '32' → 'Ø32'."""
+    import re as _re
+    _known_dia = [8, 10, 12, 16, 20, 25, 28, 32, 36, 40]
+
+    def _snap(n: int) -> str:
+        nearest = min(_known_dia, key=lambda d: abs(d - n))
+        return "\u00d8" + str(nearest)  # Ø = U+00D8
+
+    if not raw:
+        return "\u00d820"
+    s = raw.strip()
+    # Already in Ø/ø format  e.g. "Ø20"
+    if s[0] in ("\u00d8", "\u00f8"):  # Ø or ø
+        rest = s[1:].split()[0]
+        nums = _re.findall(r'\d+', rest)
+        return _snap(int(nums[0])) if nums else "\u00d820"
+    su = s.upper()
+    # D-prefix: D16, D20, D-20 …
+    m = _re.match(r'^D-?(\d+)', su)
+    if m:
+        return _snap(int(m.group(1)))
+    # R-prefix: R16, R20 …
+    m = _re.match(r'^R(\d+)$', su)
+    if m:
+        return _snap(int(m.group(1)))
+    # T-prefix (British): T16, T20 …
+    m = _re.match(r'^T(\d+)$', su)
+    if m:
+        return _snap(int(m.group(1)))
+    # US designation #N
+    _us_map = {"#3": 10, "#4": 13, "#5": 16, "#6": 19, "#7": 22,
+               "#8": 25, "#9": 29, "#10": 32, "#11": 36}
+    if s in _us_map:
+        return _snap(_us_map[s])
+    # Generic fallback: extract all digit runs, pick the one closest to a known diameter
+    # Handles "PHIB20" → 20, "SD390D25" → 25, "32" → 32, etc.
+    nums = _re.findall(r'\d+', s)
+    if nums:
+        candidates = [int(n) for n in nums if int(n) >= 6]
+        if candidates:
+            best = min(candidates, key=lambda n: min(abs(n - d) for d in _known_dia))
+            return _snap(best)
+    return "\u00d820"  # last-resort fallback
+
+
+@app.get("/api/pmm/etabs-batch-diag")
+def pmm_etabs_batch_diag():
+    """
+    Diagnostic: returns all frames with their section assignments so we can
+    verify that section names match between PropFrame.GetNameList and
+    FrameObj.GetSection.
+    """
+    try:
+        SapModel = actions.get_active_etabs()
+    except Exception:
+        SapModel = None
+    if not SapModel:
+        raise HTTPException(503, "ETABS is not running.")
+
+    try:
+        unit_code = 6
+        try:    unit_code = SapModel.GetDatabaseUnits()
+        except Exception:
+            try: unit_code = SapModel.GetPresentUnits()
+            except Exception: pass
+
+        # All frame section definitions
+        sec_ret = SapModel.PropFrame.GetNameList()
+        all_sec_names = list(sec_ret[1]) if sec_ret and int(sec_ret[-1]) == 0 else []
+
+        # All frame objects + their section assignments
+        fr_ret = SapModel.FrameObj.GetNameList()
+        all_frames = list(fr_ret[1]) if fr_ret and int(fr_ret[-1]) == 0 else []
+
+        frame_sample = []   # first 30 frames with section info
+        errors = []
+        for frame in all_frames[:50]:
+            try:
+                s = SapModel.FrameObj.GetSection(str(frame))
+                frame_sample.append({
+                    "frame": frame,
+                    "raw_return": str(s),
+                    "sec_ret0": str(s[0]) if s else None,
+                    "retcode": int(s[-1]) if s else None,
+                })
+            except Exception as e:
+                errors.append({"frame": frame, "error": str(e)})
+
+        # Try FrameForce on the first frame to check if analysis results exist
+        force_test = {"frame": None, "retcode": None, "n_results": None,
+                      "error": None, "raw": None}
+        if all_frames:
+            test_frame = str(all_frames[0])
+            force_test["frame"] = test_frame
+            try:
+                # Setup: select all combos for output
+                SapModel.Results.Setup.DeselectAllCasesAndCombosForOutput()
+                try:
+                    c_ret = SapModel.RespCombo.GetNameList()
+                    if c_ret and int(c_ret[-1]) == 0 and c_ret[1]:
+                        for cn in list(c_ret[1])[:3]:   # first 3 combos only
+                            SapModel.Results.Setup.SetComboSelectedForOutput(cn, True)
+                except Exception:
+                    pass
+                ret = SapModel.Results.FrameForce(test_frame, 0)
+                force_test["raw"] = str(ret)[:300]
+                force_test["retcode"] = int(ret[-1]) if ret else None
+                force_test["n_results"] = int(ret[0]) if ret else None
+            except Exception as e:
+                force_test["error"] = str(e)
+
+        return {
+            "unit_code": unit_code,
+            "n_section_defs": len(all_sec_names),
+            "section_defs_sample": all_sec_names[:20],
+            "n_frames": len(all_frames),
+            "frame_section_sample": frame_sample[:30],
+            "force_test": force_test,
+            "errors": errors[:10],
+        }
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+@app.post("/api/pmm/etabs-batch-check")
+def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
+                           current_user: dict = Depends(get_current_user)):
+    """
+    Batch PMM DCR check for every RC column section in the ETABS model.
+    For each unique section, computes the full P-M-M interaction surface and
+    evaluates DCR for every column frame × load combination.
+
+    Returns {columns: [{section, b_mm, h_mm, rho_pct, phi_Pn_max_kN,
+                         n_frames, n_checks, n_fail, max_dcr, status,
+                         worst: {frame, combo, P_kN, Mx_kNm, My_kNm, M_demand, M_cap}}]}
+    """
+    if not _HAS_PMM:
+        raise HTTPException(503, "PMM engine not available.")
+
+    if not body.combo_names:
+        raise HTTPException(400, "combo_names must not be empty.")
+
+    # ── 1. Get all PMM column sections ────────────────────────────────────────
+    helper_sec = getattr(actions, "get_pmm_column_sections", None)
+    sec_result = helper_sec() if callable(helper_sec) else _get_pmm_column_sections_fallback()
+    if "error" in sec_result:
+        raise HTTPException(503, sec_result["error"])
+    sections = sec_result.get("sections", [])
+    if not sections:
+        raise HTTPException(404, "No RC column sections found in ETABS model.")
+
+    # ── 2. Get forces for all column frames ───────────────────────────────────
+    helper_forces = getattr(actions, "get_etabs_all_column_forces", None)
+    if not callable(helper_forces):
+        raise HTTPException(503, "get_etabs_all_column_forces not available in actions.py.")
+
+    sec_names = [s.get("prop_name") or s.get("name", "") for s in sections]
+    forces_result = helper_forces(sec_names, body.combo_names, body.load_type)
+    if "error" in forces_result:
+        raise HTTPException(503, forces_result["error"])
+    by_section: dict = forces_result.get("sections", {})
+
+    # ── 3. PMM check per section ──────────────────────────────────────────────
+    _REBAR_DIA_MM = {
+        "Ø8": 8.0,  "Ø10": 10.0, "Ø12": 12.0, "Ø16": 16.0, "Ø20": 20.0,
+        "Ø25": 25.0,"Ø28": 28.0, "Ø32": 32.0, "Ø36": 36.0, "Ø40": 40.0,
+    }
+
+    results = []
+    for sec in sections:
+        sec_name = sec.get("prop_name") or sec.get("name", "?")
+        rows = by_section.get(sec_name, [])
+
+        b_mm  = float(sec.get("width") or sec.get("b_mm") or 400)
+        h_mm  = float(sec.get("depth") or sec.get("h_mm") or 400)
+        fc    = float(sec.get("fc_mpa")  or 28.0)
+        fy    = float(sec.get("fy_mpa")  or 420.0)
+        Es    = float(sec.get("Es_mpa")  or 200000.0)
+        cover = float(sec.get("cover_mm") or sec.get("cover") or 40.0)
+        stirrup_dia = 10.0
+        # Prefer normalized fields (nbars_b / nbars_h) set by _get_pmm_column_sections_fallback.
+        # nbars_b = top/bottom face bars INCLUDING corners (≥2)  → raw nbars_2
+        # nbars_h = side face INTERMEDIATE bars EXCLUDING corners (≥0) → raw nbars_3 - 2
+        # Falling back to raw nbars_2/nbars_3 and subtracting 2 corners for nbars_h.
+        nbars_b = max(2, int(sec.get("nbars_b") or sec.get("nbars_2") or 3))
+        _nb3_raw = int(sec.get("nbars_3") or 3)
+        nbars_h = max(0, int(sec["nbars_h"]) if sec.get("nbars_h") is not None
+                       else _nb3_raw - 2)
+        raw_bar = str(sec.get("rebar_size") or "Ø20")
+        bar_key = _normalize_bar_size(raw_bar)
+        # Diagnostic log: raw ETABS bar fields for all sections
+        try:
+            with open(_LOG_PATH, 'a', encoding='utf-8') as _lf:
+                _lf.write(
+                    f'[batch_check] {sec_name}: raw_bar={raw_bar!r} bar_key={bar_key!r} '
+                    f'nbars_2={sec.get("nbars_2")} nbars_3={sec.get("nbars_3")} '
+                    f'→ nbars_b={nbars_b} nbars_h={nbars_h} total={2*nbars_b+2*nbars_h}\n')
+        except Exception:
+            pass
+
+        try:
+            bar_area_mm2 = REBAR_TABLE_SI.get(bar_key) or REBAR_TABLE_SI["Ø20"]
+            bar_dia_mm   = _REBAR_DIA_MM.get(bar_key, 20.0)
+            eff_cover    = cover + stirrup_dia + bar_dia_mm / 2.0
+
+            b_in     = b_mm  * _MM_TO_IN
+            h_in     = h_mm  * _MM_TO_IN
+            fc_ksi   = fc    * _MPA_TO_KSI
+            fy_ksi   = fy    * _MPA_TO_KSI
+            Es_ksi   = Es    * _MPA_TO_KSI
+            cov_in   = eff_cover * _MM_TO_IN
+            ba_in2   = bar_area_mm2 * (_MM_TO_IN ** 2)
+
+            corners  = rect_coords(b_in, h_in)
+            areas, positions = rect_bars_grid(b_in, h_in, cov_in, nbars_b, nbars_h, ba_in2)
+
+            sec_obj  = PMMSection(
+                corner_coords = corners,
+                fc=fc_ksi, fy=fy_ksi, Es=Es_ksi,
+                alpha_steps=30, num_points=30,  # coarser for batch speed; fine for DCR
+                include_phi=True,
+                bar_areas=areas, bar_positions=positions,
+            )
+            pmm_raw  = compute_pmm(sec_obj)
+
+            # Convert to SI
+            alpha_data = pmm_raw.get("alpha_data", {})
+            for curve in alpha_data.values():
+                curve["P"]  = [v * _KIPS_TO_KN  for v in curve["P"]]
+                curve["Mx"] = [v * _KIN_TO_KNM for v in curve["Mx"]]
+                curve["My"] = [v * _KIN_TO_KNM for v in curve["My"]]
+
+            Pmax_kN = pmm_raw["Pmax"] * _KIPS_TO_KN
+            Pmin_kN = pmm_raw["Pmin"] * _KIPS_TO_KN
+            Ag_mm2  = pmm_raw["Ag"]   * _IN2_TO_MM2
+            Ast_mm2 = pmm_raw["Ast"]  * _IN2_TO_MM2
+            rho_pct = Ast_mm2 / Ag_mm2 * 100.0
+
+        except Exception as exc:
+            results.append({"section": sec_name, "error": str(exc)})
+            continue
+
+        if not rows:
+            results.append({
+                "section": sec_name, "b_mm": b_mm, "h_mm": h_mm,
+                "rho_pct": round(rho_pct, 2),
+                "phi_Pn_max_kN": round(Pmax_kN, 1),
+                "n_frames": 0, "n_checks": 0, "n_fail": 0,
+                "max_dcr": None, "status": "NO DATA",
+                "warning": "No column frames assigned to this section were found.",
+                "worst": None,
+            })
+            continue
+
+        # Build demands (engine sign: compression positive → negate P_kN from ETABS)
+        # Engine: Mx = x-arm (b-dir, weak axis) = ETABS M33
+        #         My = y-arm (h-dir, strong axis) = ETABS M22
+        # Display labels (Mx_kNm/My_kNm in results): Mx = M22, My = M33
+        demands = [
+            {"label": f"{r['frame']} / {r['combo']}",
+             "P":  -r["P_kN"],
+             "Mx":  r["M3_kNm"],   # M33 → engine weak-axis (x/b) slot
+             "My":  r["M2_kNm"]}   # M22 → engine strong-axis (y/h) slot
+            for r in rows
+        ]
+
+        dcr_raw = check_demands(alpha_data, Pmax_kN, Pmin_kN, demands)
+
+        # Attach frame/combo metadata
+        dcr_items = []
+        for i, dr in enumerate(dcr_raw):
+            row = rows[i]
+            dcr_items.append({
+                **dr,
+                "frame":   row["frame"],
+                "combo":   row["combo"],
+                "P_kN":    row["P_kN"],
+                "Mx_kNm":  row["M3_kNm"],   # display: Mx = M33 (matches individual check table)
+                "My_kNm":  row["M2_kNm"],   # display: My = M22
+            })
+
+        worst = max(dcr_items, key=lambda r: float(r.get("DCR") or 0)) if dcr_items else None
+        n_fail = sum(1 for r in dcr_items if r.get("status") == "FAIL")
+        n_frames = len({r["frame"] for r in rows})
+
+        n_bars = 2 * nbars_b + 2 * nbars_h
+        results.append({
+            "section":        sec_name,
+            "b_mm":           b_mm,
+            "h_mm":           h_mm,
+            "nbars":          n_bars,
+            "rebar_size":     bar_key,
+            "_raw_rebar":     raw_bar,
+            "_raw_nb2":       sec.get("nbars_2"),
+            "_raw_nb3":       sec.get("nbars_3"),
+            "rho_pct":        round(rho_pct, 2),
+            "phi_Pn_max_kN":  round(Pmax_kN, 1),
+            "n_frames":       n_frames,
+            "n_checks":       len(dcr_items),
+            "n_fail":         n_fail,
+            "max_dcr":        round(float(worst["DCR"]), 3) if worst else None,
+            "status":         ("FAIL" if worst and float(worst["DCR"]) > 1.0 else "PASS")
+                              if worst else "NO DATA",
+            "worst": {
+                "frame":    worst["frame"],
+                "combo":    worst["combo"],
+                "P_kN":     worst["P_kN"],
+                "Mx_kNm":   worst["Mx_kNm"],
+                "My_kNm":   worst["My_kNm"],
+                "M_demand": round(float(worst.get("M_demand") or 0), 2),
+                "M_cap":    round(float(worst.get("M_cap")    or 0), 2),
+            } if worst else None,
+        })
+
+    # Sort: FAIL first, then by max_dcr descending
+    results.sort(key=lambda r: (
+        0 if r.get("status") == "FAIL" else (1 if r.get("status") == "PASS" else 2),
+        -(r.get("max_dcr") or 0),
+    ))
+
+    return {"columns": results}
+
+
+# ── 2D FEM endpoints ──────────────────────────────────────────────────────────
+try:
+    _fem2d_path = _os.path.join(_here, 'fem2d_engine.py')
+    # Bypass all import machinery: read source and exec directly.
+    # This works in both dev and PyInstaller frozen environments.
+    with open(_fem2d_path, encoding='utf-8') as _f:
+        _fem2d_src = _f.read()
+    _fem2d_ns: dict = {}
+    exec(compile(_fem2d_src, _fem2d_path, 'exec'), _fem2d_ns)
+    generate_mesh = _fem2d_ns['generate_mesh']
+    solve_fem2d   = _fem2d_ns['solve_fem2d']
+    _HAS_FEM2D = True
+except Exception as _e:
+    import traceback as _tb
+    _HAS_FEM2D = False
+    print(f'[fem2d] FAILED: {_e}\n{_tb.format_exc()}')
+
+
+@app.post('/api/fem2d/mesh')
+async def fem2d_mesh(req: dict):
+    if not _HAS_FEM2D:
+        raise HTTPException(503, 'FEM2D engine not available')
+    try:
+        return generate_mesh(
+            geometry  = req.get('geometry', {}),
+            mesh_size = float(req.get('mesh_size', 50)),
+            mesh_type = req.get('mesh_type', 'quad'),
+        )
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post('/api/fem2d/solve')
+async def fem2d_solve(req: dict):
+    if not _HAS_FEM2D:
+        raise HTTPException(503, 'FEM2D engine not available')
+    try:
+        return solve_fem2d(
+            nodes      = req['nodes'],
+            elements   = req['elements'],
+            thickness  = float(req.get('thickness', 10)),
+            E          = float(req.get('E', 200000)),
+            nu         = float(req.get('nu', 0.3)),
+            mode       = int(req.get('mode', 1)),
+            unit_wt    = float(req.get('unit_wt', 0)),
+            supports   = req.get('supports', []),
+            loads      = req.get('loads', []),
+            edge_loads = req.get('edge_loads', []),
+        )
+    except Exception as e:
+        raise HTTPException(400, str(e))

@@ -5,6 +5,8 @@ Refactored for use as a FastAPI backend module with no global state.
 
 Units: kips and inches (US customary)
 """
+# Version marker — updated to confirm filesystem load is active
+_ENGINE_VERSION = "2026-03-22-spcolumn-grid"
 
 import math
 import os
@@ -148,7 +150,7 @@ def _split_area(polygon_coords, line_coords):
 
 
 def _outer_envelope_curve(P_raw, Mx_raw, My_raw, n_out=None,
-                           P_lo=None, P_hi=None):
+                           P_lo=None, P_hi=None, P_grid=None):
     """
     Extract the outer-envelope of a φ-reduced P-M meridian curve.
 
@@ -184,16 +186,25 @@ def _outer_envelope_curve(P_raw, Mx_raw, My_raw, n_out=None,
     n = len(P_raw)
     if n < 2:
         return list(P_raw), list(Mx_raw), list(My_raw)
-    n_out   = n_out if n_out is not None else n
     P_min   = P_lo  if P_lo  is not None else min(P_raw)
     P_max   = P_hi  if P_hi  is not None else max(P_raw)
     P_range = P_max - P_min
     if P_range < 1e-12:
         return list(P_raw), list(Mx_raw), list(My_raw)
 
+    # Build the output P-level list from the supplied grid or a uniform grid.
+    if P_grid is not None:
+        P_levels = P_grid
+        n_out    = len(P_grid)
+    else:
+        n_out  = n_out if n_out is not None else n
+        P_levels = [P_min + P_range * k / (n_out - 1) for k in range(n_out)]
+
+    # ── Step 1: collect candidate (P, Mx, My) from all raw segments ─────────
+    # At each level Pt we want the point with the largest moment magnitude.
+    # Scan every segment, interpolate where it crosses Pt, keep max |M|.
     P_out, Mx_out, My_out = [], [], []
-    for k in range(n_out):
-        Pt      = P_min + P_range * k / (n_out - 1)
+    for Pt in P_levels:
         best_M2 = -1.0
         best_mx = best_my = 0.0
         for j in range(n - 1):
@@ -212,10 +223,78 @@ def _outer_envelope_curve(P_raw, Mx_raw, My_raw, n_out=None,
                 best_M2 = M2
                 best_mx = cMx
                 best_my = cMy
-        if best_M2 >= 0:
-            P_out.append(round(Pt,      2))
-            Mx_out.append(round(best_mx, 2))
-            My_out.append(round(best_my, 2))
+        P_out.append(round(Pt,       2))
+        Mx_out.append(round(best_mx, 2))
+        My_out.append(round(best_my, 2))
+
+    # ── Convex-hull smoothing on TENSION SIDE ONLY ──────────────────────
+    # The ACI phi-factor transition (εt going from -εy toward -0.005) creates
+    # a "nose" loop on the tension side: factored M can temporarily increase
+    # then decrease as c decreases through the transition zone.
+    # The outer envelope removes the loop but can leave small concave kinks.
+    # We enforce convex monotone shape only for the LEFT segment (tension side:
+    # P_min → balanced peak).
+    #
+    # The RIGHT segment (compression-controlled zone: balanced → P_max) must NOT
+    # be convex-hull linearised.  In that zone phi = 0.65 (constant) so there is
+    # no phi-factor loop, and the natural ACI 318 curve is already monotone.
+    # Linearising it replaces the physically correct curved surface with
+    # straight-line facets — producing the "cone" visual artefact the user sees.
+    if len(P_out) >= 4:
+        M_rad = [math.sqrt(mx * mx + my * my) for mx, my in zip(Mx_out, My_out)]
+        peak  = max(range(len(M_rad)), key=lambda i: M_rad[i])
+
+        # ── Left hull: P_out[0..peak] — remove phi-factor nose kinks ───────
+        def _left_hull(vals):
+            hull = [0]
+            for i in range(1, len(vals)):
+                while len(hull) >= 2:
+                    j, k2 = hull[-2], hull[-1]
+                    Pi, Pj, Pk = P_out[i], P_out[j], P_out[k2]
+                    dPji = Pi - Pj
+                    if abs(dPji) < 1e-12:
+                        hull.pop(); continue
+                    M_line_k = vals[j] + (Pk - Pj) / dPji * (vals[i] - vals[j])
+                    if vals[k2] < M_line_k - 1e-9:
+                        hull.pop()
+                    else:
+                        break
+                hull.append(i)
+            return hull
+
+        left_seg      = M_rad[:peak + 1]
+        left_hull_idx = _left_hull(left_seg)
+
+        # Rebuild M_smooth: only interpolate the left (tension) segment.
+        # Right segment values are kept exactly as the outer-envelope gives them
+        # so the natural curved ACI 318 CC shape is preserved.
+        M_smooth = list(M_rad)
+        for hi in range(len(left_hull_idx) - 1):
+            ia = left_hull_idx[hi]
+            ib = left_hull_idx[hi + 1]
+            Ma, Mb = M_rad[ia], M_rad[ib]
+            Pa, Pb = P_out[ia], P_out[ib]
+            for k2 in range(ia + 1, ib):
+                t2 = (P_out[k2] - Pa) / (Pb - Pa) if abs(Pb - Pa) > 1e-12 else 0.0
+                M_smooth[k2] = Ma + t2 * (Mb - Ma)
+
+        # ── CC side: enforce monotone-decreasing M from peak → Pmax ─────────
+        # In the compression-controlled zone (right of the balanced peak),
+        # moment MUST decrease as P increases toward Pn,max.  Sparse c-list
+        # sampling or outer-envelope interpolation can leave tiny upward
+        # bumps; clamping removes them so the curve is physically correct
+        # and matches the smooth shape shown by spColumn / ColumnBase.
+        for i in range(peak + 1, len(M_smooth)):
+            if M_smooth[i] > M_smooth[i - 1]:
+                M_smooth[i] = M_smooth[i - 1]
+
+        # Scale (Mx, My) to match smoothed magnitude; preserve direction
+        for i in range(len(Mx_out)):
+            orig = M_rad[i]
+            if orig > 1e-9:
+                scale = M_smooth[i] / orig
+                Mx_out[i] = round(Mx_out[i] * scale, 2)
+                My_out[i] = round(My_out[i] * scale, 2)
 
     return P_out, Mx_out, My_out
 
@@ -383,45 +462,26 @@ def compute_pmm(sec: PMMSection) -> dict:
     c_corners = _quadrant_corners(coords)
     nc        = len(c_corners)
 
-    n_c = sec.num_points
-    # Four-zone c-list: dense in tension/balanced region, then tapering smoothly
-    # all the way to pure-compression so the top of the interaction diagram is
-    # smooth (no visible kink from a single large jump to the anchor point).
-    #   Zone 1 (68 %): c = 0.001 → c_scale        — balanced + φ-transition region
-    #   Zone 2 (18 %): c = c_scale → 1.5×c_scale  — Pmax cap kicks in here
-    #   Zone 3 (~13%): c = 1.5×c_scale → 8×c_scale — smooth M→0 taper
-    #   Anchor (1 pt): c = 20×c_scale              — guarantees Pn_max plateau
-    c_scale = max(b_dim, h_dim)
-    _n_lo  = max(2, round(n_c * 0.68))
-    _n_mid = max(1, round(n_c * 0.18))
-    _n_hi  = max(1, n_c - _n_lo - _n_mid - 1)
-    c_list = (
-        [0.001 + c_scale * i / (_n_lo - 1) for i in range(_n_lo)]
-        + [c_scale  + (0.5 * c_scale) * (i + 1) / _n_mid for i in range(_n_mid)]
-        + [1.5 * c_scale + (6.5 * c_scale) * (i + 1) / _n_hi  for i in range(_n_hi)]
-        + [c_scale * 20]                           # pure-compression anchor
-    )
+    n_out = sec.num_points          # output P-grid size (e.g. 70 to match spColumn)
+    # Raw c-list is always denser than the output grid so the outer-envelope
+    # scan has fine enough resolution to capture the ACI phi-factor nose
+    # accurately, regardless of the requested output density.
+    n_raw = max(150, n_out * 2)
 
-    # ── Bar-transition c-clustering ──────────────────────────────────────
-    # Each rebar layer causes a kink in the P-M curve because the bar's
-    # contribution abruptly switches from tension to compression as c passes
-    # through its depth.  Inserting a tight 3-point cluster (d-δ, d, d+δ)
-    # around every bar's transition depth for both horizontal (α≈0°) and
-    # vertical (α≈90°) neutral-axis orientations adds at most ~3×n_bars extra
-    # c values but gives sub-millimetre resolution exactly where kinks are
-    # steepest — equivalent to what spColumn achieves with a very fine c-grid.
-    _delta = 0.06   # cluster half-width in inches (≈1.5 mm)
-    _extra_c: set = set()
-    for bx, by in sec.bar_positions:
-        for d in (by, h_dim - by, bx, b_dim - bx):
-            if 0.01 < d < c_scale:
-                _extra_c.update({
-                    round(d - _delta, 5),
-                    round(d,          5),
-                    round(d + _delta, 5),
-                })
-    c_list = sorted(set(c_list) | _extra_c)
-    n_c    = len(c_list)   # update: may be larger than sec.num_points
+    # Three-zone c-list using n_raw points — smoother density gradient:
+    #   Zone 1 (40 %): 0 → h         — tension → balanced → early CC
+    #   Zone 2 (35 %): h → 4h        — CC taper zone (smooth upper curvature)
+    #   Zone 3 (25 %): 4h → 20h      — approaching Pn,max (M ≈ 0)
+    _h = h_dim
+    _n1 = max(5, round(n_raw * 0.40))
+    _n2 = max(4, round(n_raw * 0.35))
+    _n3 = max(2, n_raw - _n1 - _n2)
+    c_list = (
+        [0.001 + (_h - 0.001) * i / (_n1 - 1) for i in range(_n1)]
+        + [_h + 3.0 * _h * (i + 1) / _n2 for i in range(_n2)]
+        + [4.0 * _h + 16.0 * _h * (i + 1) / _n3 for i in range(_n3)]
+    )
+    n_c = len(c_list)               # actual raw c count (≈ n_raw)
     n_a = int(360 / sec.alpha_steps)
     alpha_arr = [2 * math.pi * i / n_a for i in range(n_a)]
 
@@ -438,6 +498,12 @@ def compute_pmm(sec: PMMSection) -> dict:
 
         mi    = math.tan(alpha)
         cos_a = math.cos(alpha)
+
+        # Snap near-zero slopes to EXACT zero so horizontal NA sweeps at
+        # α=0 and α=π produce identical |M|.  Without this, tan(π)≈-1.2e-16
+        # tilts the NA slightly, breaking the symmetry of α=0°/180° curves.
+        if abs(mi) < 1e-10:
+            mi = 0.0
 
         # Compression side for this neutral-axis angle
         comp_side = 'top' if (alpha <= math.pi / 2 or alpha > 3 * math.pi / 2) else 'bottom'
@@ -523,7 +589,9 @@ def compute_pmm(sec: PMMSection) -> dict:
                 Po     = 0.85 * sec.fc * (Ag - Ast) + sec.fy * Ast
                 Pn_max = 0.80 * Po                   # ACI 318-19 Eq 22.4.2.2 tied
                 if Pn > Pn_max:
-                    Pn = Pn_max
+                    Pn  = Pn_max
+                    Mnx = 0.0   # pure-compression cap: no eccentricity → zero moment
+                    Mny = 0.0
 
                 # ── Strain in extreme tension steel ─────────────────────
                 eps_t = min(eps_bars) if eps_bars else 0.0
@@ -569,9 +637,30 @@ def compute_pmm(sec: PMMSection) -> dict:
     #      → perfect 3-D triangulation without jagged rings or wavy fill
     #   2. Removes the ACI phi-factor "nose" loop (outer-envelope selection)
     #   3. Resolves bar-transition kinks via the max-M scan across all segments
-    # After this pass the surface arrays contain n_a × n_c monotonic values.
+    # After this pass the surface arrays contain n_a × n_out values.
     Pglo_min_r = min(all_P)
     Pglo_max_r = max(all_P)
+
+    # ── spColumn-style non-uniform P grid ────────────────────────────────────
+    # spColumn uses finer P spacing in the tension zone (P < 0) than in the
+    # compression zone — roughly 2× finer — giving better resolution where the
+    # P-M curve changes most rapidly (pure bending → pure tension transition).
+    # With n_out output levels the tension fraction is:
+    #   n_tens / n_comp  ≈  2 × |Pmin| / Pmax   (equal spacing per kN)
+    if Pglo_min_r < -1.0 and Pglo_max_r > 1.0:
+        _r      = 2.0 * (-Pglo_min_r) / Pglo_max_r   # 2× finer in tension
+        _n_comp = max(3, round(n_out / (1.0 + _r)))
+        _n_tens = max(3, n_out - _n_comp)
+        _comp   = [Pglo_max_r * i / (_n_comp - 1) for i in range(_n_comp)]
+        _tens   = [Pglo_min_r + (-Pglo_min_r) * i / (_n_tens - 1)
+                   for i in range(_n_tens)]
+        # Merge ascending, drop near-duplicates at P ≈ 0
+        _merged = sorted(set([round(p, 2) for p in _tens + _comp]))
+        P_grid  = _merged
+    else:
+        P_grid  = [Pglo_min_r + (Pglo_max_r - Pglo_min_r) * k / (n_out - 1)
+                   for k in range(n_out)]
+
     new_all_P, new_all_Mx, new_all_My = [], [], []
     for a_idx, alpha_raw in enumerate(alpha_arr):
         base = a_idx * n_c
@@ -579,7 +668,7 @@ def compute_pmm(sec: PMMSection) -> dict:
             all_P [base : base + n_c],
             all_Mx[base : base + n_c],
             all_My[base : base + n_c],
-            n_out=n_c,
+            P_grid=P_grid,
             P_lo=Pglo_min_r,
             P_hi=Pglo_max_r,
         )
@@ -593,23 +682,24 @@ def compute_pmm(sec: PMMSection) -> dict:
     all_Mx = new_all_Mx
     all_My = new_all_My
 
-    # ── 2D cardinal curves (outer-envelope of φ-reduced data) ───────────────
-    # alpha_data now contains already-cleaned uniform-P meridians; applying
-    # _outer_envelope_curve once more is effectively an identity pass — kept
-    # for robustness and to guarantee identical logic for both 2D and surface.
+    # ── 2D cardinal curves ───────────────────────────────────────────────────
+    # alpha_data already contains cleaned uniform-P meridians.  Build
+    # curves_2d as INDEPENDENT copies so the caller can convert them
+    # without worrying about shared-reference aliasing with alpha_data.
     curves_2d = {}
     available = list(alpha_data.keys())
     for target in (0, 90, 180, 270):
-        best  = min(available, key=lambda a: abs(a - target))
-        curve = alpha_data[best]
-        P_env, Mx_env, My_env = _outer_envelope_curve(
-            curve['P'], curve['Mx'], curve['My'])
-        curves_2d[str(target)] = {'P': P_env, 'Mx': Mx_env, 'My': My_env}
+        best = min(available, key=lambda a: abs(a - target))
+        ad   = alpha_data[best]
+        curves_2d[str(target)] = {
+            'P':  list(ad['P']),
+            'Mx': list(ad['Mx']),
+            'My': list(ad['My']),
+        }
 
     return {
         'surface':    {'P': all_P, 'Mx': all_Mx, 'My': all_My,
-                       'num_points': n_c,   # actual pts/meridian (may differ from
-                                            # sec.num_points after bar clustering)
+                       'num_points': len(P_grid),  # actual output pts/meridian
                        'status': [], 'eps': []},
         'curves_2d':  curves_2d,
         'alpha_data': alpha_data,          # full sweep — used by check_demands

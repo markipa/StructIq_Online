@@ -1307,9 +1307,9 @@
             <div class="pmm-row">
               <label class="pmm-label">Resolution</label>
               <select id="pmm-res" class="pmm-input pmm-select">
-                <option value="10:120">Fast (10°)</option>
-                <option value="5:225" selected>Normal (5°)</option>
-                <option value="3:300">Fine (3°)</option>
+                <option value="10:70" selected>Standard (10° · 70 pts)</option>
+                <option value="5:120">Fine (5° · 120 pts)</option>
+                <option value="3:200">Ultra (3° · 200 pts)</option>
               </select>
             </div>
           </div>
@@ -1320,6 +1320,27 @@
               <path d="M3 9h12M9 3l6 6-6 6"/>
             </svg>
             Import from ETABS
+          </button>
+
+          <button id="btn-pmm-batch" class="pmm-etabs-btn" style="background:var(--blue);color:#fff;border-color:var(--blue)" onclick="pmmBatchOpen()">
+            <svg width="14" height="14" viewBox="0 0 18 18" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="6" height="6" rx="1"/>
+              <rect x="10" y="2" width="6" height="6" rx="1"/>
+              <rect x="2" y="10" width="6" height="6" rx="1"/>
+              <rect x="10" y="10" width="6" height="6" rx="1"/>
+            </svg>
+            Batch Check (ETABS)
+          </button>
+
+          <button id="btn-pmm-batch-results" class="pmm-etabs-btn hidden" style="border-color:var(--blue);color:var(--blue)" onclick="pmmShowTab('batch')">
+            <svg width="14" height="14" viewBox="0 0 18 18" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="14" height="3" rx="1"/>
+              <rect x="2" y="7" width="14" height="3" rx="1"/>
+              <rect x="2" y="12" width="14" height="3" rx="1"/>
+            </svg>
+            View Batch Results
           </button>
 
           <button id="btn-pmm-generate" class="pmm-generate-btn">
@@ -1344,10 +1365,20 @@
               </div>
             </div>
             <div class="pmm-row">
-              <label class="pmm-label">Max ρ limit</label>
+              <label class="pmm-label">Min ρ</label>
+              <div class="pmm-input-unit" style="max-width:110px">
+                <input id="pmm-opt-minrho" type="number" class="pmm-input"
+                       value="1" min="1" max="8" step="0.5"
+                       title="ACI §10.6.1.1 minimum steel ratio (%)"/>
+                <span class="pmm-unit">%</span>
+              </div>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">Max ρ</label>
               <div class="pmm-input-unit" style="max-width:110px">
                 <input id="pmm-opt-maxrho" type="number" class="pmm-input"
-                       value="4" min="1" max="8" step="0.5"/>
+                       value="4" min="1" max="8" step="0.5"
+                       title="User-defined maximum steel ratio (%)"/>
                 <span class="pmm-unit">%</span>
               </div>
             </div>
@@ -1374,6 +1405,7 @@
             <button class="pmm-tab" data-tab="pmx">P – Mx</button>
             <button class="pmm-tab" data-tab="pmy">P – My</button>
             <button class="pmm-tab" data-tab="mxmy">Mx – My</button>
+            <button class="pmm-tab" data-tab="batch" id="pmm-tab-batch" style="display:none">⚡ Batch Results</button>
           </div>
           <!-- 3D chart + loads panel side-by-side -->
           <div id="pmm-3d-wrapper" class="pmm-3d-wrapper">
@@ -1384,6 +1416,7 @@
                 <button class="pmm-3d-vbtn"        data-view="top"   onclick="pmmSet3DView('top')"   title="Top — Mx·My plane">Top</button>
                 <button class="pmm-3d-vbtn"        data-view="front" onclick="pmmSet3DView('front')" title="Front — P·Mx plane">Front</button>
                 <button class="pmm-3d-vbtn"        data-view="side"  onclick="pmmSet3DView('side')"  title="Side — P·My plane">Side</button>
+                <button class="pmm-3d-vbtn" id="pmm-3d-rotate-btn"   onclick="pmmToggleRotate()"     title="Auto-rotate">▶</button>
               </div>
             </div>
             <div id="pmm-chart-loads" class="pmm-loads-panel"></div>
@@ -1415,6 +1448,43 @@
             <span class="pmm-mxmy-p-hint">kN &nbsp;·&nbsp; compression = negative</span>
           </div>
           <div id="pmm-chart-mxmy" class="pmm-chart-area hidden"></div>
+          <!-- Batch Results tab panel -->
+          <div id="pmm-batch-results-panel" class="hidden" style="flex:1;overflow:hidden;display:flex;flex-direction:column;padding:0">
+            <div id="pmm-batch-no-results" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--t3)">
+              <div style="font-size:32px">⚡</div>
+              <div style="font-size:13px;font-weight:600">No batch results yet</div>
+              <div style="font-size:12px">Run a Batch Column Check to see results here.</div>
+              <button class="btn btn-primary btn-sm" onclick="pmmBatchOpen()">Run Batch Check</button>
+            </div>
+            <div id="pmm-batch-results-toolbar" class="hidden" style="padding:10px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:12px;flex-shrink:0">
+              <div id="pmm-batch-results-summary" style="font-size:13px;font-weight:600;flex:1"></div>
+              <button class="btn btn-ghost btn-sm" onclick="pmmBatchExportCSV()">⬇ Export CSV</button>
+              <button class="btn btn-ghost btn-sm" onclick="pmmBatchOpen()">↻ Re-run</button>
+            </div>
+            <div id="pmm-batch-results-table-wrap" class="hidden" style="overflow:auto;flex:1;padding:0">
+              <table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff">
+                <thead id="pmm-batch-results-thead">
+                  <tr class="pmm-br-header-row" style="position:sticky;top:0;z-index:2">
+                    <th class="pmm-batch-th pmm-br-sort" style="text-align:left;padding:8px 10px;cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="0" onclick="pmmBrSort(0)">Section <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="1" onclick="pmmBrSort(1)">b×h (mm) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="2" onclick="pmmBrSort(2)">Bars <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="3" onclick="pmmBrSort(3)">ρ (%) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="4" onclick="pmmBrSort(4)">φPn,max (kN) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="5" onclick="pmmBrSort(5)">Frames <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="6" onclick="pmmBrSort(6)">Worst Combo <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="7" onclick="pmmBrSort(7)">P (kN) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="8" onclick="pmmBrSort(8)">Mx (kN·m) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="9" onclick="pmmBrSort(9)">My (kN·m) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="10" onclick="pmmBrSort(10)">Max DCR <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="11" onclick="pmmBrSort(11)">Status <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th" style="background:#f1f5f9;border:1px solid #cbd5e1"></th>
+                  </tr>
+                </thead>
+                <tbody id="pmm-batch-results-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
           <div id="pmm-chart-empty" class="pmm-chart-empty">
             <svg class="pmm-empty-icon" width="56" height="56" viewBox="0 0 64 64" fill="none"
                  stroke="currentColor" stroke-width="1.4"
@@ -1522,6 +1592,293 @@
 
       </div>
     </section>
+
+    <!-- PLATE 2D FEM shelved -->
+    <section id="plate-fem-panel" class="panel" style="display:none">
+
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <h2 class="panel-title">Plate 2D FEM</h2>
+          <p class="panel-subtitle">Plane elasticity — Q4 isoparametric elements · stress contours · displacement</p>
+        </div>
+      </div>
+
+      <div class="pmm-layout" style="align-items:flex-start">
+
+        <!-- ── Left sidebar ──────────────────────────────────── -->
+        <div class="pmm-inputs" id="fem2d-sidebar" style="min-width:280px;max-width:300px">
+
+          <!-- GEOMETRY -->
+          <div class="pmm-group">
+            <div class="pmm-group-title">GEOMETRY</div>
+            <div class="pmm-row">
+              <label class="pmm-label">Type</label>
+              <select id="fem2d-geom-type" class="pmm-input" style="height:32px">
+                <option value="rectangle">Rectangle</option>
+                <option value="lshape">L-Shape</option>
+                <option value="polygon">Custom Polygon</option>
+              </select>
+            </div>
+            <div id="fem2d-rect-inputs">
+              <div class="pmm-row">
+                <label class="pmm-label">Width</label>
+                <div class="pmm-input-unit">
+                  <input id="fem2d-width" type="number" class="pmm-input" value="1000" min="1" step="10"/>
+                  <span class="pmm-unit">mm</span>
+                </div>
+              </div>
+              <div class="pmm-row">
+                <label class="pmm-label">Height</label>
+                <div class="pmm-input-unit">
+                  <input id="fem2d-height" type="number" class="pmm-input" value="500" min="1" step="10"/>
+                  <span class="pmm-unit">mm</span>
+                </div>
+              </div>
+            </div>
+            <div id="fem2d-lshape-inputs" class="hidden">
+              <div class="pmm-row">
+                <label class="pmm-label">Width</label>
+                <div class="pmm-input-unit">
+                  <input id="fem2d-lw" type="number" class="pmm-input" value="1000" min="1" step="10"/>
+                  <span class="pmm-unit">mm</span>
+                </div>
+              </div>
+              <div class="pmm-row">
+                <label class="pmm-label">Height</label>
+                <div class="pmm-input-unit">
+                  <input id="fem2d-lh" type="number" class="pmm-input" value="1000" min="1" step="10"/>
+                  <span class="pmm-unit">mm</span>
+                </div>
+              </div>
+              <div class="pmm-row">
+                <label class="pmm-label">Cutout W</label>
+                <div class="pmm-input-unit">
+                  <input id="fem2d-cw" type="number" class="pmm-input" value="500" min="1" step="10"/>
+                  <span class="pmm-unit">mm</span>
+                </div>
+              </div>
+              <div class="pmm-row">
+                <label class="pmm-label">Cutout H</label>
+                <div class="pmm-input-unit">
+                  <input id="fem2d-ch" type="number" class="pmm-input" value="500" min="1" step="10"/>
+                  <span class="pmm-unit">mm</span>
+                </div>
+              </div>
+            </div>
+            <div id="fem2d-polygon-inputs" class="hidden">
+              <p style="font-size:11px;color:var(--t3);margin:4px 0 6px">
+                Click on the canvas to add vertices. Close polygon to confirm.
+              </p>
+              <button id="fem2d-poly-clear" class="btn btn-ghost btn-sm" style="width:100%">Clear Vertices</button>
+              <div id="fem2d-poly-count" style="font-size:11px;color:var(--t3);margin-top:4px;text-align:center">0 vertices</div>
+            </div>
+            <div class="pmm-row" style="margin-top:6px">
+              <label class="pmm-label">Thickness</label>
+              <div class="pmm-input-unit">
+                <input id="fem2d-thickness" type="number" class="pmm-input" value="10" min="0.1" step="1"/>
+                <span class="pmm-unit">mm</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- MATERIAL -->
+          <div class="pmm-group">
+            <div class="pmm-group-title">MATERIAL</div>
+            <div class="pmm-row">
+              <label class="pmm-label">E (modulus)</label>
+              <div class="pmm-input-unit">
+                <input id="fem2d-E" type="number" class="pmm-input" value="200000" min="1"/>
+                <span class="pmm-unit">MPa</span>
+              </div>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">ν (Poisson)</label>
+              <input id="fem2d-nu" type="number" class="pmm-input" value="0.3" min="0" max="0.499" step="0.01"/>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">Unit wt.</label>
+              <div class="pmm-input-unit">
+                <input id="fem2d-unitwt" type="number" class="pmm-input" value="0" min="0" step="0.0001"/>
+                <span class="pmm-unit">N/mm³</span>
+              </div>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">Analysis</label>
+              <select id="fem2d-mode" class="pmm-input" style="height:32px">
+                <option value="1">Plane Stress</option>
+                <option value="2">Plane Strain</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- MESH -->
+          <div class="pmm-group">
+            <div class="pmm-group-title">MESH</div>
+            <div class="pmm-row">
+              <label class="pmm-label">Element size</label>
+              <div class="pmm-input-unit">
+                <input id="fem2d-meshsize" type="number" class="pmm-input" value="50" min="1" step="5"/>
+                <span class="pmm-unit">mm</span>
+              </div>
+            </div>
+
+            <button id="fem2d-btn-mesh" class="btn btn-ghost" style="width:100%;margin-top:8px">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                   stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="2" width="5" height="5" rx="0.5"/>
+                <rect x="9" y="2" width="5" height="5" rx="0.5"/>
+                <rect x="2" y="9" width="5" height="5" rx="0.5"/>
+                <rect x="9" y="9" width="5" height="5" rx="0.5"/>
+              </svg>
+              Generate Mesh
+            </button>
+            <div id="fem2d-mesh-info" style="font-size:11px;color:var(--t3);margin-top:4px;text-align:center"></div>
+          </div>
+
+          <!-- SUPPORTS & LOADS SUMMARY -->
+          <div class="pmm-group">
+            <div class="pmm-group-title">SUPPORTS &amp; LOADS</div>
+            <p style="font-size:11px;color:var(--t3);margin:0 0 8px">
+              Generate mesh then click any node to assign supports or loads.
+            </p>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+              <span style="font-size:11px;font-weight:600;color:var(--t2)">Supports</span>
+              <button id="fem2d-btn-clear-supports" class="btn btn-ghost btn-sm" style="padding:1px 7px;font-size:10px">Clear</button>
+            </div>
+            <div id="fem2d-support-list" class="fem2d-bc-list">
+              <span class="fem2d-bc-empty">No supports yet</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 3px">
+              <span style="font-size:11px;font-weight:600;color:var(--t2)">Nodal Loads</span>
+              <button id="fem2d-btn-clear-loads" class="btn btn-ghost btn-sm" style="padding:1px 7px;font-size:10px">Clear</button>
+            </div>
+            <div id="fem2d-load-list" class="fem2d-bc-list">
+              <span class="fem2d-bc-empty">No loads yet</span>
+            </div>
+          </div>
+
+          <!-- RUN ANALYSIS -->
+          <button id="fem2d-btn-solve" class="btn btn-primary" style="width:100%;margin-top:4px;padding:10px 0;font-size:14px">
+            <svg width="14" height="14" viewBox="0 0 15 15" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="3,2 13,7.5 3,13" fill="currentColor" stroke="none"/>
+            </svg>
+            Run Analysis
+          </button>
+
+          <!-- RESULTS SUMMARY -->
+          <div id="fem2d-summary" class="hidden" style="margin-top:10px;background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:10px">
+            <div style="font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Results</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <div style="background:var(--bg1);border-radius:6px;padding:6px 8px;text-align:center">
+                <div style="font-size:10px;color:var(--t3)">Max |U| (mm)</div>
+                <div id="fem2d-res-maxdisp" style="font-size:14px;font-weight:700;color:var(--blue)">—</div>
+              </div>
+              <div style="background:var(--bg1);border-radius:6px;padding:6px 8px;text-align:center">
+                <div style="font-size:10px;color:var(--t3)">Max VM (MPa)</div>
+                <div id="fem2d-res-maxvm" style="font-size:14px;font-weight:700;color:#f59e0b">—</div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /.pmm-inputs (sidebar) -->
+
+        <!-- ── Right: chart area ─────────────────────────────── -->
+        <div style="flex:1;display:flex;flex-direction:column;gap:0;min-width:0">
+
+          <!-- Tab bar -->
+          <div class="tab-bar" id="fem2d-tabs" style="border-bottom:1px solid var(--bdr);flex-shrink:0">
+            <button class="tab-btn active" data-fem2d-tab="mesh">Mesh</button>
+            <button class="tab-btn" data-fem2d-tab="Ux">Ux</button>
+            <button class="tab-btn" data-fem2d-tab="Uy">Uy</button>
+            <button class="tab-btn" data-fem2d-tab="sxx">σxx</button>
+            <button class="tab-btn" data-fem2d-tab="syy">σyy</button>
+            <button class="tab-btn" data-fem2d-tab="txy">τxy</button>
+            <button class="tab-btn" data-fem2d-tab="vm">Von Mises</button>
+            <button class="tab-btn" data-fem2d-tab="ps1">P.S. σ₁</button>
+            <button class="tab-btn" data-fem2d-tab="ps2">P.S. σ₂</button>
+          </div>
+
+          <!-- Chart div -->
+          <div id="fem2d-chart" style="flex:1;min-height:480px;background:var(--bg1);border-radius:0 0 8px 8px;position:relative">
+
+            <!-- Node Properties Panel (overlay, top-right of canvas) -->
+            <div id="fem2d-props-panel" class="fem2d-props-panel hidden">
+              <div class="fem2d-props-header">
+                <div>
+                  <span class="fem2d-props-title">Node <span id="fem2d-props-nodeid">0</span></span>
+                  <span id="fem2d-props-coords" class="fem2d-props-coords"></span>
+                </div>
+                <button id="fem2d-props-close" class="fem2d-props-close" aria-label="Close">×</button>
+              </div>
+
+              <!-- Support type visual buttons -->
+              <div class="fem2d-props-section">
+                <div class="fem2d-props-label">Support Condition</div>
+                <div class="fem2d-sup-grid">
+                  <button class="fem2d-sup-btn active" data-dof="" id="fem2d-sup-free">
+                    <span class="fem2d-sup-icon">○</span>
+                    <span class="fem2d-sup-name">Free</span>
+                  </button>
+                  <button class="fem2d-sup-btn" data-dof="XY" id="fem2d-sup-pin">
+                    <span class="fem2d-sup-icon">▽</span>
+                    <span class="fem2d-sup-name">Pin</span>
+                    <span class="fem2d-sup-desc">fix X+Y</span>
+                  </button>
+                  <button class="fem2d-sup-btn" data-dof="Y" id="fem2d-sup-rollerx">
+                    <span class="fem2d-sup-icon">⬡</span>
+                    <span class="fem2d-sup-name">Roller</span>
+                    <span class="fem2d-sup-desc">fix Y</span>
+                  </button>
+                  <button class="fem2d-sup-btn" data-dof="X" id="fem2d-sup-rollery">
+                    <span class="fem2d-sup-icon">⬡</span>
+                    <span class="fem2d-sup-name">Roller</span>
+                    <span class="fem2d-sup-desc">fix X</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Load inputs -->
+              <div class="fem2d-props-section">
+                <div class="fem2d-props-label">Point Load</div>
+                <div class="fem2d-load-row">
+                  <span class="fem2d-load-axis" style="color:#3b82f6">→ Fx</span>
+                  <input id="fem2d-props-fx" type="number" class="pmm-input fem2d-load-input" value="0" step="100" placeholder="0"/>
+                  <span class="fem2d-load-unit">N</span>
+                </div>
+                <div class="fem2d-load-row">
+                  <span class="fem2d-load-axis" style="color:#ef4444">↑ Fy</span>
+                  <input id="fem2d-props-fy" type="number" class="pmm-input fem2d-load-input" value="0" step="100" placeholder="0"/>
+                  <span class="fem2d-load-unit">N</span>
+                </div>
+              </div>
+
+              <div class="fem2d-props-footer">
+                <button id="fem2d-props-clear" class="btn btn-ghost btn-sm fem2d-btn-clear">Clear All</button>
+                <button id="fem2d-props-apply" class="btn btn-primary btn-sm">Apply</button>
+              </div>
+            </div>
+
+            <div id="fem2d-chart-empty" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--t3);pointer-events:none">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor"
+                   stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.4">
+                <rect x="4" y="4" width="40" height="40" rx="4"/>
+                <line x1="14" y1="4"  x2="14" y2="44"/>
+                <line x1="24" y1="4"  x2="24" y2="44"/>
+                <line x1="34" y1="4"  x2="34" y2="44"/>
+                <line x1="4"  y1="14" x2="44" y2="14"/>
+                <line x1="4"  y1="24" x2="44" y2="24"/>
+                <line x1="4"  y1="34" x2="44" y2="34"/>
+              </svg>
+              <p style="margin-top:12px;font-size:13px">Generate a mesh to begin</p>
+            </div>
+          </div>
+
+        </div><!-- /.right chart area -->
+
+      </div><!-- /.pmm-layout -->
+
+    </section><!-- /#plate-fem-panel -->
 
   </main>
 </div>
@@ -2490,6 +2847,93 @@
 </div>
 
 
-<script src="/app/app.js?v=105"></script>
+<!-- ══════════════════ PMM BATCH CHECK MODAL ══════════════════ -->
+<div id="pmm-batch-modal" class="modal-overlay hidden">
+  <div class="modal-box" style="width:1300px;max-width:96vw;max-height:90vh;display:flex;flex-direction:column;padding:0;overflow:hidden">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--bdr);flex-shrink:0">
+      <div>
+        <div style="font-size:15px;font-weight:700">⚡ Batch Column Check — ETABS</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px">Checks all RC column sections against selected load combinations</div>
+      </div>
+      <button onclick="pmmBatchClose()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--t2);line-height:1">×</button>
+    </div>
+
+    <!-- Step 1: Combo selection -->
+    <div id="pmm-batch-step1" style="flex:1;overflow:hidden;display:flex;flex-direction:column;padding:16px 20px;gap:10px">
+      <div style="font-size:12px;font-weight:600;color:var(--t2)">SELECT LOAD COMBINATIONS</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <label style="font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer">
+          <input type="radio" name="pmm-batch-type" value="combo" checked> Combinations
+        </label>
+        <label style="font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer">
+          <input type="radio" name="pmm-batch-type" value="case"> Load Cases
+        </label>
+        <button class="btn btn-ghost btn-sm" onclick="pmmBatchFetchCombos()" style="margin-left:auto">↻ Refresh from ETABS</button>
+      </div>
+      <div class="pmm-etabs-search-row">
+        <input type="text" id="pmm-batch-search" class="pmm-etabs-search"
+               placeholder="Filter combinations…" oninput="pmmBatchFilter()"/>
+        <span id="pmm-batch-count" class="pmm-etabs-count"></span>
+      </div>
+      <div id="pmm-batch-combos-wrap" class="pmm-etabs-combos-wrap" style="flex:1;overflow-y:auto;min-height:120px">
+        <div class="pmm-etabs-combo-hint">Click ↻ Refresh to load combinations from ETABS</div>
+      </div>
+      <div class="pmm-etabs-actions">
+        <button class="pmm-etabs-selall" onclick="pmmBatchSelectAll(true)">Select All</button>
+        <button class="pmm-etabs-selall" onclick="pmmBatchSelectAll(false)">Clear All</button>
+        <button class="pmm-etabs-selall" onclick="pmmBatchSelectFiltered(true)">Select Filtered</button>
+      </div>
+      <div id="pmm-batch-note" style="font-size:11px;color:var(--t3);min-height:16px"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px">
+        <button class="btn btn-ghost" onclick="pmmBatchClose()">Cancel</button>
+        <button class="btn btn-primary" id="btn-pmm-batch-run" onclick="pmmBatchRun()">⚡ Run Batch Check</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Progress -->
+    <div id="pmm-batch-step2" class="hidden" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:40px">
+      <div style="font-size:28px">⏳</div>
+      <div id="pmm-batch-progress-text" style="font-size:14px;font-weight:600">Running batch check…</div>
+      <div style="font-size:12px;color:var(--t3)">Fetching forces and computing PMM surfaces for all column sections.</div>
+    </div>
+
+    <!-- Step 3: Results -->
+    <div id="pmm-batch-step3" class="hidden" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+      <div style="padding:12px 20px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:14px;flex-shrink:0">
+        <div id="pmm-batch-summary-text" style="font-size:13px;font-weight:600;flex:1"></div>
+        <button class="btn btn-ghost btn-sm" onclick="pmmBatchExportCSV()">⬇ Export CSV</button>
+        <button class="btn btn-ghost btn-sm" onclick="pmmBatchReset()">← Back</button>
+        <button onclick="pmmBatchClose()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--t2);line-height:1">×</button>
+      </div>
+      <div style="overflow:auto;flex:1;padding:0 4px 8px 4px">
+        <table id="pmm-batch-table" style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:var(--bg2);position:sticky;top:0;z-index:1">
+              <th class="pmm-batch-th" style="text-align:left;padding:8px 10px">Section</th>
+              <th class="pmm-batch-th">b×h (mm)</th>
+              <th class="pmm-batch-th">Bars</th>
+              <th class="pmm-batch-th">ρ (%)</th>
+              <th class="pmm-batch-th">φPn,max (kN)</th>
+              <th class="pmm-batch-th">Frames</th>
+              <th class="pmm-batch-th">Worst Combo</th>
+              <th class="pmm-batch-th">P (kN)</th>
+              <th class="pmm-batch-th">Mx (kN·m)</th>
+              <th class="pmm-batch-th">My (kN·m)</th>
+              <th class="pmm-batch-th">Max DCR</th>
+              <th class="pmm-batch-th">Status</th>
+              <th class="pmm-batch-th"></th>
+            </tr>
+          </thead>
+          <tbody id="pmm-batch-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="/app/app.js?v=133"></script>
 </body>
 </html>

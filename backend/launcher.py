@@ -101,10 +101,13 @@ def run_server(port: int):
         if getattr(sys, 'frozen', False):
             import importlib.util as _ilu
             _mp = os.path.join(BASE_DIR, "main.py")
+            log(f"[launcher] frozen=True, loading main.py from: {_mp}")
+            log(f"[launcher] main.py exists: {os.path.isfile(_mp)}")
             _spec = _ilu.spec_from_file_location("main", _mp)
             _mod  = _ilu.module_from_spec(_spec)
             sys.modules["main"] = _mod          # register BEFORE exec so
             _spec.loader.exec_module(_mod)       # relative imports resolve
+            log(f"[launcher] exec_module OK, app={type(getattr(_mod, 'app', None)).__name__}")
             app = _mod.app
         else:
             from main import app  # dev mode — normal import

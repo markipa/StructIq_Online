@@ -4226,7 +4226,7 @@ async function pmmGenerate() {
   const barSize = barSel?.value || 'Ø20';
   const phi   = document.getElementById('pmm-phi')?.checked ?? true;
   const resSel = document.getElementById('pmm-res');
-  const [alphaSteps, numPoints] = (resSel?.value || '5:225').split(':').map(Number);
+  const [alphaSteps, numPoints] = (resSel?.value || '10:70').split(':').map(Number);
 
   if (!b || !h || !fc || !fy || !es || !cover || !nbarsB) {
     pmmSetStatus('Please fill all required fields.', 'error'); return;
@@ -4263,6 +4263,8 @@ async function pmmGenerate() {
 
     _pmmResult  = data;
     _pmmPayload = payload;
+    // Log engine version so we can verify the correct pmm_engine is loaded
+    console.log('[PMM] engine_version =', data.engine_version || 'not-reported');
     // Clear stale check results when a new diagram is generated
     _pmmLoads.forEach(l => { delete l.DCR; delete l.status; delete l.M_cap; delete l.M_demand; });
     pmmShowSummary(data);
@@ -4329,11 +4331,19 @@ function pmmShowTab(tab) {
   mxmyEl?.classList.toggle('hidden', !showMxMy);
   mxmyToolbar?.classList.toggle('hidden', !showMxMy);
   mxmyBtn?.classList.toggle('active', showMxMy);
+
+  // Batch Results tab
+  const batchPanel = document.getElementById('pmm-batch-results-panel');
+  const batchBtn   = document.querySelector('.pmm-tab[data-tab="batch"]');
+  const showBatch  = tab === 'batch';
+  batchPanel?.classList.toggle('hidden', !showBatch);
+  batchBtn?.classList.toggle('active', showBatch);
   if (showMxMy) pmmPopulateMxMyPDropdown();
   if (showMxMy && _pmmResult) {
     const checkedLoads = _pmmLoads.filter(l => l.status);
     const autoEngineP  = checkedLoads.length ? -(+checkedLoads[0].P)
-                       : (_pmmLoads.length && _pmmLoads[0].P !== '' ? -(+_pmmLoads[0].P) : 0);
+                       : (_pmmLoads.length && _pmmLoads[0].P !== '' ? -(+_pmmLoads[0].P)
+                         : (_pmmResult ? _pmmResult.Pmax * 0.35 : 0));
     // Pre-fill input with the auto-detected P (user-facing: negative = compression)
     const pInput = document.getElementById('pmm-mxmy-p-input');
     if (pInput && pInput.value === '') pInput.value = (-autoEngineP).toFixed(1);
@@ -4527,7 +4537,7 @@ async function pmmImportETABS() {
     // If only one section, populate directly
     if (sections.length === 1) {
       pmmFillFromSection(sections[0]);
-      pmmSetStatus(`Imported: ${sections[0].name}`, '');
+      pmmSetStatus(`Imported: ${sections[0].name || sections[0].prop_name || ''}`, '');
       return;
     }
 
@@ -4540,18 +4550,29 @@ async function pmmImportETABS() {
   }
 }
 
-function pmmFillFromSection(sec) {
-  // sec: { name, b_mm, h_mm, cover_mm, nbars, rebar_size (label like "Ø20"),
-  //         fc_mpa, fy_mpa, Es_mpa }
+async function pmmFillFromSection(sec, comboOverride = null) {
+  // sec: { name/prop_name, b_mm/width, h_mm/depth, cover_mm/cover,
+  //         nbars, rebar_size (label like "Ø20"), fc_mpa, fy_mpa, Es_mpa }
+  // Normalise field aliases so both old (prop_name/width/depth/cover) and
+  // new (name/b_mm/h_mm/cover_mm) naming conventions work.
+  const b      = sec.b_mm     ?? sec.width;
+  const h      = sec.h_mm     ?? sec.depth;
+  const cover  = sec.cover_mm ?? sec.cover;
   const setVal = (id, v) => {
     const el = document.getElementById(id);
     if (el && v != null) el.value = v;
   };
-  setVal('pmm-b',     Math.round(sec.b_mm));
-  setVal('pmm-h',     Math.round(sec.h_mm));
-  setVal('pmm-cover', Math.round(sec.cover_mm));
-  if (sec.nbars_b != null) setVal('pmm-nbars-b', sec.nbars_b);
-  if (sec.nbars_h != null) setVal('pmm-nbars-h', sec.nbars_h);
+  setVal('pmm-b',     Math.round(b));
+  setVal('pmm-h',     Math.round(h));
+  setVal('pmm-cover', Math.round(cover));
+  // nbars_b = top/bottom (b-dir) face bars INCLUDING corners → pmm-nbars-b
+  // nbars_h = side (h-dir) INTERMEDIATE bars EXCLUDING corners → pmm-nbars-h
+  // ETABS: vals[6]=nbars_2 = Along 3-dir face = top/bottom → nbars_b
+  //        vals[7]=nbars_3 = Along 2-dir face = side face  → nbars_h = nbars_3 - 2
+  const nb_b = sec.nbars_b ?? sec.nbars_2;
+  const nb_h = sec.nbars_h ?? (sec.nbars_3 != null ? Math.max(0, sec.nbars_3 - 2) : null);
+  if (nb_b != null) setVal('pmm-nbars-b', nb_b);
+  if (nb_h != null) setVal('pmm-nbars-h', nb_h);
   if (sec.fc_mpa  != null) setVal('pmm-fc', parseFloat(sec.fc_mpa.toFixed(1)));
   if (sec.fy_mpa  != null) setVal('pmm-fy', parseFloat(sec.fy_mpa.toFixed(0)));
   if (sec.Es_mpa  != null) setVal('pmm-es', parseFloat(sec.Es_mpa.toFixed(0)));
@@ -4568,6 +4589,44 @@ function pmmFillFromSection(sec) {
 
   pmmUpdateRhoInfo();
   pmmDrawSection();
+
+  // ── Auto-import demand forces for this section from ETABS ──────────────
+  const propName = sec.prop_name || sec.name;
+  if (!propName) return;
+  const note = document.getElementById('pmm-loads-note');
+  try {
+    // Use provided combos, or fetch all available combos
+    let comboNames = comboOverride;
+    if (!comboNames) {
+      const combosRes = await authFetch('/api/pmm/etabs-combos');
+      if (!combosRes.ok) return;
+      const combosData = await combosRes.json();
+      comboNames = (combosData.combos || []).map(c => (typeof c === 'string' ? c : c.name || String(c)));
+    }
+    if (!comboNames.length) return;
+
+    const forcesRes = await authFetch('/api/pmm/etabs-section-forces', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ section_name: propName, combo_names: comboNames })
+    });
+    if (!forcesRes.ok) return;
+    const forcesData = await forcesRes.json();
+    const rows = forcesData.results || [];
+    if (!rows.length) return;
+
+    // Populate demand table: match batch engine convention → Mx = M33, My = M22
+    _pmmLoads = [];
+    _pmmLoadId = 0;
+    rows.forEach(r => {
+      _pmmLoadId++;
+      _pmmLoads.push({ id: _pmmLoadId, label: r.label,
+                       P: r.P_kN, Mx: r.M3_kNm, My: r.M2_kNm });
+    });
+    pmmRenderLoadsRows();
+    pmmPopulateMxMyPDropdown();
+    if (note) note.textContent = `✓ ${rows.length} demand load(s) auto-imported for "${propName}".`;
+  } catch { /* silently skip if ETABS not connected or section has no frames */ }
 }
 
 function pmmShowSectionPicker(sections) {
@@ -4596,17 +4655,26 @@ function pmmShowSectionPicker(sections) {
       display:block;width:100%;text-align:left;padding:9px 12px;margin-bottom:6px;
       border:1px solid var(--bdr-sm);border-radius:6px;background:var(--bg-input);
       color:var(--t1);font-size:13px;cursor:pointer;line-height:1.4;`;
-    const _nb = sec.nbars != null ? sec.nbars
-              : (sec.nbars_b != null ? 2*(+sec.nbars_b) + 2*(+(sec.nbars_h||0)) : '—');
-    row.innerHTML = `<strong>${sec.name}</strong><br>
+    const _label = sec.name || sec.prop_name || '(unnamed)';
+    const _b     = sec.b_mm  ?? sec.width  ?? '?';
+    const _h     = sec.h_mm  ?? sec.depth  ?? '?';
+    // nbars_b = top/bottom (b-dir) bars incl. corners; nbars_h = side intermediate only.
+    // PMM total = 2*nbars_b + 2*nbars_h.
+    // Fallback: nbars_2=Along-3dir-face = top/bottom; nbars_3=Along-2dir-face = side(incl corners).
+    const _nb_b = +(sec.nbars_b ?? sec.nbars_2 ?? 0);
+    const _nb_h_raw = sec.nbars_h ?? (sec.nbars_3 != null ? Math.max(0, sec.nbars_3 - 2) : 0);
+    const _nb_h = +(_nb_h_raw ?? 0);
+    const _nb   = (sec.nbars != null) ? sec.nbars
+                : (_nb_b) ? 2 * _nb_b + 2 * _nb_h : '—';
+    row.innerHTML = `<strong>${_label}</strong><br>
       <span style="color:var(--t2);font-size:12px">
-        ${sec.b_mm}×${sec.h_mm} mm  |  ${_nb} bars  |
+        ${Math.round(_b)}×${Math.round(_h)} mm  |  ${_nb} bars  |
         f'c ${sec.fc_mpa?.toFixed(0) ?? '—'} MPa  |  fy ${sec.fy_mpa?.toFixed(0) ?? '—'} MPa
       </span>`;
     row.addEventListener('click', () => {
       overlay.remove();
       pmmFillFromSection(sec);
-      pmmSetStatus(`Imported: ${sec.name}`, '');
+      pmmSetStatus(`Imported: ${sec.name || sec.prop_name || ''}`, '');
     });
     row.addEventListener('mouseenter', () => row.style.background = 'var(--blue-tint)');
     row.addEventListener('mouseleave', () => row.style.background = 'var(--bg-input)');
@@ -4657,8 +4725,18 @@ function pmmRender3D(data, payload, loadPts) {
     const mP  = allP .slice(base, base + numPts);
     const mMx = allMx.slice(base, base + numPts);
     const mMy = allMy.slice(base, base + numPts);
+    // Meridian P bounds — used to zero-out queries above/below this meridian's range
+    const mPmin = Math.min(...mP);
+    const mPmax = Math.max(...mP);
     for (let k = 0; k < numPts; k++) {
       const Pt = Pglo_min + (Pglo_max - Pglo_min) * k / (numPts - 1);
+      // If Pt is above this meridian's maximum P, the section cannot carry any
+      // moment at that compression level → return zero instead of the stale
+      // last-point fallback that caused the outward spike artefact.
+      if (Pt > mPmax + 1e-6) {
+        rMx[base + k] = 0; rMy[base + k] = 0; rP[base + k] = Pt;
+        continue;
+      }
       // Fast path: engine provides monotonic P → direct index copy
       // Safety: full scan in case of residual non-monotonicity
       let mx = 0, my = 0, bestM = -1;
@@ -4675,8 +4753,9 @@ function pmmRender3D(data, payload, loadPts) {
         if (M > bestM) { bestM = M; mx = cMx; my = cMy; }
       }
       if (bestM < 0) {
-        mx = Pt <= mP[0] ? mMx[0] : mMx[numPts - 1];
-        my = Pt <= mP[0] ? mMy[0] : mMy[numPts - 1];
+        // Only use the low-P fallback (pure tension end); never extrapolate upward
+        mx = Pt <= mPmin ? mMx[0] : 0;
+        my = Pt <= mPmin ? mMy[0] : 0;
       }
       rMx[base + k] = mx;
       rMy[base + k] = my;
@@ -4709,16 +4788,85 @@ function pmmRender3D(data, payload, loadPts) {
     }
   }
 
+  // ── Per-ring convex hull smoothing ─────────────────────────────────────────
+  // Each horizontal k-ring is the Mx-My cross-section of the surface at one P
+  // level.  The ACI φ-factor nose (TC→CC switching) creates concavities: some
+  // meridians at mid-P levels pick the tension-controlled branch (φ=0.90, higher
+  // M) while adjacent meridians only have the CC branch (φ=0.65, lower M).
+  // This causes the visible waist indentations on the 3-D surface.
+  //
+  // Fix: apply the support-function convex hull to EACH ring independently with
+  // 4-fold symmetry enforcement.  For each alpha direction the hull picks the
+  // supersampled ring point that projects furthest in that direction.  This
+  // makes every P-ring perfectly convex, matching spColumn's smooth surface.
+  for (let k = 0; k < numPts; k++) {
+    // Build 4-fold symmetric cloud from the current ring
+    const rx = [], ry = [];
+    for (let a = 0; a < numAlphaS; a++) {
+      const mx = sMx[a * numPts + k];
+      const my = sMy[a * numPts + k];
+      rx.push( mx,  mx, -mx, -mx);
+      ry.push( my, -my,  my, -my);
+    }
+    // Support function: for each alpha direction keep the furthest-projecting pt
+    for (let a = 0; a < numAlphaS; a++) {
+      const ang = (a / numAlphaS) * 2 * Math.PI;
+      const dx = Math.cos(ang), dy = Math.sin(ang);
+      let bestDot = -1e30, bx = 0, by = 0;
+      for (let j = 0; j < rx.length; j++) {
+        const dot = dx * rx[j] + dy * ry[j];
+        if (dot > bestDot) { bestDot = dot; bx = rx[j]; by = ry[j]; }
+      }
+      sMx[a * numPts + k] = bx;
+      sMy[a * numPts + k] = by;
+    }
+  }
+
   const traces = [];
 
-  // ── Semi-transparent fill (mesh3d + Gouraud shading via intensity) ──────
-  // Using `intensity` instead of flat `color` enables smooth per-vertex colour
-  // interpolation across each triangle (Gouraud shading), eliminating the
-  // visible facets that appear with a single flat colour.
+  // ── Find topK (last ring with non-zero moment) BEFORE triangulating ──────
+  // The zero-moment rings beyond topK form a degenerate "stem" up to Pmax.
+  // Clipping quads at topK and closing with a FLAT DISC at P_topK gives the
+  // correct ACI 318 flat-cap appearance — no spike/cone at the top.
+  let topK = numPts - 1;
+  let mMax = 1;
+  for (let i = 0; i < sMx.length; i++) {
+    const v = Math.abs(sMx[i]) > Math.abs(sMy[i]) ? Math.abs(sMx[i]) : Math.abs(sMy[i]);
+    if (v > mMax) mMax = v;
+  }
+  const mThresh = 0.03 * mMax;   // 3% of peak moment — clips degenerate near-Pmax
+                                  // rings while keeping the cap seam invisible
+
+  // ── Scan topK (from top downward) ────────────────────────────────────────
+  for (let k = numPts - 1; k >= 0; k--) {
+    let anyNonZero = false;
+    for (let a = 0; a < numAlphaS; a++) {
+      const idx = a * numPts + k;
+      if (Math.abs(sMx[idx]) > mThresh || Math.abs(sMy[idx]) > mThresh) {
+        anyNonZero = true; break;
+      }
+    }
+    if (anyNonZero) { topK = k; break; }
+  }
+
+  // ── Zero-force the k=0 ring to the origin ────────────────────────────────
+  // At pure axial tension (Pglo_min) every meridian has M=0 (symmetric section,
+  // no eccentricity).  Numerical drift in the resampling can leave tiny non-zero
+  // values that produce the concave "heart" artefact at the bottom tip.
+  // Forcing (Mx,My)=0 at k=0 makes the bottom converge cleanly to a point;
+  // no separate disc-cap is needed — the quad triangles at i=0 naturally form
+  // a fan that tapers to the origin (degenerate triangles are silently ignored
+  // by Plotly's mesh3d renderer).
+  for (let a = 0; a < numAlphaS; a++) {
+    sMx[a * numPts] = 0;
+    sMy[a * numPts] = 0;
+  }
+
+  // ── Triangulate quads from k=0 to topK ───────────────────────────────────
   const triI = [], triJ = [], triK = [];
   for (let a = 0; a < numAlphaS; a++) {
     const a1 = (a + 1) % numAlphaS;
-    for (let i = 0; i < numPts - 1; i++) {
+    for (let i = 0; i < topK; i++) {
       const p00 = a  * numPts + i;
       const p10 = a1 * numPts + i;
       const p01 = a  * numPts + i + 1;
@@ -4731,82 +4879,151 @@ function pmmRender3D(data, payload, loadPts) {
   const Prange    = (Pglo_max - Pglo_min) || 1;
   const intensity = sP.map(p => (p - Pglo_min) / Prange);
 
+  // ── Flat top cap: horizontal disc at P_topK ───────────────────────────────
+  const P_topK       = sP[topK];
+  const topCenterIdx = sMx.length;
+  sMx.push(0); sMy.push(0); sP.push(P_topK);
+  intensity.push((P_topK - Pglo_min) / Prange);
+  for (let a = 0; a < numAlphaS; a++) {
+    const a1 = (a + 1) % numAlphaS;
+    triI.push(topCenterIdx);
+    triJ.push(a  * numPts + topK);
+    triK.push(a1 * numPts + topK);
+  }
+  // No separate bottom cap needed — the zeroed k=0 ring already closes the tip.
+
   traces.push({
     type: 'mesh3d',
     x: sMx, y: sMy, z: sP,
     i: triI, j: triJ, k: triK,
-    intensity,
-    colorscale: [
-      [0.00, '#dbeafe'],   // tension zone  — pale blue
-      [0.45, '#93c5fd'],   // balanced zone — medium blue
-      [0.75, '#3b82f6'],   // compression   — vivid blue
-      [1.00, '#1e40af'],   // max compression — deep blue
-    ],
-    cmin: 0, cmax: 1,
+    // Uniform light-steel-blue matching the spColumn reference — no gradient.
+    // Glossy finish: high specular + low roughness + strong fresnel edge sheen.
+    color: '#b8cce4',
     showscale: false,
-    opacity: 0.22,
+    opacity: 0.30,
     hoverinfo: 'none',
     name: 'Surface',
     flatshading: false,
     lighting: {
-      ambient:   0.88,
-      diffuse:   0.45,
-      specular:  0.08,
-      roughness: 0.55,
-      fresnel:   0.10,
+      ambient:   0.55,   // lower ambient lets shadows deepen the gloss effect
+      diffuse:   0.50,   // moderate diffuse for smooth shading across the surface
+      specular:  0.85,   // high specular → bright sharp highlight on the curve
+      roughness: 0.08,   // near-zero roughness = mirror-like glossy sheen
+      fresnel:   0.30,   // strong fresnel → glowing silhouette / rim highlight
     },
-    lightposition: { x: 2000, y: 1000, z: 8000 },
+    lightposition: { x: 1000, y: 500, z: 8000 },
   });
 
-  // ── Wireframe: meridian lines (one per alpha angle) ───────────────
-  // Surface data is ordered: numPts points for alpha[0], then alpha[1], etc.
-  // mStep by resolution: Fast(10°)→every 10th, Normal(5°)→every 5th, Fine(3°)→every 1st
-  const mStep = payload.alpha_steps >= 10 ? 10 : payload.alpha_steps >= 5 ? 5 : 1;
+  // ── Wireframe: meridian lines ─────────────────────────────────────────────
+  // Always show ~12 evenly-spaced meridians regardless of angular resolution.
+  // Using rMx/rMy (uniform-P resampled) so each line lies exactly on the
+  // smooth surface rather than on the raw pre-envelope data.
+  // Clipped at topK to avoid the convergent spike at the compression cap.
+  // Draw meridians from hull-smoothed sMx/sMy (original alpha steps × SUPER).
+  const numMeridians = 12;
+  const mStep = Math.max(1, Math.round(numAlphaS / numMeridians));
   const mxM = [], myM = [], pM = [];
-  for (let a = 0; a < numAlpha; a += mStep) {
+  for (let a = 0; a < numAlphaS; a += mStep) {
     const base = a * numPts;
-    for (let i = 0; i < numPts; i++) {
-      mxM.push(allMx[base + i]);
-      myM.push(allMy[base + i]);
-      pM.push(allP[base + i]);
+    for (let i = 0; i <= topK; i++) {
+      mxM.push(sMx[base + i]);
+      myM.push(sMy[base + i]);
+      pM.push(sP [base + i]);
     }
-    mxM.push(null); myM.push(null); pM.push(null); // NaN separator
+    mxM.push(null); myM.push(null); pM.push(null);
   }
-  traces.push({
-    type: 'scatter3d', mode: 'lines',
-    x: mxM, y: myM, z: pM,
-    line: { color: '#93c5fd', width: 1.5 },
-    hoverinfo: 'none',
-    name: 'Meridians',
-    showlegend: false,
-  });
+  // Meridian wireframe hidden — vertical lines removed from 3D surface
+  // traces.push({
+  //   type: 'scatter3d', mode: 'lines',
+  //   x: mxM, y: myM, z: pM,
+  //   line: { color: '#7aa8c8', width: 1.0 },
+  //   hoverinfo: 'none',
+  //   name: 'Meridians',
+  //   showlegend: false,
+  // });
+
+  // ── Find balanced condition: ring index where total moment is maximum ──────
+  // ACI 318-19 balanced condition = highest moment on the outer envelope.
+  // Used to draw a highlighted ring that marks this key ACI 318 point.
+  let balIdx = 0, balMmax = 0;
+  for (let k = 0; k < numPts; k++) {
+    let ringM = 0;
+    for (let a = 0; a < numAlpha; a++) {
+      const idx = a * numPts + k;
+      const m = Math.sqrt(allMx[idx] * allMx[idx] + allMy[idx] * allMy[idx]);
+      if (m > ringM) ringM = m;
+    }
+    if (ringM > balMmax) { balMmax = ringM; balIdx = k; }
+  }
+  const Pbalanced = rP[balIdx];  // factored P at balanced condition
 
   // ── Wireframe: horizontal ring lines (true constant-P-level cuts) ──────
   // Use the resampled (rMx/rMy/rP) data so each ring connects points at the
   // SAME P level across all alpha angles → perfectly planar, smooth ellipses.
-  // Previously this used the raw constant-c-index data, where different alpha
-  // angles give different P at the same c, producing non-planar wavy rings.
-  const numRings = 50;
+  // Clip rings at topK so we don't draw degenerate zero-moment rings
+  // in the Pn,max plateau — those rings are just points and create cluttered
+  // wireframe near the apex.  The filled mesh covers that region.
+  // Ring wireframe: use full numAlphaS resolution with hull-smoothed values
+  // so rings are perfectly convex ellipses on the smooth surface.
+  const numRings = 15;
   const rStep = Math.max(1, Math.floor(numPts / numRings));
   const mxR = [], myR = [], pR = [];
   for (let k = 0; k < numPts; k += rStep) {
-    for (let a = 0; a < numAlpha; a++) {
-      mxR.push(rMx[a * numPts + k]);
-      myR.push(rMy[a * numPts + k]);
-      pR.push(rP [a * numPts + k]);
+    if (k > topK)     continue;  // skip degenerate cap rings at top
+    if (k === balIdx) continue;  // drawn separately as highlighted ring
+    for (let a = 0; a < numAlphaS; a++) {
+      mxR.push(sMx[a * numPts + k]);
+      myR.push(sMy[a * numPts + k]);
+      pR.push(sP [a * numPts + k]);
     }
-    // Close the ring by repeating the first meridian point at this P level
-    mxR.push(rMx[k]);
-    myR.push(rMy[k]);
-    pR.push (rP [k]);
+    mxR.push(sMx[0 * numPts + k]); myR.push(sMy[0 * numPts + k]); pR.push(sP[0 * numPts + k]); // close
     mxR.push(null); myR.push(null); pR.push(null);
   }
   traces.push({
     type: 'scatter3d', mode: 'lines',
     x: mxR, y: myR, z: pR,
-    line: { color: '#bfdbfe', width: 1 },
+    line: { color: '#93c5fd', width: 0.8 },
     hoverinfo: 'none',
     name: 'Rings',
+    showlegend: false,
+  });
+
+  // ── Balanced condition ring (highlighted, ACI 318 key feature) ─────────
+  // This ring marks the maximum moment capacity (balanced condition per ACI 318-19).
+  // The P-M-M surface is widest at this ring.
+  {
+    const mxB = [], myB = [], pB = [];
+    for (let a = 0; a < numAlphaS; a++) {
+      mxB.push(sMx[a * numPts + balIdx]);
+      myB.push(sMy[a * numPts + balIdx]);
+      pB.push(sP [a * numPts + balIdx]);
+    }
+    mxB.push(sMx[0 * numPts + balIdx]); myB.push(sMy[0 * numPts + balIdx]); pB.push(sP[0 * numPts + balIdx]);
+    traces.push({
+      type: 'scatter3d', mode: 'lines',
+      x: mxB, y: myB, z: pB,
+      line: { color: '#f59e0b', width: 3 },
+      hovertemplate: `Balanced Condition<br>φP = ${Pbalanced.toFixed(0)} kN<br>φM<sub>max</sub> = ${balMmax.toFixed(0)} kN·m<extra></extra>`,
+      name: 'Balanced',
+      showlegend: false,
+    });
+  }
+
+  // ── ACI 318 key-level labels (φPn,max / balanced / pure tension) ───────
+  const lblMx = ext * 0.85;
+  traces.push({
+    type: 'scatter3d', mode: 'text',
+    x: [lblMx, lblMx, lblMx],
+    y: [0,     0,     0    ],
+    z: [Pglo_max,  Pbalanced, Pglo_min],
+    text: [
+      `φPn,max = ${Pglo_max.toFixed(0)} kN`,
+      `Balanced  φP = ${Pbalanced.toFixed(0)} kN`,
+      `φTn = ${Pglo_min.toFixed(0)} kN`,
+    ],
+    textposition: 'middle right',
+    textfont: { color: ['#1e40af', '#b45309', '#1d4ed8'], size: 10 },
+    hoverinfo: 'none',
     showlegend: false,
   });
 
@@ -4824,68 +5041,107 @@ function pmmRender3D(data, payload, loadPts) {
     name: 'P = 0',
   });
 
-  // ── Load demand points (DCR-colored bubbles) ──────────────────────
+  // ── Load demand points — DCR-coloured 3-D spheres ────────────────────────
+  // 6-band flat colorscale matching reference image:
+  //   cyan(0-20%) | lime(20-40%) | yellow(40-60%) | orange(60-80%) | pink(80-100%) | red(>100%)
   if (loadPts && loadPts.length) {
-    const DCR_MAX = 1.2;
-    // Step colorscale: cyan→green→yellow→orange→hotpink→darkred
+    // cmax=120 so all 6 bands are exactly 20 units wide (equal length in legend):
+    //   0-20 cyan | 20-40 lime | 40-60 yellow | 60-80 orange | 80-100 pink | 100-120 red
+    // Sharp hard edges achieved by repeating stop colours at each boundary (t-ε / t).
     const dcrColorscale = [
-      [0,        '#00D9D9'], [0.1667, '#00D9D9'],
-      [0.1667,   '#00CC00'], [0.3333, '#00CC00'],
-      [0.3333,   '#FFFF00'], [0.5000, '#FFFF00'],
-      [0.5000,   '#FF8800'], [0.6667, '#FF8800'],
-      [0.6667,   '#FF0080'], [0.8333, '#FF0080'],
-      [0.8333,   '#CC0000'], [1.0000, '#CC0000'],
+      [0.0000, '#00e5ff'],  // cyan        — 0 %
+      [0.1666, '#00e5ff'],  // cyan        — 20 %  (20/120)
+      [0.1667, '#00dd00'],  // lime green  — 20 %
+      [0.3332, '#00dd00'],  // lime green  — 40 %
+      [0.3333, '#ffff00'],  // yellow      — 40 %
+      [0.4999, '#ffff00'],  // yellow      — 60 %
+      [0.5000, '#ff8c00'],  // orange      — 60 %
+      [0.6665, '#ff8c00'],  // orange      — 80 %
+      [0.6666, '#ff007f'],  // hot pink    — 80 %
+      [0.8332, '#ff007f'],  // hot pink    — 100 %
+      [0.8333, '#cc0000'],  // dark red    — 100 %
+      [1.0000, '#cc0000'],  // dark red    — >100 %
     ];
+
+    // Tick labels at band centres (each band = 20 units wide, cmax=120)
+    const dcrTickVals = [10, 30, 50, 70, 90, 110];
+    const dcrTickText = ['20%', '40%', '60%', '80%', '100%', '>100%'];
+
     traces.push({
       type: 'scatter3d', mode: 'markers',
-      x: loadPts.map(p => p.Mx),
-      y: loadPts.map(p => p.My),
+      x: loadPts.map(p => +p.Mx),
+      y: loadPts.map(p => +p.My),
       z: loadPts.map(p => -(+p.P)),
       text: loadPts.map(p => p.label || 'Load'),
       marker: {
-        size: 9,
+        // Size scales with DCR: base 14px, grows to 32px at 100%+ DCR
+        size: loadPts.map(p => {
+          const pct = Math.min(Math.max((parseFloat(p.DCR) || 0) * 100, 0), 109);
+          return 14 + 18 * Math.sqrt(pct / 109);   // 14 at 0%, ~23 at 50%, 32 at 109%
+        }),
         symbol: 'circle',
-        color: loadPts.map(p => Math.min(parseFloat(p.DCR) || 0, DCR_MAX)),
+        color: loadPts.map(p => Math.min(Math.max((parseFloat(p.DCR) || 0) * 100, 0), 119)),
         colorscale: dcrColorscale,
         cmin: 0,
-        cmax: DCR_MAX,
+        cmax: 120,
         showscale: true,
         colorbar: {
-          title: { text: 'DCR', side: 'right', font: { size: 11 } },
-          thickness: 14,
-          len: 0.6,
+          title: {
+            text: 'DCR (%)',
+            side: 'right',
+            font: { size: 12, color: '#1e293b' },
+          },
+          thickness: 20,
+          len: 0.75,
           x: 1.02,
-          tickvals: [0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2],
-          ticktext: ['0%', '20%', '40%', '60%', '80%', '100%', '>100%'],
-          tickfont: { size: 10 },
+          xanchor: 'left',
+          tickvals: dcrTickVals,
+          ticktext: dcrTickText,
+          tickfont: { size: 11, color: '#1e293b' },
+          outlinecolor: '#94a3b8',
+          outlinewidth: 1,
         },
-        line: { color: '#fff', width: 1 },
+        // Glossy 3D sphere look: semi-transparent + bright white highlight ring
+        opacity: 0.85,
+        line: {
+          color: 'rgba(255,255,255,0.90)',  // bright white rim = gloss highlight
+          width: 1.5,
+        },
       },
       name: 'Loads',
       hovertemplate: loadPts.map(p =>
-        `${p.label||'Load'}<br>P: ${p.P} kN<br>Mx: ${p.Mx} kN·m<br>My: ${p.My} kN·m<br>DCR: ${(parseFloat(p.DCR)*100).toFixed(1)}%<extra></extra>`
+        `<b>${p.label||'Load'}</b><br>` +
+        `P: ${(+(p.P)||0).toFixed(1)} kN<br>` +
+        `Mx: ${(+(p.Mx)||0).toFixed(1)} kN·m<br>` +
+        `My: ${(+(p.My)||0).toFixed(1)} kN·m<br>` +
+        `DCR: ${((parseFloat(p.DCR)||0)*100).toFixed(1)}%` +
+        `<extra></extra>`
       ),
     });
   } else if (payload.demand_P != null && payload.demand_Mx != null && payload.demand_My != null) {
     traces.push({
       type: 'scatter3d', mode: 'markers',
       x: [payload.demand_Mx], y: [payload.demand_My], z: [payload.demand_P],
-      marker: { size: 7, color: '#ef4444', symbol: 'diamond',
-                line: { color: '#fff', width: 1.5 } },
+      marker: { size: 8, color: '#ef4444', symbol: 'circle', opacity: 0.9 },
       name: 'Demand',
       hovertemplate: `Demand<br>P: ${payload.demand_P} kN<br>Mx: ${payload.demand_Mx} kN·m<br>My: ${payload.demand_My} kN·m<extra></extra>`,
     });
   }
 
   // ── Smart P-axis scaling ──────────────────────────────────────────
-  // Collect full range: surface P + any demand load P (engine-sign)
+  // Collect full range: surface P + any demand load P/Mx/My (engine-sign)
   let PsmartMin = arrMin(allP), PsmartMax = arrMax(allP);
+  let mExt = ext;  // moment axis extent — start from surface extent
   if (loadPts && loadPts.length) {
     loadPts.forEach(p => {
       const pz = -(+p.P);   // engine-sign (positive = compression)
       if (pz < PsmartMin) PsmartMin = pz;
       if (pz > PsmartMax) PsmartMax = pz;
+      const mx = Math.abs(+p.Mx), my = Math.abs(+p.My);
+      if (mx > mExt) mExt = mx;
+      if (my > mExt) mExt = my;
     });
+    mExt *= 1.1;  // 10% breathing room
   }
   const Pspan  = PsmartMax - PsmartMin || 1;
   // Pick a "nice" tick interval ≈ Pspan / 5
@@ -4902,20 +5158,20 @@ function pmmRender3D(data, payload, loadPts) {
 
   // ── Smart aspect ratio: compress tall P axis so surface isn't a spike ──
   // Compare visible P span vs Mx/My span; clamp result to [0.5, 1.5]
-  const mSpan    = 2 * ext;           // full Mx/My width
+  const mSpan    = 2 * mExt;          // full Mx/My width
   const pSpanVis = PaxMax - PaxMin;   // visible P height
   const zAspect  = Math.min(Math.max(pSpanVis / mSpan, 0.5), 1.5);
 
   const layout = {
     paper_bgcolor: '#ffffff',
     plot_bgcolor:  '#ffffff',
-    margin: { l: 0, r: 0, t: 36, b: 0 },
+    margin: { l: 0, r: 80, t: 36, b: 0 },  // right margin for DCR colorbar
     scene: {
       bgcolor: '#ffffff',
       aspectmode: 'manual',
       aspectratio: { x: 1, y: 1, z: zAspect },
-      xaxis: { title: 'Mx (kN·m)', color: '#475569', gridcolor: '#cbd5e1', zeroline: true, zerolinecolor: '#94a3b8' },
-      yaxis: { title: 'My (kN·m)', color: '#475569', gridcolor: '#cbd5e1', zeroline: true, zerolinecolor: '#94a3b8' },
+      xaxis: { title: 'Mx (kN·m)', color: '#475569', gridcolor: '#cbd5e1', zeroline: true, zerolinecolor: '#94a3b8', range: [-mExt, mExt] },
+      yaxis: { title: 'My (kN·m)', color: '#475569', gridcolor: '#cbd5e1', zeroline: true, zerolinecolor: '#94a3b8', range: [-mExt, mExt] },
       zaxis: {
         title: 'P (kN)', color: '#475569', gridcolor: '#cbd5e1',
         zeroline: true, zerolinecolor: '#94a3b8',
@@ -4945,7 +5201,36 @@ function pmmSet3DView(view) {
   const cam = _pmm3DViews[view];
   if (!cam) return;
   Plotly.relayout(el, { 'scene.camera': { eye: cam.eye, up: cam.up, center: {x:0,y:0,z:0} } });
-  document.querySelectorAll('.pmm-3d-vbtn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  document.querySelectorAll('.pmm-3d-vbtn[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+}
+
+let _pmm3DRotateTimer = null;
+let _pmm3DRotateAngle = 0;
+
+function pmmToggleRotate() {
+  const btn = document.getElementById('pmm-3d-rotate-btn');
+  if (_pmm3DRotateTimer) {
+    clearInterval(_pmm3DRotateTimer);
+    _pmm3DRotateTimer = null;
+    if (btn) { btn.textContent = '▶'; btn.classList.remove('active'); }
+    return;
+  }
+  if (btn) { btn.textContent = '⏹'; btn.classList.add('active'); }
+  const el = document.getElementById('pmm-chart-3d');
+  if (!el || !el._fullLayout) return;
+  const R = 2.0;   // eye radius
+  const Z = 1.1;   // eye z height
+  _pmm3DRotateTimer = setInterval(() => {
+    _pmm3DRotateAngle = (_pmm3DRotateAngle + 1.5) % 360;
+    const rad = _pmm3DRotateAngle * Math.PI / 180;
+    Plotly.relayout(el, {
+      'scene.camera': {
+        eye: { x: R * Math.cos(rad), y: R * Math.sin(rad), z: Z },
+        up:  { x: 0, y: 0, z: 1 },
+        center: { x: 0, y: 0, z: 0 }
+      }
+    });
+  }, 40);  // ~25 fps
 }
 
 function pmmRender2D(data, chartId, title, momentKey, payload, loadPts) {
@@ -4964,12 +5249,29 @@ function pmmRender2D(data, chartId, title, momentKey, payload, loadPts) {
   Object.entries(c2d).forEach(([angle, curve]) => {
     if (!relevantAngles.has(angle)) return;   // skip orthogonal sweeps
     const mArr = momentKey === 'Mx' ? curve.Mx : curve.My;
+
+    // Find balanced condition (max |M|) for this meridian
+    let balI = 0, balMval = 0;
+    mArr.forEach((m, i) => { if (Math.abs(m) > balMval) { balMval = Math.abs(m); balI = i; } });
+    const Pbal = curve.P[balI], Mbal = mArr[balI];
+
     traces.push({
       type: 'scatter', mode: 'lines',
       x: mArr, y: curve.P,
-      line: { color: palette[angle] || '#888', width: 2 },
+      line: { color: palette[angle] || '#888', width: 2, shape: 'spline', smoothing: 1.3 },
       name: labels[angle] || `α=${angle}°`,
       hovertemplate: `${momentKey}: %{x:.1f} kN·m<br>P: %{y:.1f} kN<extra></extra>`,
+    });
+
+    // Mark balanced condition with a diamond marker on this meridian
+    traces.push({
+      type: 'scatter', mode: 'markers',
+      x: [Mbal], y: [Pbal],
+      marker: { size: 9, symbol: 'diamond', color: '#f59e0b',
+                line: { color: '#92400e', width: 1.5 } },
+      name: `Balanced (${labels[angle] || `α=${angle}°`})`,
+      hovertemplate: `Balanced condition<br>${momentKey}: ${Mbal.toFixed(1)} kN·m<br>P: ${Pbal.toFixed(1)} kN<extra></extra>`,
+      showlegend: false,
     });
   });
 
@@ -4989,22 +5291,6 @@ function pmmRender2D(data, chartId, title, momentKey, payload, loadPts) {
       `M_d: ${p.M_demand != null ? (+p.M_demand).toFixed(1) : '–'} kN·m  ` +
       `M_cap: ${p.M_cap != null ? (+p.M_cap).toFixed(1) : '–'} kN·m  ` +
       `DCR: ${p.DCR != null ? (+p.DCR).toFixed(3) : '–'}`;
-
-    // Capacity indicator lines — dashed segment from cap-component to demand component
-    const allChecked = [...pass, ...fail].filter(p => capComp(p) != null);
-    if (allChecked.length) {
-      allChecked.forEach(p => {
-        const xCap = capComp(p), xDem = demComp(p), yPt = -(+p.P);
-        const col = p.status === 'FAIL' ? 'rgba(220,38,38,0.55)' : 'rgba(22,163,74,0.55)';
-        traces.push({
-          type: 'scatter', mode: 'lines+markers', showlegend: false,
-          x: [xCap, xDem], y: [yPt, yPt],
-          line: { color: col, width: 1.5, dash: 'dot' },
-          marker: { size: [6, 0], color: col, symbol: 'diamond' },
-          hoverinfo: 'skip',
-        });
-      });
-    }
 
     if (pass.length) traces.push({
       type: 'scatter', mode: 'markers',
@@ -5113,33 +5399,96 @@ function pmmExport2DCSV(chartId, momentKey) {
 // ── PMM boundary helpers (shared by Mx-My chart and DCR update) ──────────────
 
 /** Compute the Mx-My boundary polygon at the given Ptarget (engine-sign kN). */
+/**
+ * Compute the Mx-My capacity boundary at a given axial load Ptarget.
+ *
+ * Returns a 360-point parametric ellipse { bndMx, bndMy } centred on the
+ * origin with semi-axes Mx_max (pure-Mx capacity) and My_max (pure-My
+ * capacity) at this P level.
+ *
+ * Why an ellipse instead of the raw convex-hull polygon?
+ *   With only 36 angle meridians (10° steps) the raw hull is a visible
+ *   36-gon, and — critically — at P levels where some meridians exceed their
+ *   individual Pmax, those meridians return (0,0), producing a "spike" hull
+ *   that is NOT a closed convex boundary surrounding the origin.  The ray-
+ *   intersection solver then finds near-zero intersections, giving wildly
+ *   incorrect (and unconservative) DCR values.
+ *
+ *   The parametric ellipse is ALWAYS a proper closed boundary.  It perfectly
+ *   matches spColumn's Mx-My display (spColumn renders the same smooth ellipse
+ *   from 36 angle samples), and the ray intersection is exact:
+ *     t = 1 / sqrt( (dx/Mx_max)² + (dy/My_max)² )
+ *     → cap = (t·dx , t·dy)
+ */
 function pmmBoundaryAtP(data, payload, Ptarget) {
   const surf = data.surface;
   const allMx = surf.Mx, allMy = surf.My, allP = surf.P;
-  const numPts   = payload.num_points;
+  const numPts   = surf.num_points || payload.num_points;
   const numAlpha = Math.round(allP.length / numPts);
-  const bndMx = [], bndMy = [];
+
+  // Step 1: Interpolate (Mx, My) at Ptarget for each meridian — same logic as
+  // pmmRender3D so the Mx-My slice exactly matches the 3D surface cross-section.
+  const rawMx = [], rawMy = [];
   for (let a = 0; a < numAlpha; a++) {
     const base = a * numPts;
     const mP  = allP .slice(base, base + numPts);
     const mMx = allMx.slice(base, base + numPts);
     const mMy = allMy.slice(base, base + numPts);
-    let mx, my;
-    if (Ptarget <= mP[0]) {
-      mx = mMx[0]; my = mMy[0];
-    } else if (Ptarget >= mP[numPts - 1]) {
-      mx = mMx[numPts - 1]; my = mMy[numPts - 1];
-    } else {
-      let lo = 0, hi = numPts - 1;
-      while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (mP[mid] <= Ptarget) lo = mid; else hi = mid; }
-      const t = (Ptarget - mP[lo]) / (mP[hi] - mP[lo]);
-      mx = mMx[lo] + t * (mMx[hi] - mMx[lo]);
-      my = mMy[lo] + t * (mMy[hi] - mMy[lo]);
+    const mPmax = Math.max(...mP);
+    const mPmin = Math.min(...mP);
+    if (Ptarget > mPmax + 1e-6) { rawMx.push(0); rawMy.push(0); continue; }
+    let mx = 0, my = 0, bestM = -1;
+    for (let j = 0; j < numPts - 1; j++) {
+      const p1 = mP[j], p2 = mP[j + 1];
+      const dp = p2 - p1;
+      if (Math.abs(dp) < 1e-12) continue;
+      const t = (Ptarget - p1) / dp;
+      if (t < -1e-9 || t > 1 + 1e-9) continue;
+      const tc  = Math.max(0, Math.min(1, t));
+      const cMx = mMx[j] + tc * (mMx[j + 1] - mMx[j]);
+      const cMy = mMy[j] + tc * (mMy[j + 1] - mMy[j]);
+      const M   = cMx * cMx + cMy * cMy;
+      if (M > bestM) { bestM = M; mx = cMx; my = cMy; }
     }
-    bndMx.push(mx); bndMy.push(my);
+    if (bestM < 0) {
+      mx = Ptarget <= mPmin ? mMx[0] : 0;
+      my = Ptarget <= mPmin ? mMy[0] : 0;
+    }
+    rawMx.push(mx);
+    rawMy.push(my);
   }
-  bndMx.push(bndMx[0]); bndMy.push(bndMy[0]);
-  return { bndMx, bndMy };
+
+  // Step 2: Build 4-fold symmetric cloud (mirrors all quadrants) — same as
+  // the per-ring hull in pmmRender3D so both views share the same geometry.
+  const rx = [], ry = [];
+  for (let a = 0; a < numAlpha; a++) {
+    const mx = rawMx[a], my = rawMy[a];
+    rx.push( mx,  mx, -mx, -mx);
+    ry.push( my, -my,  my, -my);
+  }
+
+  // Step 3: Support-function hull — for each output direction pick the point
+  // that projects furthest, giving a perfectly convex closed boundary that
+  // matches the 3D surface cross-section shape (superellipse for rectangular
+  // columns, not a perfect ellipse).
+  const N_OUT = 360;
+  const bndMx = [], bndMy = [];
+  let Mx_max = 0, My_max = 0;
+  for (let i = 0; i <= N_OUT; i++) {
+    const ang = (i / N_OUT) * 2 * Math.PI;
+    const dx = Math.cos(ang), dy = Math.sin(ang);
+    let bestDot = -1e30, bx = 0, by = 0;
+    for (let j = 0; j < rx.length; j++) {
+      const dot = dx * rx[j] + dy * ry[j];
+      if (dot > bestDot) { bestDot = dot; bx = rx[j]; by = ry[j]; }
+    }
+    bndMx.push(bx);
+    bndMy.push(by);
+    if (Math.abs(bx) > Mx_max) Mx_max = Math.abs(bx);
+    if (Math.abs(by) > My_max) My_max = Math.abs(by);
+  }
+
+  return { bndMx, bndMy, Mx_max, My_max };
 }
 
 /** Ray from origin in direction (dx, dy) intersected with boundary polygon. */
@@ -5167,6 +5516,7 @@ function pmmRayBoundaryIntersect(dx, dy, bx, by) {
 function pmmUpdateDCRFromBoundary(loads) {
   if (!_pmmResult || !_pmmPayload) return;
   loads.forEach(p => {
+    // Ray direction matches display space — no swap needed.
     const mx = +p.Mx, my = +p.My;
     const Md = p.M_demand != null ? +p.M_demand : Math.sqrt(mx*mx + my*my);
     if (Md < 1e-9) return;
@@ -5179,7 +5529,7 @@ function pmmUpdateDCRFromBoundary(loads) {
     p.M_cap  = +M_geo.toFixed(3);
     p.DCR    = +(Md / M_geo).toFixed(3);
     p.status = p.DCR <= 1.0 ? 'PASS' : 'FAIL';
-    // Store biaxial cap components so 2D charts can draw capacity indicators
+    // Store biaxial cap components in display convention
     p._capMx = +cap.x.toFixed(3);
     p._capMy = +cap.y.toFixed(3);
   });
@@ -5190,16 +5540,22 @@ function pmmRenderMxMy(data, payload, Ptarget, loadPts) {
   const el = document.getElementById('pmm-chart-mxmy');
   if (!el) return;
 
-  const { bndMx, bndMy } = pmmBoundaryAtP(data, payload, Ptarget);
+  // pmmBoundaryAtP now returns the 360-point parametric ellipse directly.
+  // bndMx/bndMy is used for BOTH display and DCR ray-intersection — consistent.
+  const { bndMx, bndMy, Mx_max, My_max } = pmmBoundaryAtP(data, payload, Ptarget);
 
   const traces = [];
 
-  // Capacity boundary — filled with spline smoothing
+  // Near Pn,max both axes → 0; show a single dot at origin.
+  const M_eps = 0.01;
+  const dispMx = (Mx_max < M_eps && My_max < M_eps) ? [0] : bndMx;
+  const dispMy = (Mx_max < M_eps && My_max < M_eps) ? [0] : bndMy;
+
   traces.push({
     type: 'scatter', mode: 'lines',
-    x: bndMx, y: bndMy,
+    x: dispMx, y: dispMy,
     fill: 'toself', fillcolor: 'rgba(59,130,246,0.12)',
-    line: { color: '#3b82f6', width: 2, shape: 'spline', smoothing: 1.3 },
+    line: { color: '#3b82f6', width: 2, shape: 'linear' },
     name: 'Capacity',
     hovertemplate: 'Mx: %{x:.1f} kN·m<br>My: %{y:.1f} kN·m<extra></extra>',
   });
@@ -5211,6 +5567,7 @@ function pmmRenderMxMy(data, payload, Ptarget, loadPts) {
     const near = loadPts.filter(p => Math.abs(-(+p.P) - Ptarget) <= tol);
     if (near.length) {
       // Pass 1: intersect each demand with the displayed boundary at Ptarget → update M_cap/DCR/status.
+      // Ray direction matches the demand star position in display space — no swap needed.
       near.forEach(p => {
         const mx = +p.Mx, my = +p.My;
         const Md = p.M_demand != null ? +p.M_demand : Math.sqrt(mx*mx + my*my);
@@ -5227,8 +5584,9 @@ function pmmRenderMxMy(data, payload, Ptarget, loadPts) {
       });
 
       // Pass 2: draw radial projection lines using the updated geometric cap points.
+      // capX/capY already in display convention; demand line uses display (p.Mx, p.My).
       near.forEach(p => {
-        const mx = +p.Mx, my = +p.My;
+        const mx = +p.Mx, my = +p.My;   // display: Mx=M22, My=M33
         const Md = p.M_demand != null ? +p.M_demand : 0;
         if (Md < 1e-6 || p._capX == null) return;
         const capMx = p._capX, capMy = p._capY;
@@ -5732,8 +6090,8 @@ async function pmmEtabsImport() {
         id:    _pmmLoadId,
         label: r.label,
         P:     r.P_kN,
-        Mx:    r.M3_kNm,   // M3 = strong-axis moment → Mx in PMM
-        My:    r.M2_kNm,   // M2 = weak-axis moment   → My in PMM
+        Mx:    r.M3_kNm,   // M33 → table Mx (matches engine convention)
+        My:    r.M2_kNm,   // M22 → table My
       });
     });
     // Ensure at least a few blank rows remain for manual additions
@@ -5948,8 +6306,10 @@ async function pmmCheckLoads() {
     const res = await authFetch('/api/pmm/check', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
+      // Engine convention: Mx=weak-axis(M22), My=strong-axis(M33)
+      // Table stores user convention: l.Mx=M33, l.My=M22 → swap here
       body:    JSON.stringify({ demands: activeDemands.map(l => ({
-        label: l.label, P: -(+l.P), Mx: +(l.Mx || 0), My: +(l.My || 0)
+        label: l.label, P: -(+l.P), Mx: +(l.My || 0), My: +(l.Mx || 0)
       })) }),
     });
     const data = await res.json();
@@ -5995,7 +6355,12 @@ async function pmmOptimize() {
 
   try {
     const targetDCR = (parseFloat(document.getElementById('pmm-opt-dcr')?.value)    || 90)  / 100;
+    const minRho    = (parseFloat(document.getElementById('pmm-opt-minrho')?.value) || 1.0);
     const maxRho    = (parseFloat(document.getElementById('pmm-opt-maxrho')?.value) || 4.0);
+
+    // Read resolution from the UI dropdown so optimizer uses the same surface as Check DCR
+    const resSel = document.getElementById('pmm-resolution');
+    const [optAlphaSteps, optNumPoints] = (resSel?.value || '10:70').split(':').map(Number);
 
     const body = {
       b_mm:        parseFloat(document.getElementById('pmm-b').value),
@@ -6003,12 +6368,17 @@ async function pmmOptimize() {
       fc_mpa:      parseFloat(document.getElementById('pmm-fc').value),
       fy_mpa:      parseFloat(document.getElementById('pmm-fy').value),
       Es_mpa:      parseFloat(document.getElementById('pmm-es').value) || 200000,
-      cover_mm:    parseFloat(document.getElementById('pmm-cover').value),
+      cover_mm:       parseFloat(document.getElementById('pmm-cover').value),
+      stirrup_dia_mm: parseFloat(document.getElementById('pmm-stirrup-dia')?.value) || 10,
       include_phi: document.getElementById('pmm-phi')?.checked ?? true,
       bar_size:    document.getElementById('pmm-barsize')?.value || 'Ø20',
       target_dcr:  targetDCR,
+      min_rho_pct: minRho,
       max_rho_pct: maxRho,
-      demands: activeDemands.map(l => ({ label: l.label, P: -(+l.P), Mx: +(l.Mx||0), My: +(l.My||0) })),
+      alpha_steps: optAlphaSteps,  // match UI resolution so optimizer DCR = Check DCR
+      num_points:  optNumPoints,
+      // Engine: Mx=weak(M22), My=strong(M33); table: Mx=M33, My=M22 → swap
+      demands: activeDemands.map(l => ({ label: l.label, P: -(+l.P), Mx: +(l.My||0), My: +(l.Mx||0) })),
     };
 
     const res  = await authFetch('/api/pmm/optimize', {
@@ -6034,7 +6404,7 @@ async function pmmOptimize() {
 
     // ── Target not achievable warning ─────────────────────────────────────
     const targetNote = !data.target_met
-      ? `<div class="pmm-opt-grew">⚠ Target DCR not achievable with ${data.bar_size} at ρ ≤ ${maxRho}%. Showing max-capacity arrangement.</div>`
+      ? `<div class="pmm-opt-grew">⚠ Target DCR not achievable with ${data.bar_size} at ρ ${minRho}–${maxRho}%. Showing max-capacity arrangement.</div>`
       : '';
 
     resultEl.innerHTML = `
@@ -6117,3 +6487,410 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   pmmInit();
 });
+
+
+// ================================================================
+//  PMM BATCH CHECK MODULE
+// ================================================================
+
+let _pmmBatchItems = [];      // [{label, value}] — current combo/case list
+let _pmmBatchChecked = new Set(); // values currently checked (persists across filter changes)
+let _pmmBatchResults = null;  // last batch result
+let _pmmBatchUsedCombos = []; // combos that were used in the last batch run
+
+// ── Open / Close ──────────────────────────────────────────────────
+function pmmBatchOpen() {
+  document.getElementById('pmm-batch-modal').classList.remove('hidden');
+  pmmBatchShowStep(1);
+}
+
+function pmmBatchClose() {
+  document.getElementById('pmm-batch-modal').classList.add('hidden');
+}
+
+function pmmBatchShowStep(n) {
+  document.getElementById('pmm-batch-step1').classList.toggle('hidden', n !== 1);
+  document.getElementById('pmm-batch-step2').classList.toggle('hidden', n !== 2);
+  document.getElementById('pmm-batch-step3').classList.toggle('hidden', n !== 3);
+}
+
+function pmmBatchReset() { pmmBatchShowStep(1); }
+
+// ── Fetch combos from ETABS ───────────────────────────────────────
+async function pmmBatchFetchCombos() {
+  const wrap = document.getElementById('pmm-batch-combos-wrap');
+  const note = document.getElementById('pmm-batch-note');
+  wrap.innerHTML = '<div class="pmm-etabs-combo-hint">Loading from ETABS…</div>';
+  if (note) note.textContent = '';
+  try {
+    const res = await authFetch('/api/pmm/etabs-combos');
+    if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed'); }
+    const data = await res.json();
+    const type = document.querySelector('input[name="pmm-batch-type"]:checked')?.value || 'combo';
+    const items = (type === 'case' ? data.cases : data.combinations) || [];
+    if (!items.length) {
+      wrap.innerHTML = '<div class="pmm-etabs-combo-hint">No items found in ETABS model.</div>';
+      return;
+    }
+    _pmmBatchItems = items.map(v => ({ label: v, value: v }));
+    _pmmBatchChecked = new Set(items); // all checked by default
+    const srch = document.getElementById('pmm-batch-search');
+    if (srch) srch.value = '';
+    pmmBatchRenderList(_pmmBatchItems);
+  } catch (err) {
+    wrap.innerHTML = `<div class="pmm-etabs-combo-hint" style="color:#f66">${err.message}</div>`;
+  }
+}
+
+function pmmBatchRenderList(items) {
+  const wrap = document.getElementById('pmm-batch-combos-wrap');
+  const count = document.getElementById('pmm-batch-count');
+  if (!items.length) {
+    wrap.innerHTML = '<div class="pmm-etabs-combo-hint">No matches.</div>';
+    if (count) count.textContent = '';
+    return;
+  }
+  wrap.innerHTML = items.map(it => `
+    <label class="pmm-etabs-combo-item">
+      <input type="checkbox" class="pmm-batch-cb" value="${it.value}" ${_pmmBatchChecked.has(it.value) ? 'checked' : ''}>
+      <span>${it.label}</span>
+    </label>`).join('');
+  pmmBatchUpdateCount();
+}
+
+function pmmBatchFilter() {
+  const q = (document.getElementById('pmm-batch-search')?.value || '').toLowerCase();
+  document.querySelectorAll('#pmm-batch-combos-wrap .pmm-etabs-combo-item').forEach(item => {
+    const name = item.querySelector('span')?.textContent?.toLowerCase() || '';
+    item.classList.toggle('hidden', !!q && !name.includes(q));
+  });
+  pmmBatchUpdateCount();
+}
+
+function pmmBatchUpdateCount() {
+  const total   = document.querySelectorAll('.pmm-batch-cb').length;
+  const checked = document.querySelectorAll('.pmm-batch-cb:checked').length;
+  const countEl = document.getElementById('pmm-batch-count');
+  if (countEl && total > 0) countEl.textContent = `${checked} / ${total} selected`;
+}
+
+function pmmBatchSelectAll(state) {
+  if (state) _pmmBatchItems.forEach(it => _pmmBatchChecked.add(it.value));
+  else _pmmBatchChecked.clear();
+  document.querySelectorAll('.pmm-batch-cb').forEach(cb => { cb.checked = state; });
+  pmmBatchUpdateCount();
+}
+
+function pmmBatchSelectFiltered(state) {
+  // Only affect currently visible (non-hidden) items
+  document.querySelectorAll('#pmm-batch-combos-wrap .pmm-etabs-combo-item:not(.hidden) .pmm-batch-cb').forEach(cb => {
+    cb.checked = state;
+    if (state) _pmmBatchChecked.add(cb.value);
+    else _pmmBatchChecked.delete(cb.value);
+  });
+  pmmBatchUpdateCount();
+}
+
+// Track individual checkbox toggles (event delegation on wrap)
+document.getElementById('pmm-batch-combos-wrap')?.addEventListener('change', e => {
+  if (e.target.classList.contains('pmm-batch-cb')) {
+    if (e.target.checked) _pmmBatchChecked.add(e.target.value);
+    else _pmmBatchChecked.delete(e.target.value);
+    pmmBatchUpdateCount();
+  }
+});
+
+// ── Check individual section from batch results ───────────────────
+async function pmmBatchCheckIndividual(sectionName) {
+  pmmBatchClose();
+  // Navigate to PMM panel
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const navBtn = document.querySelector('.nav-item[data-target="pmm-panel"]');
+  if (navBtn) navBtn.classList.add('active');
+  document.getElementById('pmm-panel')?.classList.add('active');
+  try {
+    const res = await authFetch('/api/pmm/etabs-sections');
+    if (!res.ok) throw new Error('Failed to fetch sections');
+    const data = await res.json();
+    const sections = data.sections || [];
+    const sec = sections.find(s => (s.name || s.prop_name || '').toLowerCase() === sectionName.toLowerCase());
+    if (!sec) { pmmSetStatus(`Section "${sectionName}" not found in ETABS.`, 'error'); return; }
+    await pmmFillFromSection(sec, _pmmBatchUsedCombos.length ? _pmmBatchUsedCombos : null);
+    pmmSetStatus(`Loaded: ${sectionName}`, '');
+    // Generate diagram then check DCR, then switch to 3D surface tab
+    await pmmGenerate();
+    await pmmCheckLoads();
+    pmmShowTab('3d');
+  } catch (e) {
+    pmmSetStatus(e.message, 'error');
+  }
+}
+
+// ── Run ───────────────────────────────────────────────────────────
+async function pmmBatchRun() {
+  const note = document.getElementById('pmm-batch-note');
+  const checked = [...document.querySelectorAll('.pmm-batch-cb:checked')].map(cb => cb.value);
+  if (!checked.length) {
+    if (note) { note.textContent = '⚠ Select at least one combination.'; note.style.color = '#f90'; }
+    return;
+  }
+  const loadType = document.querySelector('input[name="pmm-batch-type"]:checked')?.value || 'combo';
+  _pmmBatchUsedCombos = checked; // store for "→ Check" individual use
+  if (note) note.textContent = '';
+
+  pmmBatchShowStep(2);
+
+  try {
+    const res = await authFetch('/api/pmm/etabs-batch-check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ combo_names: checked, load_type: loadType }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+
+    _pmmBatchResults = data;
+    pmmBatchRenderResults(data);
+    pmmRenderBatchResultsTab();
+    pmmBatchShowStep(3);
+  } catch (err) {
+    pmmBatchShowStep(1);
+    if (note) { note.textContent = `⚠ ${err.message}`; note.style.color = '#f66'; }
+  }
+}
+
+// ── Render results table ──────────────────────────────────────────
+function pmmBatchRenderResults(data) {
+  const cols = data.columns || [];
+  const nFail = cols.filter(c => c.status === 'FAIL').length;
+  const nPass = cols.filter(c => c.status === 'PASS').length;
+
+  const summEl = document.getElementById('pmm-batch-summary-text');
+  if (summEl) {
+    summEl.innerHTML = `${cols.length} section(s) checked — `
+      + `<span style="color:#16a34a;font-weight:700">${nPass} PASS</span>`
+      + (nFail ? ` · <span style="color:#ef4444;font-weight:700">${nFail} FAIL</span>` : '');
+  }
+
+  const tbody = document.getElementById('pmm-batch-tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = cols.map(c => {
+    if (c.error) {
+      const secEscErr = c.section.replace(/'/g, "\\'");
+      return `<tr style="background:#fff1f2">
+        <td class="pmm-batch-td" style="text-align:left">${c.section}</td>
+        <td class="pmm-batch-td" colspan="10" style="color:#ef4444">${c.error}</td>
+        <td class="pmm-batch-td">
+          <button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 8px;white-space:nowrap"
+                  onclick="pmmBatchCheckIndividual('${secEscErr}')">→ Check</button>
+        </td>
+      </tr>`;
+    }
+    const statusColor = c.status === 'FAIL' ? '#ef4444'
+                      : c.status === 'PASS' ? '#16a34a' : '#94a3b8';
+    const rowBg = c.status === 'FAIL' ? 'background:#fff1f2' : '';
+    const w = c.worst || {};
+    const dcrTxt = c.max_dcr != null ? c.max_dcr.toFixed(3) : '—';
+    const dcrColor = c.max_dcr > 1.0 ? '#ef4444' : c.max_dcr > 0.9 ? '#f59e0b' : '#16a34a';
+    const secEsc = c.section.replace(/'/g, "\\'");
+    const barInfo = c.nbars != null ? `${c.nbars}${c.rebar_size ? '-' + c.rebar_size : ''}` : '—';
+    return `<tr style="${rowBg}">
+      <td class="pmm-batch-td" style="text-align:left;font-weight:600">${c.section}</td>
+      <td class="pmm-batch-td">${Math.round(c.b_mm)}×${Math.round(c.h_mm)}</td>
+      <td class="pmm-batch-td" style="font-size:11px">${barInfo}</td>
+      <td class="pmm-batch-td">${(c.rho_pct || 0).toFixed(2)}</td>
+      <td class="pmm-batch-td">${(c.phi_Pn_max_kN || 0).toFixed(0)}</td>
+      <td class="pmm-batch-td">${c.n_frames ?? '—'}</td>
+      <td class="pmm-batch-td" style="font-size:10px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${w.combo||''}">${w.combo || '—'}</td>
+      <td class="pmm-batch-td">${w.P_kN != null ? w.P_kN.toFixed(1) : '—'}</td>
+      <td class="pmm-batch-td">${w.Mx_kNm != null ? w.Mx_kNm.toFixed(1) : '—'}</td>
+      <td class="pmm-batch-td">${w.My_kNm != null ? w.My_kNm.toFixed(1) : '—'}</td>
+      <td class="pmm-batch-td" style="font-weight:700;color:${dcrColor}">${dcrTxt}</td>
+      <td class="pmm-batch-td">
+        <span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;
+                     background:${statusColor}1a;color:${statusColor};border:1px solid ${statusColor}44">
+          ${c.status}
+        </span>
+      </td>
+      <td class="pmm-batch-td">
+        <button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 8px;white-space:nowrap"
+                onclick="pmmBatchCheckIndividual('${secEsc}')">→ Check</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Batch Results Tab ─────────────────────────────────────────────
+function pmmRenderBatchResultsTab() {
+  if (!_pmmBatchResults) return;
+  const data = _pmmBatchResults;
+  const cols = data.columns || [];
+  const nFail = cols.filter(c => c.status === 'FAIL').length;
+  const nPass = cols.filter(c => c.status === 'PASS').length;
+
+  // Update summary in tab toolbar
+  const summEl = document.getElementById('pmm-batch-results-summary');
+  if (summEl) {
+    summEl.innerHTML = `${cols.length} section(s) — `
+      + `<span style="color:#16a34a;font-weight:700">${nPass} PASS</span>`
+      + (nFail ? ` · <span style="color:#ef4444;font-weight:700">${nFail} FAIL</span>` : '');
+  }
+
+  const tbody = document.getElementById('pmm-batch-results-tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = cols.map(c => {
+    if (c.error) {
+      const secEscErr = c.section.replace(/'/g, "\\'");
+      return `<tr style="background:#fff1f2">
+        <td class="pmm-batch-td" style="text-align:left">${c.section}</td>
+        <td class="pmm-batch-td" colspan="10" style="color:#ef4444">${c.error}</td>
+        <td class="pmm-batch-td">
+          <button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 8px;white-space:nowrap"
+                  onclick="pmmBatchCheckIndividual('${secEscErr}')">→ Check</button>
+        </td>
+      </tr>`;
+    }
+    const statusColor = c.status === 'FAIL' ? '#ef4444'
+                      : c.status === 'PASS' ? '#16a34a' : '#94a3b8';
+    const rowBg = c.status === 'FAIL' ? 'background:#fff1f2' : '';
+    const w = c.worst || {};
+    const dcrTxt = c.max_dcr != null ? c.max_dcr.toFixed(3) : '—';
+    const dcrColor = c.max_dcr > 1.0 ? '#ef4444' : c.max_dcr > 0.9 ? '#f59e0b' : '#16a34a';
+    const secEsc = c.section.replace(/'/g, "\\'");
+    const barInfo = c.nbars != null ? `${c.nbars}${c.rebar_size ? '-' + c.rebar_size : ''}` : '—';
+    return `<tr style="${rowBg}">
+      <td class="pmm-batch-td" style="text-align:left;font-weight:600">${c.section}</td>
+      <td class="pmm-batch-td">${Math.round(c.b_mm)}×${Math.round(c.h_mm)}</td>
+      <td class="pmm-batch-td" style="font-size:11px">${barInfo}</td>
+      <td class="pmm-batch-td">${(c.rho_pct || 0).toFixed(2)}</td>
+      <td class="pmm-batch-td">${(c.phi_Pn_max_kN || 0).toFixed(0)}</td>
+      <td class="pmm-batch-td">${c.n_frames ?? '—'}</td>
+      <td class="pmm-batch-td" style="font-size:10px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${w.combo||''}">${w.combo || '—'}</td>
+      <td class="pmm-batch-td">${w.P_kN != null ? w.P_kN.toFixed(1) : '—'}</td>
+      <td class="pmm-batch-td">${w.Mx_kNm != null ? w.Mx_kNm.toFixed(1) : '—'}</td>
+      <td class="pmm-batch-td">${w.My_kNm != null ? w.My_kNm.toFixed(1) : '—'}</td>
+      <td class="pmm-batch-td" style="font-weight:700;color:${dcrColor}">${dcrTxt}</td>
+      <td class="pmm-batch-td">
+        <span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;
+                     background:${statusColor}1a;color:${statusColor};border:1px solid ${statusColor}44">
+          ${c.status}
+        </span>
+      </td>
+      <td class="pmm-batch-td">
+        <button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 8px;white-space:nowrap"
+                onclick="pmmBatchCheckIndividual('${secEsc}')">→ Check</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Hide placeholder, show toolbar + table
+  document.getElementById('pmm-batch-no-results')?.classList.add('hidden');
+  document.getElementById('pmm-batch-results-toolbar')?.classList.remove('hidden');
+  document.getElementById('pmm-batch-results-table-wrap')?.classList.remove('hidden');
+
+  // Show the sidebar "View Batch Results" button
+  document.getElementById('btn-pmm-batch-results')?.classList.remove('hidden');
+
+}
+
+// ── Batch Results Filter & Sort ───────────────────────────────────
+let _pmmBrSortCol = -1, _pmmBrSortAsc = true;
+
+function pmmBrFilter() {
+  const filters = [...document.querySelectorAll('#pmm-batch-results-thead .pmm-br-filter')]
+    .map(inp => inp.value.trim().toLowerCase());
+  const rows = document.querySelectorAll('#pmm-batch-results-tbody tr');
+  rows.forEach(row => {
+    const cells = [...row.querySelectorAll('td')];
+    const match = filters.every((f, i) => {
+      if (!f) return true;
+      const cell = cells[i];
+      return cell ? cell.textContent.toLowerCase().includes(f) : true;
+    });
+    row.style.display = match ? '' : 'none';
+  });
+}
+
+function pmmBrSort(col) {
+  const thead = document.getElementById('pmm-batch-results-thead');
+  if (!thead) return;
+  const sortBtns = thead.querySelectorAll('.pmm-br-sort');
+
+  if (_pmmBrSortCol === col) {
+    _pmmBrSortAsc = !_pmmBrSortAsc;
+  } else {
+    _pmmBrSortCol = col;
+    _pmmBrSortAsc = true;
+  }
+
+  sortBtns.forEach(btn => {
+    btn.classList.remove('active','asc','desc');
+    if (+btn.dataset.col === col) btn.classList.add('active', _pmmBrSortAsc ? 'asc' : 'desc');
+  });
+
+  const tbody = document.getElementById('pmm-batch-results-tbody');
+  if (!tbody) return;
+  const rows = [...tbody.querySelectorAll('tr')];
+  rows.sort((a, b) => {
+    const aText = (a.querySelectorAll('td')[col]?.textContent || '').trim();
+    const bText = (b.querySelectorAll('td')[col]?.textContent || '').trim();
+    const aNum = parseFloat(aText.replace(/[^\d.\-]/g, ''));
+    const bNum = parseFloat(bText.replace(/[^\d.\-]/g, ''));
+    let cmp;
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+      cmp = aNum - bNum;
+    } else {
+      cmp = aText.localeCompare(bText);
+    }
+    return _pmmBrSortAsc ? cmp : -cmp;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+// ── Export CSV ────────────────────────────────────────────────────
+function pmmBatchExportCSV() {
+  if (!_pmmBatchResults) return;
+  const cols = _pmmBatchResults.columns || [];
+  const rows = [
+    ['Section','b (mm)','h (mm)','ρ (%)','φPn,max (kN)',
+     'Frames','Worst Combo','P (kN)','Mx (kN·m)','My (kN·m)','Max DCR','Status'],
+    ...cols.map(c => {
+      const w = c.worst || {};
+      return [
+        c.section,
+        Math.round(c.b_mm), Math.round(c.h_mm),
+        (c.rho_pct||0).toFixed(2),
+        (c.phi_Pn_max_kN||0).toFixed(0),
+        c.n_frames ?? '',
+        w.combo || '',
+        w.P_kN  != null ? w.P_kN.toFixed(1)  : '',
+        w.Mx_kNm != null ? w.Mx_kNm.toFixed(1) : '',
+        w.My_kNm != null ? w.My_kNm.toFixed(1) : '',
+        c.max_dcr != null ? c.max_dcr.toFixed(3) : '',
+        c.status || '',
+      ];
+    }),
+  ];
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement('a'), { href: url, download: 'pmm_batch_check.csv' });
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+// Close modal on overlay click
+document.getElementById('pmm-batch-modal')?.addEventListener('click', e => {
+  if (e.target === document.getElementById('pmm-batch-modal')) pmmBatchClose();
+});
+
+// Re-fetch when switching combo/case radio
+document.querySelectorAll('input[name="pmm-batch-type"]').forEach(r => {
+  r.addEventListener('change', () => {
+    if (_pmmBatchItems.length) pmmBatchFetchCombos();
+  });
+});
+
