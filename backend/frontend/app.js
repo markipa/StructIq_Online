@@ -4488,31 +4488,85 @@ function pmmDrawSection() {
   // Stirrup centreline rectangle coordinates
   const sx0 = stCover, sx1 = b - stCover, sy0 = stCover, sy1 = h - stCover;
 
-  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  // ── ρ% for bottom label ──────────────────────────────────────────────────
+  const Ag_mm2  = b * h;
+  const Ast_mm2 = total * ab;
+  const rhoStr  = (Ast_mm2 > 0 && Ag_mm2 > 0)
+    ? (Ast_mm2 / Ag_mm2 * 100).toFixed(2) + '%'
+    : '—';
+
+  // ── SVG canvas with extra margin at top (dim arrow) & right (h-arrow) ─
+  const W2 = 220, H2 = 220, padL = 22, padT = 16, padR = 16, padB = 28;
+  const scl2 = Math.min((W2 - padL - padR) / b, (H2 - padT - padB) / h);
+  const ox2  = padL;
+  const oy2  = padT;
+  const px2  = x => ox2 + x * scl2;
+  const py2  = y => oy2 + (h - y) * scl2;
+
+  // Arrow helper (SVG path with arrowhead)
+  const arrowDef = `<defs>
+    <marker id="ah" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#475569"/>
+    </marker>
+    <marker id="ah2" markerWidth="6" markerHeight="6" refX="1" refY="3" orient="auto">
+      <path d="M6,0 L0,3 L6,6 Z" fill="#475569"/>
+    </marker>
+  </defs>`;
+
+  // Dimension line offsets
+  const dimOffT = 9;   // px above section top for b-arrow
+  const dimOffL = 10;  // px left of section left for h-arrow
+  const bArrowY = py2(h) - dimOffT;
+  const hArrowX = px2(0) - dimOffL;
+
+  svg.setAttribute('viewBox', `0 0 ${W2} ${H2}`);
   svg.innerHTML = `
+    ${arrowDef}
     <!-- Section outline -->
-    <rect x="${px(0)}" y="${py(h)}" width="${b * scale}" height="${h * scale}"
+    <rect x="${px2(0)}" y="${py2(h)}" width="${b * scl2}" height="${h * scl2}"
           fill="#e8f0fe" stroke="#2563eb" stroke-width="1.5" rx="1"/>
     <!-- Stirrup outline (centreline, orange) -->
-    <rect x="${px(sx0)}" y="${py(sy1)}" width="${(sx1-sx0)*scale}" height="${(sy1-sy0)*scale}"
+    <rect x="${px2(sx0)}" y="${py2(sy1)}" width="${(sx1-sx0)*scl2}" height="${(sy1-sy0)*scl2}"
           fill="none" stroke="#f59e0b" stroke-width="${Math.max(1, stDiaPx)}" rx="1"/>
     <!-- Bar centreline boundary (dashed, faint) -->
-    <rect x="${px(x0)}" y="${py(y1)}" width="${bLen * scale}" height="${hLen * scale}"
+    <rect x="${px2(x0)}" y="${py2(y1)}" width="${bLen * scl2}" height="${hLen * scl2}"
           fill="none" stroke="#93c5fd" stroke-width="0.7" stroke-dasharray="3,2"/>
     <!-- Longitudinal bars -->
     ${bars.map(([bx, by]) =>
-      `<circle cx="${px(bx)}" cy="${py(by)}" r="${barRpx}"
+      `<circle cx="${px2(bx)}" cy="${py2(by)}" r="${barRpx}"
                fill="#1e5a8a" stroke="#fff" stroke-width="0.8"/>`
     ).join('')}
-    <!-- Dimension labels -->
-    <text x="${W / 2}" y="${py(h) - 4}" text-anchor="middle"
-          font-size="9" fill="#475569" font-family="sans-serif">b = ${b} mm</text>
-    <text x="${px(0) - 4}" y="${H / 2}" text-anchor="middle"
-          font-size="9" fill="#475569" font-family="sans-serif"
-          transform="rotate(-90,${px(0) - 4},${H / 2})">h = ${h} mm</text>
-    <!-- Bar count -->
-    <text x="${W / 2}" y="${py(0) + 11}" text-anchor="middle"
-          font-size="8" fill="#64748b" font-family="sans-serif">${total} bars</text>
+    <!-- b dimension line (with arrowheads) -->
+    <line x1="${px2(0)}"  y1="${py2(h)}" x2="${px2(0)}"  y2="${bArrowY - 1}"
+          stroke="#94a3b8" stroke-width="0.7" stroke-dasharray="2,2"/>
+    <line x1="${px2(b)}"  y1="${py2(h)}" x2="${px2(b)}"  y2="${bArrowY - 1}"
+          stroke="#94a3b8" stroke-width="0.7" stroke-dasharray="2,2"/>
+    <line x1="${px2(0) + 3}" y1="${bArrowY}" x2="${px2(b) - 3}" y2="${bArrowY}"
+          stroke="#475569" stroke-width="1"
+          marker-start="url(#ah2)" marker-end="url(#ah)"/>
+    <text x="${(px2(0) + px2(b)) / 2}" y="${bArrowY - 2}" text-anchor="middle"
+          font-size="8.5" fill="#475569" font-family="sans-serif" font-weight="600">b = ${b}</text>
+    <!-- h dimension line (with arrowheads) -->
+    <line x1="${px2(0)}" y1="${py2(0)}" x2="${hArrowX - 1}" y2="${py2(0)}"
+          stroke="#94a3b8" stroke-width="0.7" stroke-dasharray="2,2"/>
+    <line x1="${px2(0)}" y1="${py2(h)}" x2="${hArrowX - 1}" y2="${py2(h)}"
+          stroke="#94a3b8" stroke-width="0.7" stroke-dasharray="2,2"/>
+    <line x1="${hArrowX}" y1="${py2(0) + 3}" x2="${hArrowX}" y2="${py2(h) - 3}"
+          stroke="#475569" stroke-width="1"
+          marker-start="url(#ah2)" marker-end="url(#ah)"/>
+    <text x="${hArrowX - 2}" y="${(py2(0) + py2(h)) / 2}" text-anchor="middle"
+          font-size="8.5" fill="#475569" font-family="sans-serif" font-weight="600"
+          transform="rotate(-90,${hArrowX - 2},${(py2(0) + py2(h)) / 2})">h = ${h}</text>
+    <!-- Axis cross (bottom-right corner, inside section) -->
+    <line x1="${px2(b) - 18}" y1="${py2(0) + 16}" x2="${px2(b) - 6}" y2="${py2(0) + 16}"
+          stroke="#2563eb" stroke-width="1" marker-end="url(#ah)"/>
+    <text x="${px2(b) - 5}" y="${py2(0) + 19}" font-size="7" fill="#2563eb" font-family="sans-serif">b</text>
+    <line x1="${px2(b) - 18}" y1="${py2(0) + 16}" x2="${px2(b) - 18}" y2="${py2(0) + 4}"
+          stroke="#2563eb" stroke-width="1" marker-end="url(#ah)"/>
+    <text x="${px2(b) - 21}" y="${py2(0) + 3}" font-size="7" fill="#2563eb" font-family="sans-serif">h</text>
+    <!-- Bar count + ρ -->
+    <text x="${(px2(0) + px2(b)) / 2}" y="${py2(0) + 13}" text-anchor="middle"
+          font-size="8" fill="#64748b" font-family="sans-serif">${total} × ${barVal}  ρ = ${rhoStr}</text>
   `;
 }
 
@@ -5326,6 +5380,61 @@ function pmmRender2D(data, chartId, title, momentKey, payload, loadPts) {
     }
   }
 
+  // ── φPn,max / φPn,min reference lines ─────────────────────────────────
+  const allPvals = data.surface ? data.surface.P : [];
+  const phiPmax = allPvals.length ? Math.max(...allPvals) : null;
+  const phiPmin = allPvals.length ? Math.min(...allPvals) : null;
+  const annotations = [];
+  const shapes = [];
+
+  if (phiPmax != null) {
+    shapes.push({
+      type: 'line', xref: 'paper', x0: 0, x1: 1,
+      yref: 'y', y0: phiPmax, y1: phiPmax,
+      line: { color: '#1e40af', width: 1.2, dash: 'dash' },
+    });
+    annotations.push({
+      xref: 'paper', x: 0.99, yref: 'y', y: phiPmax,
+      text: `φPn,max = ${phiPmax.toFixed(0)} kN`,
+      xanchor: 'right', yanchor: 'bottom',
+      font: { size: 9, color: '#1e40af' },
+      showarrow: false,
+      bgcolor: 'rgba(255,255,255,0.75)',
+    });
+  }
+  if (phiPmin != null) {
+    shapes.push({
+      type: 'line', xref: 'paper', x0: 0, x1: 1,
+      yref: 'y', y0: phiPmin, y1: phiPmin,
+      line: { color: '#0369a1', width: 1.2, dash: 'dash' },
+    });
+    annotations.push({
+      xref: 'paper', x: 0.99, yref: 'y', y: phiPmin,
+      text: `φTn = ${phiPmin.toFixed(0)} kN`,
+      xanchor: 'right', yanchor: 'top',
+      font: { size: 9, color: '#0369a1' },
+      showarrow: false,
+      bgcolor: 'rgba(255,255,255,0.75)',
+    });
+  }
+  // Region labels: "Compression Controlled" above P=0, "Tension Controlled" below
+  annotations.push({
+    xref: 'paper', x: 0.01, yref: 'paper', y: 0.72,
+    text: 'Compression Controlled',
+    xanchor: 'left', yanchor: 'middle',
+    font: { size: 8.5, color: '#94a3b8' },
+    showarrow: false,
+    textangle: -90,
+  });
+  annotations.push({
+    xref: 'paper', x: 0.01, yref: 'paper', y: 0.20,
+    text: 'Tension Controlled',
+    xanchor: 'left', yanchor: 'middle',
+    font: { size: 8.5, color: '#94a3b8' },
+    showarrow: false,
+    textangle: -90,
+  });
+
   const layout = {
     paper_bgcolor: '#ffffff',
     plot_bgcolor:  '#f8fafc',
@@ -5340,6 +5449,8 @@ function pmmRender2D(data, chartId, title, momentKey, payload, loadPts) {
     },
     legend: { font: { color: '#475569' }, bgcolor: 'rgba(255,255,255,0.8)' },
     title: { text: title, font: { color: '#0f172a', size: 13 }, x: 0.5 },
+    shapes,
+    annotations,
   };
 
   Plotly.react(el, traces, layout, { responsive: true, displayModeBar: false });
@@ -5642,6 +5753,30 @@ function pmmRenderMxMy(data, payload, Ptarget, loadPts) {
     }
   }
 
+  // ── Axis-intercept capacity labels ──────────────────────────────────────
+  // Label the point where the boundary crosses each axis (pure Mx or pure My capacity)
+  const mxMyAnnotations = [];
+  if (Mx_max > 0.01 && My_max > 0.01) {
+    mxMyAnnotations.push({
+      x: Mx_max, y: 0,
+      text: `Mx,cap<br>${Mx_max.toFixed(0)} kN·m`,
+      xanchor: 'left', yanchor: 'middle',
+      font: { size: 9, color: '#1e40af' },
+      showarrow: true, arrowhead: 2, arrowsize: 0.8,
+      arrowcolor: '#1e40af', ax: 18, ay: 0,
+      bgcolor: 'rgba(255,255,255,0.8)',
+    });
+    mxMyAnnotations.push({
+      x: 0, y: My_max,
+      text: `My,cap  ${My_max.toFixed(0)} kN·m`,
+      xanchor: 'center', yanchor: 'bottom',
+      font: { size: 9, color: '#15803d' },
+      showarrow: true, arrowhead: 2, arrowsize: 0.8,
+      arrowcolor: '#15803d', ax: 0, ay: -18,
+      bgcolor: 'rgba(255,255,255,0.8)',
+    });
+  }
+
   // Title shows user-facing P (negative = compression, matching ETABS convention)
   const Pdisplay = (-Ptarget).toFixed(1);
   const layout = {
@@ -5651,6 +5786,7 @@ function pmmRenderMxMy(data, payload, Ptarget, loadPts) {
       text: `Mx–My Interaction  |  P = ${Pdisplay} kN`,
       font: { size: 13, color: '#1e293b' }, x: 0.5,
     },
+    annotations: mxMyAnnotations,
     xaxis: {
       title: { text: 'Mx (kN·m)', font: { color: '#475569' } },
       color: '#475569', gridcolor: '#e2e8f0',
@@ -6183,7 +6319,11 @@ function pmmRenderLoadsRows() {
       else if (dv > 0.6) { bg = '#FF8800'; fg = '#fff'; }
       else if (dv > 0.4) { bg = '#FFFF00'; fg = '#333'; }
       else if (dv > 0.2) { bg = '#00CC00'; fg = '#000'; }
-      dcrCell = `<span class="pmm-dcr-chip" style="background:${bg};color:${fg}">${Math.round(dv*100)}%</span>`;
+      const fillPct = Math.min(dv * 100, 100).toFixed(1);
+      dcrCell = `<span class="pmm-dcr-chip" style="background:${bg};color:${fg};position:relative;overflow:hidden;padding-bottom:5px;">` +
+        `${Math.round(dv*100)}%` +
+        `<span style="position:absolute;bottom:0;left:0;height:3px;width:${fillPct}%;background:rgba(0,0,0,0.25);border-radius:0 0 2px 2px;"></span>` +
+        `</span>`;
     }
     const stCell = l.status
       ? `<span class="${l.status==='PASS'?'pmm-st-pass':'pmm-st-fail'}">${l.status}</span>`

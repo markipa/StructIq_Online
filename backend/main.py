@@ -1134,6 +1134,15 @@ def pmm_calculate(body: PMMRequest,
     try:
         result = compute_pmm(sec)
     except Exception as exc:
+        import traceback as _tb, datetime as _dt
+        try:
+            with open(_LOG_PATH, 'a', encoding='utf-8') as _lf:
+                _lf.write(
+                    f"[{_dt.datetime.now().isoformat()}] [pmm_calculate] compute_pmm failed: {exc}\n"
+                    + ''.join(_tb.format_exc().splitlines(keepends=True)[:8])
+                )
+        except Exception:
+            pass
         raise HTTPException(status_code=500,
                             detail=f"PMM computation failed: {exc}")
 
@@ -1631,7 +1640,20 @@ def _run_pmm_opt(b_in, h_in, fc_ksi, fy_ksi, Es_ksi, cover_in,
             bar_areas=areas, bar_positions=positions,
         )
         result = compute_pmm(sec)
-    except Exception:
+    except Exception as _exc:
+        import traceback as _tb, datetime as _dt
+        try:
+            with open(_LOG_PATH, 'a', encoding='utf-8') as _lf:
+                _lf.write(
+                    f"[{_dt.datetime.now().isoformat()}] [_run_pmm_opt] compute_pmm failed "
+                    f"b={b_in:.3f}in h={h_in:.3f}in fc={fc_ksi:.3f}ksi fy={fy_ksi:.3f}ksi "
+                    f"nb={nb} nh={nh} bar_area={bar_area_in2:.4f}in2 "
+                    f"alpha_steps={alpha_steps} num_points={num_points}\n"
+                    f"  ERROR: {_exc}\n"
+                    + ''.join(_tb.format_exc().splitlines(keepends=True)[:6])
+                )
+        except Exception:
+            pass
         return None
 
     # Convert surface to SI (engine returns US units: kips, kip·in)
@@ -1644,7 +1666,19 @@ def _run_pmm_opt(b_in, h_in, fc_ksi, fy_ksi, Es_ksi, cover_in,
         # bar-transition clustering — mirrors frontend: surf.num_points || payload.num_points)
         npts_actual = surf.get('num_points', num_points)
         return _boundary_dcr_surface(surf, npts_actual, demands_si)
-    except Exception:
+    except Exception as _exc:
+        import traceback as _tb, datetime as _dt
+        try:
+            with open(_LOG_PATH, 'a', encoding='utf-8') as _lf:
+                _lf.write(
+                    f"[{_dt.datetime.now().isoformat()}] [_run_pmm_opt] _boundary_dcr_surface failed "
+                    f"surf_keys={list(surf.keys())} npts={surf.get('num_points','?')} "
+                    f"n_demands={len(demands_si)}\n"
+                    f"  ERROR: {_exc}\n"
+                    + ''.join(_tb.format_exc().splitlines(keepends=True)[:6])
+                )
+        except Exception:
+            pass
         return None
 
 
