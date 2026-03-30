@@ -6359,8 +6359,9 @@ async function pmmOptimize() {
     const maxRho    = (parseFloat(document.getElementById('pmm-opt-maxrho')?.value) || 4.0);
 
     // Read resolution from the UI dropdown so optimizer uses the same surface as Check DCR
-    const resSel = document.getElementById('pmm-resolution');
+    const resSel    = document.getElementById('pmm-resolution');
     const [optAlphaSteps, optNumPoints] = (resSel?.value || '10:70').split(':').map(Number);
+    const sweepSizes = document.getElementById('pmm-opt-sweep')?.checked ?? false;
 
     const body = {
       b_mm:        parseFloat(document.getElementById('pmm-b').value),
@@ -6378,8 +6379,14 @@ async function pmmOptimize() {
       alpha_steps: optAlphaSteps,  // match UI resolution so optimizer DCR = Check DCR
       num_points:  optNumPoints,
       // Engine: Mx=weak(M22), My=strong(M33); table: Mx=M33, My=M22 → swap
+      // See pmm_conventions.py SWAP RULE site 4
       demands: activeDemands.map(l => ({ label: l.label, P: -(+l.P), Mx: +(l.My||0), My: +(l.Mx||0) })),
+      // Bar size sweep
+      sweep_bar_sizes:     sweepSizes,
+      bar_size_candidates: [],   // empty = backend uses all Ø8→Ø40
     };
+
+    if (sweepSizes && btn) btn.textContent = '⏳ Sweeping all bar sizes…';
 
     const res  = await authFetch('/api/pmm/optimize', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -6402,10 +6409,15 @@ async function pmmOptimize() {
          </strong>
        </div>`;
 
-    // ── Target not achievable warning ─────────────────────────────────────
-    const targetNote = !data.target_met
-      ? `<div class="pmm-opt-grew">⚠ Target DCR not achievable with ${data.bar_size} at ρ ${minRho}–${maxRho}%. Showing max-capacity arrangement.</div>`
+    // ── Target not achievable warning / sweep success note ───────────────
+    const sweepNote = data.swept_sizes
+      ? (data.target_met
+          ? `<div class="pmm-opt-grew" style="color:#4ade80">✓ Globally optimal across all ${data.swept_sizes} bar sizes (${(data.sizes_tried||[]).length} feasible).</div>`
+          : `<div class="pmm-opt-grew">⚠ Target DCR not achievable with any bar size at ρ ${minRho}–${maxRho}%. Showing best available.</div>`)
       : '';
+    const targetNote = !data.target_met && !data.swept_sizes
+      ? `<div class="pmm-opt-grew">⚠ Target DCR not achievable with ${data.bar_size} at ρ ${minRho}–${maxRho}%. Showing max-capacity arrangement.</div>`
+      : sweepNote;
 
     resultEl.innerHTML = `
       <div class="pmm-opt-title">✦ Optimal Design</div>

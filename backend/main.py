@@ -1234,7 +1234,7 @@ class PMMOptimizeRequest(BaseModel):
     cover_mm:      float
     stirrup_dia_mm: float = 10.0   # tie/stirrup diameter for eff-cover calculation
     include_phi: bool = True
-    # Bar diameter is FIXED — optimizer only adjusts bar count / arrangement
+    # Bar size — fixed when sweep_bar_sizes=False; used as starting hint when True
     bar_size:    str   = "Ø20"
     target_dcr:  float = 0.90
     min_rho_pct: float = 1.0   # ACI §10.6.1.1 minimum ρ (%)
@@ -1243,6 +1243,9 @@ class PMMOptimizeRequest(BaseModel):
     alpha_steps: float = 10.0
     num_points:  int   = 70
     demands: list = []
+    # Bar size sweep — try all standard sizes and return the globally lightest arrangement
+    sweep_bar_sizes:     bool      = False
+    bar_size_candidates: List[str] = []   # empty = all Ø8 → Ø40
 
 
 # ---------------------------------------------------------------------------
@@ -1645,95 +1648,62 @@ def _run_pmm_opt(b_in, h_in, fc_ksi, fy_ksi, Es_ksi, cover_in,
         return None
 
 
-@app.post("/api/pmm/optimize")
-def pmm_optimize(body: PMMOptimizeRequest,
-                 current_user: dict = Depends(get_current_user)):
+# ── Bar-size sweep helper — ordered list from pmm_conventions ────────────────
+_ALL_BAR_SIZES  = ["Ø8","Ø10","Ø12","Ø16","Ø20","Ø25","Ø28","Ø32","Ø36","Ø40"]
+_BAR_AREA_MAP   = {
+    "Ø8":  50.3,  "Ø10":  78.5,  "Ø12": 113.1,
+    "Ø16": 201.1, "Ø20": 314.2,  "Ø25": 490.9,
+    "Ø28": 615.8, "Ø32": 804.2,  "Ø36": 1017.9, "Ø40": 1256.6,
+}
+_BAR_DIA_MAP    = {
+    "Ø8": 8.0,  "Ø10": 10.0, "Ø12": 12.0, "Ø16": 16.0, "Ø20": 20.0,
+    "Ø25": 25.0,"Ø28": 28.0, "Ø32": 32.0, "Ø36": 36.0, "Ø40": 40.0,
+}
+_S_MAX_MM       = 150.0    # ACI §25.7.2.3 max clear (mm)
+
+
+def _optimize_one_bar_size(
+    bar_name: str,
+    b_mm: float, h_mm: float, Ag_mm2: float,
+    b_in: float, h_in: float,
+    fc_ksi: float, fy_ksi: float, Es_ksi: float,
+    body,          # PMMOptimizeRequest – cover, stirrup, phi, rho, resolution
+    demands: list, # already in engine-sign SI, pre-swapped by caller
+    target: float,
+    RHO_MIN: float, RHO_MAX: float,
+) -> Optional[dict]:
     """
-    Bayesian-Bisection optimiser for bar count / arrangement.
+    Run the bisection optimizer for ONE fixed bar size.
 
-    Cover fix
-    ─────────
-    The UI inputs *clear cover* (face → stirrup face).  The PMM engine needs
-    the distance from the concrete face to the *bar centre*:
-        eff_cover = clear_cover + stirrup_dia + bar_dia / 2   (ACI convention)
-    This matches what pmm_calculate does and ensures the optimizer DCR matches
-    the displayed surface after Apply.
+    Returns a response dict (same shape as pmm_optimize's return value) or
+    None if no feasible candidates exist for this bar size.
 
-    Bisection algorithm (O(log N) evaluations)
-    ──────────────────────────────────────────
-    DCR is monotonically non-increasing with Ast (more steel → higher capacity
-    → lower DCR).  A binary bisection on the sorted candidate list finds the
-    lightest passing arrangement in ceil(log2 N) coarse evaluations — typically
-    6-8 evals regardless of search space size — rather than scanning all N.
-
-    After bisection, a ±1 neighbourhood around the transition point is
-    fine-verified (5° / 120 pts) to produce accurate final DCR values.
-
-    ACI 318-19 spacing:
-      §25.8.1   min clear = max(1.5·db, 40 mm)
-      §25.7.2.3 max clear = 150 mm (all faces)
-      §10.6.1.1 ρ_min = 1 %,  ρ_max = 8 %
+    Cover fix (see pmm_optimize docstring):
+        eff_cover = clear_cover + stirrup_dia + bar_dia / 2
+    Bisection algorithm (O(log N) coarse evals + ±2 fine-verify window).
     """
-    if not _HAS_PMM:
-        raise HTTPException(status_code=503, detail="PMM engine not available.")
-    if not body.demands:
-        raise HTTPException(status_code=422, detail="At least one demand required.")
-
-    target  = float(body.target_dcr)
-    RHO_MIN = max(0.01, min(float(body.min_rho_pct) / 100.0, 0.08))
-    RHO_MAX = min(float(body.max_rho_pct) / 100.0, 0.08)
-    if RHO_MIN > RHO_MAX:
-        raise HTTPException(status_code=422, detail="Min ρ must be less than Max ρ.")
-
-    BAR_AREA_MAP = {
-        "Ø8":  50.3,  "Ø10":  78.5,  "Ø12": 113.1,
-        "Ø16": 201.1, "Ø20": 314.2,  "Ø25": 490.9,
-        "Ø28": 615.8, "Ø32": 804.2,  "Ø36": 1017.9, "Ø40": 1256.6,
-    }
-    BAR_DIA_MM = {
-        "Ø8": 8.0, "Ø10": 10.0, "Ø12": 12.0, "Ø16": 16.0, "Ø20": 20.0,
-        "Ø25": 25.0, "Ø28": 28.0, "Ø32": 32.0, "Ø36": 36.0, "Ø40": 40.0,
-    }
-    bar_name = body.bar_size
-    area_mm2 = BAR_AREA_MAP.get(bar_name)
+    area_mm2 = _BAR_AREA_MAP.get(bar_name)
     if area_mm2 is None:
-        raise HTTPException(status_code=422, detail=f"Unknown bar size '{bar_name}'.")
+        return None
 
     db           = _db_mm(area_mm2)
-    bar_dia_mm   = BAR_DIA_MM.get(bar_name, db)
+    bar_dia_mm   = _BAR_DIA_MAP.get(bar_name, db)
     bar_area_in2 = area_mm2 * (_MM_TO_IN ** 2)
 
-    b_mm   = float(body.b_mm)
-    h_mm   = float(body.h_mm)
-    Ag_mm2 = b_mm * h_mm
-    b_in   = b_mm * _MM_TO_IN
-    h_in   = h_mm * _MM_TO_IN
-    fc_ksi = body.fc_mpa * _MPA_TO_KSI
-    fy_ksi = body.fy_mpa * _MPA_TO_KSI
-    Es_ksi = body.Es_mpa * _MPA_TO_KSI
-
-    # ── Effective cover (face → bar centre) — matches pmm_calculate ─────────
     eff_cover_mm = body.cover_mm + body.stirrup_dia_mm + bar_dia_mm / 2.0
     cover_in     = eff_cover_mm * _MM_TO_IN
     s_min_req    = round(max(1.5 * db, 40.0), 1)   # ACI §25.8.1
 
-    demands = [{'label': d.get('label', ''), 'P': float(d.get('P', 0)),
-                'Mx': float(d.get('Mx', 0)), 'My': float(d.get('My', 0))}
-               for d in body.demands]
-
-    # ── Dynamic nb / nh range from geometry + ACI spacing ───────────────────
-    S_MIN  = max(1.5 * db, 40.0)    # ACI §25.8.1  min clear
-    S_MAX  = 150.0                   # ACI §25.7.2.3 max clear
-    cc_min = db + S_MIN              # min centre-to-centre
-
-    # Spacing constraints use eff_cover (face → bar centre)
-    net_b = b_mm - 2.0 * eff_cover_mm
-    net_h = h_mm - 2.0 * eff_cover_mm
+    # ── Dynamic nb / nh range ────────────────────────────────────────────────
+    S_MIN  = max(1.5 * db, 40.0)
+    cc_min = db + S_MIN
+    net_b  = b_mm - 2.0 * eff_cover_mm
+    net_h  = h_mm - 2.0 * eff_cover_mm
 
     max_nb = min(12, max(2, int(net_b / cc_min) + 1))
-    min_nb = max(2, math.ceil(net_b / (db + S_MAX) + 1 - 1e-9))
+    min_nb = max(2, math.ceil(net_b / (db + _S_MAX_MM) + 1 - 1e-9))
     max_nh = min(8,  max(0, int(net_h / cc_min) - 1))
-    min_nh = max(0,  math.ceil(net_h / (db + S_MAX) - 1 - 1e-9))
+    min_nh = max(0,  math.ceil(net_h / (_S_MAX_MM + db) - 1 - 1e-9))
 
     # ── Build candidate list ─────────────────────────────────────────────────
     candidates: List[dict] = []
@@ -1756,17 +1726,10 @@ def pmm_optimize(body: PMMOptimizeRequest,
             })
 
     if not candidates:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"No feasible arrangement found within ρ [{round(RHO_MIN*100,1)} – "
-                f"{round(RHO_MAX*100,1)} %] and ACI 318-19 spacing limits. "
-                "Try a different bar size or adjust ρ / cover."
-            ))
+        return None
 
-    candidates.sort(key=lambda x: x['ast'])   # ascending Ast
+    candidates.sort(key=lambda x: x['ast'])
 
-    # ── Helper: evaluate one candidate (coarse or fine) ─────────────────────
     def _eval(idx: int, fast: bool) -> float:
         cand = candidates[idx]
         key  = 'dcr_coarse' if fast else 'dcr_fine'
@@ -1779,47 +1742,35 @@ def pmm_optimize(body: PMMOptimizeRequest,
         cand[key] = dcr if dcr is not None else 999.0
         return cand[key]
 
-    # ── Phase 1: Bisection search (coarse, O(log N)) ─────────────────────────
-    # Exploit monotonicity: DCR[i] ≥ DCR[j]  for  Ast[i] ≤ Ast[j].
-    # Find the index of the lightest arrangement with coarse DCR ≤ target.
-    # Seed: always evaluate the endpoints first.
-    n = len(candidates)
-    dcr_lo = _eval(0,     fast=True)   # lightest
-    dcr_hi = _eval(n - 1, fast=True)   # heaviest
+    # Phase 1: Bisection (O(log N) coarse evals)
+    n      = len(candidates)
+    dcr_lo = _eval(0,     fast=True)
+    dcr_hi = _eval(n - 1, fast=True)
 
-    bisect_winner = None   # index of lightest candidate with coarse DCR ≤ target
-
+    bisect_winner = None
     if dcr_lo <= target:
-        # Even the lightest passes → winner is at the low end
         bisect_winner = 0
-    elif dcr_hi > target:
-        # Even the heaviest fails → target is not achievable; winner = heaviest
-        bisect_winner = None
-    else:
-        # Binary search: maintain lo=failing, hi=passing
+    elif dcr_hi <= target:
         lo, hi = 0, n - 1
         while hi - lo > 1:
-            mid = (lo + hi) // 2
+            mid     = (lo + hi) // 2
             dcr_mid = _eval(mid, fast=True)
             if dcr_mid <= target:
-                hi = mid   # mid passes → search for something lighter
+                hi = mid
             else:
-                lo = mid   # mid fails  → need heavier
-        bisect_winner = hi   # hi is the lightest coarse-passing index
+                lo = mid
+        bisect_winner = hi
 
-    # ── Phase 2: Fine-verify ±2 neighbourhood of bisection winner ───────────
-    # The coarse surface may have small errors near the boundary — verify a
-    # small window to avoid promoting a false-positive to the final result.
+    # Phase 2: Fine-verify ±2 neighbourhood
     if bisect_winner is not None:
         lo_idx = max(0, bisect_winner - 2)
         hi_idx = min(n - 1, bisect_winner + 2)
         for idx in range(lo_idx, hi_idx + 1):
             _eval(idx, fast=False)
     else:
-        # Target not achievable — fine-verify the heaviest only
         _eval(n - 1, fast=False)
 
-    # ── Pick best ────────────────────────────────────────────────────────────
+    # Pick best passing candidate (lightest Ast)
     best_valid = None
     for cand in candidates:
         fine = cand.get('dcr_fine')
@@ -1832,9 +1783,8 @@ def pmm_optimize(body: PMMOptimizeRequest,
             best_valid = cand
 
     target_met = best_valid is not None
-    best = best_valid if target_met else candidates[-1]   # fallback: heaviest
-
-    final_dcr = best.get('dcr_fine') or best.get('dcr_coarse') or 0.0
+    best       = best_valid if target_met else candidates[-1]
+    final_dcr  = best.get('dcr_fine') or best.get('dcr_coarse') or 0.0
 
     nb     = best['nb']
     nh     = best['nh']
@@ -1856,8 +1806,133 @@ def pmm_optimize(body: PMMOptimizeRequest,
         'min_clear_mm':  best['min_c'],
         'max_clear_mm':  best['max_c'],
         'min_clear_req': s_min_req,
-        'max_clear_req': S_MAX,
+        'max_clear_req': _S_MAX_MM,
+        '_ast_mm2':      best['ast'],    # internal — used by sweep to pick global best
     }
+
+
+@app.post("/api/pmm/optimize")
+def pmm_optimize(body: PMMOptimizeRequest,
+                 current_user: dict = Depends(get_current_user)):
+    """
+    Bayesian-Bisection optimiser for bar count / arrangement.
+
+    Cover fix
+    ─────────
+    The UI inputs *clear cover* (face → stirrup face).  The PMM engine needs
+    the distance from the concrete face to the *bar centre*:
+        eff_cover = clear_cover + stirrup_dia + bar_dia / 2   (ACI convention)
+    This matches what pmm_calculate does and ensures the optimizer DCR matches
+    the displayed surface after Apply.
+
+    Bisection algorithm (O(log N) evaluations)
+    ──────────────────────────────────────────
+    DCR is monotonically non-increasing with Ast (more steel → higher capacity
+    → lower DCR).  A binary bisection on the sorted candidate list finds the
+    lightest passing arrangement in ceil(log2 N) coarse evaluations — typically
+    6-8 evals regardless of search space size — rather than scanning all N.
+
+    After bisection, a ±2 neighbourhood around the transition point is
+    fine-verified to produce accurate final DCR values.
+
+    Bar size sweep (sweep_bar_sizes=True)
+    ──────────────────────────────────────
+    Runs the bisection for every bar size in bar_size_candidates (or all Ø8→Ø40)
+    and returns the globally lightest passing arrangement measured by total
+    steel area (Ast = n_total × area_per_bar).  This finds both the optimal
+    diameter and bar count in a single call.
+
+    ACI 318-19 spacing:
+      §25.8.1   min clear = max(1.5·db, 40 mm)
+      §25.7.2.3 max clear = 150 mm (all faces)
+      §10.6.1.1 ρ_min = 1 %,  ρ_max = 8 %
+    """
+    if not _HAS_PMM:
+        raise HTTPException(status_code=503, detail="PMM engine not available.")
+    if not body.demands:
+        raise HTTPException(status_code=422, detail="At least one demand required.")
+
+    target  = float(body.target_dcr)
+    RHO_MIN = max(0.01, min(float(body.min_rho_pct) / 100.0, 0.08))
+    RHO_MAX = min(float(body.max_rho_pct) / 100.0, 0.08)
+    if RHO_MIN > RHO_MAX:
+        raise HTTPException(status_code=422, detail="Min ρ must be less than Max ρ.")
+
+    b_mm   = float(body.b_mm)
+    h_mm   = float(body.h_mm)
+    Ag_mm2 = b_mm * h_mm
+    b_in   = b_mm * _MM_TO_IN
+    h_in   = h_mm * _MM_TO_IN
+    fc_ksi = body.fc_mpa * _MPA_TO_KSI
+    fy_ksi = body.fy_mpa * _MPA_TO_KSI
+    Es_ksi = body.Es_mpa * _MPA_TO_KSI
+
+    demands = [{'label': d.get('label', ''), 'P': float(d.get('P', 0)),
+                'Mx': float(d.get('Mx', 0)), 'My': float(d.get('My', 0))}
+               for d in body.demands]
+
+    # ── Single bar size mode (default) ───────────────────────────────────────
+    if not body.sweep_bar_sizes:
+        bar_name = body.bar_size
+        if bar_name not in _BAR_AREA_MAP:
+            raise HTTPException(status_code=422,
+                                detail=f"Unknown bar size '{bar_name}'.")
+        result = _optimize_one_bar_size(
+            bar_name, b_mm, h_mm, Ag_mm2, b_in, h_in,
+            fc_ksi, fy_ksi, Es_ksi, body, demands, target, RHO_MIN, RHO_MAX)
+        if result is None:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"No feasible arrangement found within ρ [{round(RHO_MIN*100,1)} – "
+                    f"{round(RHO_MAX*100,1)} %] and ACI 318-19 spacing limits. "
+                    "Try a different bar size or adjust ρ / cover."
+                ))
+        result.pop('_ast_mm2', None)
+        return result
+
+    # ── Bar size sweep mode ───────────────────────────────────────────────────
+    # Try every requested bar size; return the globally lightest passing
+    # arrangement (lowest total Ast among those meeting target DCR).
+    sizes_to_try = [s for s in (body.bar_size_candidates or _ALL_BAR_SIZES)
+                    if s in _BAR_AREA_MAP]
+    if not sizes_to_try:
+        raise HTTPException(status_code=422, detail="No valid bar sizes specified.")
+
+    results_by_size: dict = {}
+    for bar_name in sizes_to_try:
+        res = _optimize_one_bar_size(
+            bar_name, b_mm, h_mm, Ag_mm2, b_in, h_in,
+            fc_ksi, fy_ksi, Es_ksi, body, demands, target, RHO_MIN, RHO_MAX)
+        if res is not None:
+            results_by_size[bar_name] = res
+
+    if not results_by_size:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"No feasible arrangement found for any bar size within ρ "
+                f"[{round(RHO_MIN*100,1)} – {round(RHO_MAX*100,1)} %] and "
+                "ACI 318-19 spacing limits. Adjust ρ / cover or increase section size."
+            ))
+
+    # Passing candidates: those where target was met
+    passing = {k: v for k, v in results_by_size.items() if v['target_met']}
+
+    if passing:
+        # Pick lightest total Ast among passing results
+        winner_name = min(passing, key=lambda k: passing[k]['_ast_mm2'])
+        winner = passing[winner_name]
+    else:
+        # No size meets target — return the one with lowest achieved DCR (closest to target)
+        winner_name = min(results_by_size,
+                          key=lambda k: results_by_size[k]['achieved_dcr'])
+        winner = results_by_size[winner_name]
+
+    winner.pop('_ast_mm2', None)
+    winner['swept_sizes']  = len(sizes_to_try)
+    winner['sizes_tried']  = list(results_by_size.keys())
+    return winner
 
 
 @app.get("/api/pmm/rebar-table")
