@@ -1542,7 +1542,8 @@ def get_etabs_all_column_forces(sec_names: list, combo_names: list, load_type: s
 
                 for lc, forces in best.items():
                     by_section[sec_name].append({
-                        "label":  f"{frame_name}/{lc}",
+                        "frame":  frame_name,
+                        "combo":  lc,
                         "P_kN":   round(_to_kN  (forces["P"],  unit_code), 2),
                         "M3_kNm": round(_to_kNm (forces["M3"], unit_code), 2),
                         "M2_kNm": round(_to_kNm (forces["M2"], unit_code), 2),
