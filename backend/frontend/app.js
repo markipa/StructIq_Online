@@ -6296,12 +6296,21 @@ function pmmEtabsUpdateGroupState(prefix) {
 async function pmmEtabsFetchCombos() {
   const wrap = document.getElementById('pmm-etabs-combos-wrap');
   if (!wrap) return;
-  wrap.innerHTML = '<div class="pmm-etabs-combo-hint">Loading from ETABS…</div>';
+  wrap.innerHTML = '<div class="pmm-etabs-combo-hint">Connecting to ETABS…</div>';
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);  // 12 s timeout
+
   try {
     const res = await fetch('/api/pmm/etabs-combos', {
-      headers: { Authorization: `Bearer ${authToken()}` }
+      headers: { Authorization: `Bearer ${authToken()}` },
+      signal: controller.signal,
     });
-    if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed'); }
+    clearTimeout(timer);
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.detail || `Server error ${res.status}`);
+    }
     const data = await res.json();
     const type = document.querySelector('input[name="pmm-etabs-type"]:checked')?.value || 'combo';
     const items = type === 'case' ? data.cases : data.combinations;
@@ -6313,7 +6322,14 @@ async function pmmEtabsFetchCombos() {
     if (srch) srch.value = '';
     pmmEtabsRenderGroups(items);
   } catch (err) {
-    wrap.innerHTML = `<div class="pmm-etabs-combo-hint" style="color:#f66">${err.message}</div>`;
+    clearTimeout(timer);
+    const isTimeout = err.name === 'AbortError';
+    const msg = isTimeout
+      ? 'ETABS connection timed out. Make sure ETABS is open and the model is loaded, then try again.'
+      : (err.message === 'Failed to fetch'
+          ? 'Could not reach the local server. Try restarting StructIQ.'
+          : err.message);
+    wrap.innerHTML = `<div class="pmm-etabs-combo-hint" style="color:#f66">⚠ ${msg}</div>`;
   }
 }
 
@@ -6374,12 +6390,16 @@ async function pmmEtabsImport() {
   const loadType = document.querySelector('input[name="pmm-etabs-type"]:checked')?.value || 'combo';
   if (btn) { btn.textContent = '⏳ Importing…'; btn.disabled = true; }
   if (note) { note.textContent = ''; }
+  const importCtrl = new AbortController();
+  const importTimer = setTimeout(() => importCtrl.abort(), 30000);  // 30 s for force extraction
   try {
     const res = await fetch('/api/pmm/etabs-import-forces', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken()}` },
-      body: JSON.stringify({ combo_names: checked, load_type: loadType })
+      body: JSON.stringify({ combo_names: checked, load_type: loadType }),
+      signal: importCtrl.signal,
     });
+    clearTimeout(importTimer);
     if (!res.ok) {
       let errMsg = `Import failed (HTTP ${res.status})`;
       try { const e = await res.json(); errMsg = e.detail || errMsg; } catch {}
@@ -6418,7 +6438,13 @@ async function pmmEtabsImport() {
       `✓ ${rows.length} load(s) imported from ETABS. Click ⚡ Check DCR to evaluate.`;
     if (note) note.textContent = '';
   } catch (err) {
-    if (note) { note.textContent = `⚠ ${err.message}`; note.style.color = '#f66'; }
+    clearTimeout(importTimer);
+    const msg = err.name === 'AbortError'
+      ? 'Import timed out. ETABS may be busy — try again with fewer combinations selected.'
+      : (err.message === 'Failed to fetch'
+          ? 'Could not reach the local server. Try restarting StructIQ.'
+          : err.message);
+    if (note) { note.textContent = `⚠ ${msg}`; note.style.color = '#f66'; }
   } finally {
     if (btn) { btn.textContent = '⬇ Import Selected Members'; btn.disabled = false; }
   }
