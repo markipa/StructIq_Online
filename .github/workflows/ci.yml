@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: PMM Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install fastapi pydantic requests python-multipart
+
+      - name: Run PMM unit tests
+        working-directory: backend
+        run: python -m unittest tests.test_pmm_helpers -v
+
+      - name: Run PMM integration tests
+        working-directory: backend
+        run: python -m unittest tests.test_integration_pmm -v
+
+      - name: Run spColumn benchmark tests
+        working-directory: backend
+        run: python -m unittest tests.test_spcolumn_benchmark -v
