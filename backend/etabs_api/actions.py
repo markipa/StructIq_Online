@@ -1458,6 +1458,104 @@ def get_etabs_frame_forces(combo_names: list, load_type: str = "combo"):
         return {"error": f"Failed to get frame forces: {str(e)}"}
 
 
+def get_etabs_all_column_forces(sec_names: list, combo_names: list, load_type: str = "combo"):
+    """
+    Get frame forces for every column frame in the model, grouped by section name.
+
+    For each frame that uses one of the sections in `sec_names`, query FrameForce
+    for all requested combos/cases and keep the result with maximum |P| per
+    frame × load combination.
+
+    Returns:
+      {"sections": {sec_name: [{"label": "frame/combo", "P_kN": ...,
+                                "M3_kNm": ..., "M2_kNm": ...}, ...]}}
+    """
+    SapModel = get_active_etabs()
+    if not SapModel:
+        return {"error": "ETABS is not currently running."}
+
+    try:
+        try:
+            unit_code = SapModel.GetPresentUnits()
+        except Exception:
+            unit_code = 6  # kN-m
+
+        sec_set = set(str(s) for s in sec_names)
+
+        # ── 1. Build frame → section mapping ────────────────────────────────
+        frame_to_sec = {}
+        try:
+            fr = SapModel.FrameObj.GetNameList()
+            if fr and int(fr[-1]) == 0:
+                names_arr = None
+                for item in fr[:-1]:
+                    if hasattr(item, '__iter__') and not isinstance(item, str):
+                        names_arr = list(item)
+                        break
+                for fname in (names_arr or []):
+                    try:
+                        sr = SapModel.FrameObj.GetSection(fname)
+                        if not sr or int(sr[-1]) != 0 or not sr[0]:
+                            continue
+                        sname = str(sr[0])
+                        if sname in sec_set:
+                            frame_to_sec[fname] = sname
+                    except Exception:
+                        continue
+        except Exception as e:
+            return {"error": f"Could not enumerate frame objects: {e}"}
+
+        if not frame_to_sec:
+            return {"error": "No column frames found for the given section names."}
+
+        # ── 2. Set up output combinations/cases ─────────────────────────────
+        SapModel.Results.Setup.DeselectAllCasesAndCombosForOutput()
+        for name in combo_names:
+            if load_type == "case":
+                SapModel.Results.Setup.SetCaseSelectedForOutput(name, True)
+            else:
+                SapModel.Results.Setup.SetComboSelectedForOutput(name, True)
+
+        # ── 3. Loop frames and extract forces ────────────────────────────────
+        by_section: dict = {s: [] for s in sec_set}
+
+        for frame_name, sec_name in frame_to_sec.items():
+            try:
+                ret = SapModel.Results.FrameForce(frame_name, 0)
+                # ret = (NumberResults, Obj, ObjSta, Elm, ElmSta, LoadCase,
+                #         StepType, StepNum, P, V2, V3, T, M2, M3, retcode)
+                if not ret or int(ret[-1]) != 0 or int(ret[0]) == 0:
+                    continue
+
+                n        = int(ret[0])
+                lc_names = ret[5]
+                P_raw    = ret[8]
+                M2_raw   = ret[12]
+                M3_raw   = ret[13]
+
+                # Per frame: keep worst (max |P|) station per load case
+                best: dict = {}
+                for i in range(n):
+                    lc = lc_names[i]
+                    if lc not in best or abs(P_raw[i]) > abs(best[lc]["P"]):
+                        best[lc] = {"P": P_raw[i], "M2": M2_raw[i], "M3": M3_raw[i]}
+
+                for lc, forces in best.items():
+                    by_section[sec_name].append({
+                        "label":  f"{frame_name}/{lc}",
+                        "P_kN":   round(_to_kN  (forces["P"],  unit_code), 2),
+                        "M3_kNm": round(_to_kNm (forces["M3"], unit_code), 2),
+                        "M2_kNm": round(_to_kNm (forces["M2"], unit_code), 2),
+                    })
+            except Exception:
+                continue
+
+        return {"status": "success", "sections": by_section}
+
+    except Exception as e:
+        return {"error": f"get_etabs_all_column_forces failed: {e}"}
+
+
 def debug_rc_column_raw(section_name: str):
     """Return raw comtypes output for GetRectangle + GetRebarColumn on one section."""
     SapModel = get_active_etabs()
