@@ -5460,6 +5460,178 @@ function pmmRender2D(data, chartId, title, momentKey, payload, loadPts) {
  * Export the 2D P–Mx or P–My interaction curve as a CSV file.
  * Format is compatible with spColumn (P in kN compression-positive, M in kN·m).
  */
+// ── Session Save / Open ──────────────────────────────────────────────────────
+
+/** Collect all PMM input field values from the DOM into a plain object. */
+function _pmmReadInputs() {
+  const v = id => document.getElementById(id)?.value ?? '';
+  const chk = id => document.getElementById(id)?.checked ?? false;
+  return {
+    b:          v('pmm-b'),
+    h:          v('pmm-h'),
+    fc:         v('pmm-fc'),
+    fy:         v('pmm-fy'),
+    es:         v('pmm-es'),
+    cover:      v('pmm-cover'),
+    stirrupDia: v('pmm-stirrup-dia'),
+    nbarsB:     v('pmm-nbars-b'),
+    nbarsH:     v('pmm-nbars-h'),
+    barSize:    v('pmm-barsize'),
+    phi:        chk('pmm-phi'),
+    resolution: v('pmm-res'),
+    optDcr:     v('pmm-opt-dcr'),
+    optMinRho:  v('pmm-opt-minrho'),
+    optMaxRho:  v('pmm-opt-maxrho'),
+    optSweep:   chk('pmm-opt-sweep'),
+  };
+}
+
+/** Restore PMM input fields from a saved inputs object. */
+function _pmmRestoreInputs(inp) {
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  const setChk = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
+  set('pmm-b',          inp.b);
+  set('pmm-h',          inp.h);
+  set('pmm-fc',         inp.fc);
+  set('pmm-fy',         inp.fy);
+  set('pmm-es',         inp.es);
+  set('pmm-cover',      inp.cover);
+  set('pmm-stirrup-dia', inp.stirrupDia);
+  set('pmm-nbars-b',    inp.nbarsB);
+  set('pmm-nbars-h',    inp.nbarsH);
+  setChk('pmm-phi',     inp.phi);
+  set('pmm-res',        inp.resolution);
+  set('pmm-opt-dcr',    inp.optDcr);
+  set('pmm-opt-minrho', inp.optMinRho);
+  set('pmm-opt-maxrho', inp.optMaxRho);
+  setChk('pmm-opt-sweep', inp.optSweep);
+  // Bar size select — set after a tick so rebar table is populated
+  if (inp.barSize) {
+    const sel = document.getElementById('pmm-barsize');
+    if (sel) {
+      // Try immediately; if not populated yet, retry after rebar table loads
+      sel.value = inp.barSize;
+      if (sel.value !== inp.barSize) {
+        setTimeout(() => { sel.value = inp.barSize; pmmUpdateRhoInfo(); pmmDrawSection(); }, 600);
+      }
+    }
+  }
+}
+
+/**
+ * Save the current PMM session (inputs + demand loads + computed result) to a
+ * .siq file which the user can download and re-open later.
+ */
+function pmmSaveSession() {
+  pmmSyncLoadValues();   // flush any in-progress edits to _pmmLoads
+
+  const session = {
+    _version: 1,
+    _savedAt: new Date().toISOString(),
+    _app: 'StructIQ-PMM',
+    inputs:  _pmmReadInputs(),
+    loads:   _pmmLoads.map(l => ({
+      label: l.label, P: l.P, Mx: l.Mx, My: l.My,
+      // preserve DCR results if available
+      DCR: l.DCR, status: l.status, M_demand: l.M_demand, M_cap: l.M_cap,
+    })),
+    result:  _pmmResult  || null,
+    payload: _pmmPayload || null,
+  };
+
+  const json = JSON.stringify(session, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+
+  // Suggest filename from section dimensions
+  const b = session.inputs.b || 'col';
+  const h = session.inputs.h || '';
+  const ts = new Date().toISOString().slice(0, 10);
+  const name = `PMM_${b}x${h}_${ts}.siq`;
+
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Open a .siq session file chosen via the file input, restore all state, and
+ * re-render the charts if a saved result is present.
+ */
+function pmmOpenSession(inputEl) {
+  const file = inputEl.files[0];
+  if (!file) return;
+  inputEl.value = '';   // reset so the same file can be re-opened
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    let session;
+    try { session = JSON.parse(e.target.result); }
+    catch { pmmSetStatus('Could not parse file — is it a valid .siq file?', 'error'); return; }
+
+    if (session._app !== 'StructIQ-PMM') {
+      pmmSetStatus('File does not appear to be a StructIQ PMM session.', 'error'); return;
+    }
+
+    // ── 1. Restore inputs ─────────────────────────────────────────────────
+    if (session.inputs) _pmmRestoreInputs(session.inputs);
+
+    // ── 2. Restore load demands ──────────────────────────────────────────
+    if (Array.isArray(session.loads)) {
+      _pmmLoads  = [];
+      _pmmLoadId = 0;
+      pmmLoadsInit();   // ensure DOM table exists
+      session.loads.forEach(l => {
+        _pmmLoadId++;
+        _pmmLoads.push({
+          id: _pmmLoadId,
+          label: l.label ?? '',
+          P:  l.P  ?? '', Mx: l.Mx ?? '', My: l.My ?? '',
+          DCR: l.DCR ?? null, status: l.status ?? null,
+          M_demand: l.M_demand ?? null, M_cap: l.M_cap ?? null,
+        });
+      });
+      pmmRenderLoadsRows();
+    }
+
+    // ── 3. Restore computed result and re-render ─────────────────────────
+    _pmmResult  = session.result  || null;
+    _pmmPayload = session.payload || null;
+
+    if (_pmmResult && _pmmPayload) {
+      // Show summary
+      const s = _pmmResult;
+      const sum = document.getElementById('pmm-summary');
+      if (sum) {
+        document.getElementById('pmm-s-ag') .textContent = `${(s.Ag_mm2  ||0).toFixed(0)} mm²`;
+        document.getElementById('pmm-s-ast').textContent = `${(s.Ast_mm2 ||0).toFixed(0)} mm²`;
+        document.getElementById('pmm-s-rho').textContent = `${(s.rho_pct ||0).toFixed(2)} %`;
+        document.getElementById('pmm-s-pmax').textContent = `${(s.Pmax   ||0).toFixed(0)} kN`;
+        document.getElementById('pmm-s-pmin').textContent = `${(s.Pmin   ||0).toFixed(0)} kN`;
+        sum.classList.remove('hidden');
+      }
+      // Re-render all charts
+      const checkedLoads = _pmmLoads.filter(l => l.status);
+      const loadPts = checkedLoads.length ? checkedLoads : _pmmLoads.filter(l => l.P !== '');
+      pmmRender3D(_pmmResult, _pmmPayload, loadPts);
+      pmmRender2D(_pmmResult, 'pmx', 'P–Mx', 'Mx', _pmmPayload, loadPts);
+      pmmRender2D(_pmmResult, 'pmy', 'P–My', 'My', _pmmPayload, loadPts);
+      const Ptarget = loadPts.length ? -(+loadPts[0].P) : (_pmmResult.Pmax * 0.35);
+      pmmRenderMxMy(_pmmResult, _pmmPayload, Ptarget, loadPts);
+      pmmSetStatus(`Session loaded: ${file.name}`, 'ok');
+    } else {
+      pmmSetStatus(`Inputs and loads restored — click Generate Diagram to compute.`, 'ok');
+    }
+
+    pmmUpdateRhoInfo();
+    pmmDrawSection();
+  };
+  reader.readAsText(file);
+}
+
 function pmmExport2DCSV(chartId, momentKey) {
   if (!_pmmResult) { alert('Generate the PMM diagram first.'); return; }
 

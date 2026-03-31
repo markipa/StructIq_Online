@@ -3305,7 +3305,20 @@ body {
   gap:      16px;
   padding:  20px 24px;
 }
-#pmm-panel .panel-header { flex-shrink: 0; }
+#pmm-panel .panel-header { flex-shrink: 0; align-items: center; }
+
+.pmm-header-actions {
+  display: flex; gap: 6px; flex-shrink: 0;
+}
+.pmm-hdr-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;
+  border: 1px solid var(--bdr-sm); background: var(--bg-input);
+  color: var(--t1); cursor: pointer; white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+.pmm-hdr-btn:hover { background: var(--blue-tint); border-color: var(--blue); color: var(--blue); }
+.pmm-hdr-btn svg { flex-shrink: 0; }
 
 .pmm-layout {
   display: grid;
