@@ -2425,65 +2425,98 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
             })
             continue
 
-        # Build demands (engine sign: compression positive → negate P_kN from ETABS)
-        # Engine: Mx = x-arm (b-dir, weak axis) = ETABS M33
-        #         My = y-arm (h-dir, strong axis) = ETABS M22
-        # Display labels (Mx_kNm/My_kNm in results): Mx = M22, My = M33
-        demands = [
-            {"label": f"{r['frame']} / {r['combo']}",
-             "P":  -r["P_kN"],
-             "Mx":  r["M3_kNm"],   # M33 → engine weak-axis (x/b) slot
-             "My":  r["M2_kNm"]}   # M22 → engine strong-axis (y/h) slot
-            for r in rows
-        ]
+        try:
+            # Build demands (engine sign: compression positive → negate P_kN from ETABS)
+            # Engine: Mx = x-arm (b-dir, weak axis) = ETABS M33
+            #         My = y-arm (h-dir, strong axis) = ETABS M22
+            demands = [
+                {"label": f"{r['frame']} / {r['combo']}",
+                 "P":  -r["P_kN"],
+                 "Mx":  r["M3_kNm"],
+                 "My":  r["M2_kNm"]}
+                for r in rows
+            ]
 
-        dcr_raw = check_demands(alpha_data, Pmax_kN, Pmin_kN, demands)
+            dcr_raw = check_demands(alpha_data, Pmax_kN, Pmin_kN, demands)
 
-        # Attach frame/combo metadata
-        dcr_items = []
-        for i, dr in enumerate(dcr_raw):
-            row = rows[i]
-            dcr_items.append({
-                **dr,
-                "frame":   row["frame"],
-                "combo":   row["combo"],
-                "P_kN":    row["P_kN"],
-                "Mx_kNm":  row["M3_kNm"],   # display: Mx = M33 (matches individual check table)
-                "My_kNm":  row["M2_kNm"],   # display: My = M22
+            # Attach frame/combo metadata
+            dcr_items = []
+            for i, dr in enumerate(dcr_raw):
+                if i >= len(rows):
+                    break
+                row = rows[i]
+                # Sanitize DCR: None or NaN → None (avoids float(None) TypeError
+                # and JSON serialization failure for out-of-range demands)
+                raw_dcr = dr.get("DCR")
+                import math as _math
+                safe_dcr = None
+                if raw_dcr is not None:
+                    try:
+                        fv = float(raw_dcr)
+                        safe_dcr = None if (_math.isnan(fv) or _math.isinf(fv)) else fv
+                    except (TypeError, ValueError):
+                        safe_dcr = None
+                dr_clean = {**dr, "DCR": safe_dcr}
+                dcr_items.append({
+                    **dr_clean,
+                    "frame":   row["frame"],
+                    "combo":   row["combo"],
+                    "P_kN":    row["P_kN"],
+                    "Mx_kNm":  row["M3_kNm"],
+                    "My_kNm":  row["M2_kNm"],
+                })
+
+            # worst = item with highest valid DCR; items with DCR=None sort to 0
+            worst = max(dcr_items, key=lambda r: float(r.get("DCR") or 0)) if dcr_items else None
+            # If worst has no valid DCR (all None), treat as no data
+            if worst and worst.get("DCR") is None:
+                worst = None
+
+            n_fail   = sum(1 for r in dcr_items if r.get("status") == "FAIL")
+            n_frames = len({r["frame"] for r in rows})
+            n_bars   = 2 * nbars_b + 2 * nbars_h
+
+            results.append({
+                "section":        sec_name,
+                "b_mm":           b_mm,
+                "h_mm":           h_mm,
+                "nbars":          n_bars,
+                "rebar_size":     bar_key,
+                "_raw_rebar":     raw_bar,
+                "_raw_nb2":       sec.get("nbars_2"),
+                "_raw_nb3":       sec.get("nbars_3"),
+                "rho_pct":        round(rho_pct, 2),
+                "phi_Pn_max_kN":  round(Pmax_kN, 1),
+                "n_frames":       n_frames,
+                "n_checks":       len(dcr_items),
+                "n_fail":         n_fail,
+                "max_dcr":        round(float(worst["DCR"]), 3) if worst else None,
+                "status":         ("FAIL" if float(worst["DCR"]) > 1.0 else "PASS")
+                                  if worst else "NO DATA",
+                "worst": {
+                    "frame":    worst["frame"],
+                    "combo":    worst["combo"],
+                    "P_kN":     worst["P_kN"],
+                    "Mx_kNm":   worst["Mx_kNm"],
+                    "My_kNm":   worst["My_kNm"],
+                    "M_demand": round(float(worst.get("M_demand") or 0), 2),
+                    "M_cap":    round(float(worst.get("M_cap")    or 0), 2),
+                } if worst else None,
             })
 
-        worst = max(dcr_items, key=lambda r: float(r.get("DCR") or 0)) if dcr_items else None
-        n_fail = sum(1 for r in dcr_items if r.get("status") == "FAIL")
-        n_frames = len({r["frame"] for r in rows})
-
-        n_bars = 2 * nbars_b + 2 * nbars_h
-        results.append({
-            "section":        sec_name,
-            "b_mm":           b_mm,
-            "h_mm":           h_mm,
-            "nbars":          n_bars,
-            "rebar_size":     bar_key,
-            "_raw_rebar":     raw_bar,
-            "_raw_nb2":       sec.get("nbars_2"),
-            "_raw_nb3":       sec.get("nbars_3"),
-            "rho_pct":        round(rho_pct, 2),
-            "phi_Pn_max_kN":  round(Pmax_kN, 1),
-            "n_frames":       n_frames,
-            "n_checks":       len(dcr_items),
-            "n_fail":         n_fail,
-            "max_dcr":        round(float(worst["DCR"]), 3) if worst else None,
-            "status":         ("FAIL" if worst and float(worst["DCR"]) > 1.0 else "PASS")
-                              if worst else "NO DATA",
-            "worst": {
-                "frame":    worst["frame"],
-                "combo":    worst["combo"],
-                "P_kN":     worst["P_kN"],
-                "Mx_kNm":   worst["Mx_kNm"],
-                "My_kNm":   worst["My_kNm"],
-                "M_demand": round(float(worst.get("M_demand") or 0), 2),
-                "M_cap":    round(float(worst.get("M_cap")    or 0), 2),
-            } if worst else None,
-        })
+        except Exception as exc:
+            import traceback as _tb, datetime as _dt
+            try:
+                with open(_LOG_PATH, 'a', encoding='utf-8') as _lf:
+                    _lf.write(
+                        f"[{_dt.datetime.now().isoformat()}] [batch_check] DCR loop failed "
+                        f"sec={sec_name} n_rows={len(rows)}\n"
+                        f"  ERROR: {exc}\n"
+                        + ''.join(_tb.format_exc().splitlines(keepends=True)[:8])
+                    )
+            except Exception:
+                pass
+            results.append({"section": sec_name, "error": f"DCR evaluation failed: {exc}"})
 
     # Sort: FAIL first, then by max_dcr descending
     results.sort(key=lambda r: (
