@@ -13,6 +13,27 @@ import os
 from dataclasses import dataclass
 from typing import List, Tuple
 
+try:
+    import numpy as _np_pmm   # required by Numba JIT kernels
+except ImportError:
+    _np_pmm = None  # type: ignore[assignment]
+
+# ---------------------------------------------------------------------------
+# Optional Numba JIT acceleration — graceful no-op when not installed
+# ---------------------------------------------------------------------------
+try:
+    from numba import njit as _njit
+    _NUMBA_OK = True
+except ImportError:  # pragma: no cover
+    def _njit(*args, **kwargs):          # type: ignore[misc]
+        """No-op decorator: returns the function unchanged."""
+        def _wrap(fn):
+            return fn
+        if len(args) == 1 and callable(args[0]):
+            return args[0]
+        return _wrap
+    _NUMBA_OK = False
+
 
 # ---------------------------------------------------------------------------
 # Rebar look-up table  (#3 … #18, areas in in²)
@@ -202,30 +223,40 @@ def _outer_envelope_curve(P_raw, Mx_raw, My_raw, n_out=None,
 
     # ── Step 1: collect candidate (P, Mx, My) from all raw segments ─────────
     # At each level Pt we want the point with the largest moment magnitude.
-    # Scan every segment, interpolate where it crosses Pt, keep max |M|.
-    P_out, Mx_out, My_out = [], [], []
-    for Pt in P_levels:
-        best_M2 = -1.0
-        best_mx = best_my = 0.0
-        for j in range(n - 1):
-            p1, p2 = P_raw[j], P_raw[j + 1]
-            dp = p2 - p1
-            if abs(dp) < 1e-12:
-                continue
-            t = (Pt - p1) / dp
-            if t < -1e-9 or t > 1 + 1e-9:
-                continue
-            tc   = max(0.0, min(1.0, t))
-            cMx  = Mx_raw[j] + tc * (Mx_raw[j + 1] - Mx_raw[j])
-            cMy  = My_raw[j] + tc * (My_raw[j + 1] - My_raw[j])
-            M2   = cMx * cMx + cMy * cMy
-            if M2 > best_M2:
-                best_M2 = M2
-                best_mx = cMx
-                best_my = cMy
-        P_out.append(round(Pt,       2))
-        Mx_out.append(round(best_mx, 2))
-        My_out.append(round(best_my, 2))
+    # Use Numba JIT scan when available, pure-Python fallback otherwise.
+    if _NUMBA_OK and _np_pmm is not None:
+        _P_lev_arr  = _np_pmm.array(P_levels,  dtype=_np_pmm.float64)
+        _P_raw_arr  = _np_pmm.array(P_raw,      dtype=_np_pmm.float64)
+        _Mx_raw_arr = _np_pmm.array(Mx_raw,     dtype=_np_pmm.float64)
+        _My_raw_arr = _np_pmm.array(My_raw,     dtype=_np_pmm.float64)
+        _bx, _by = _envelope_scan_nb(_P_raw_arr, _Mx_raw_arr, _My_raw_arr, _P_lev_arr)
+        P_out  = [round(float(P_levels[k]), 2) for k in range(len(P_levels))]
+        Mx_out = [round(float(_bx[k]), 2) for k in range(len(P_levels))]
+        My_out = [round(float(_by[k]), 2) for k in range(len(P_levels))]
+    else:
+        P_out, Mx_out, My_out = [], [], []
+        for Pt in P_levels:
+            best_M2 = -1.0
+            best_mx = best_my = 0.0
+            for j in range(n - 1):
+                p1, p2 = P_raw[j], P_raw[j + 1]
+                dp = p2 - p1
+                if abs(dp) < 1e-12:
+                    continue
+                t = (Pt - p1) / dp
+                if t < -1e-9 or t > 1 + 1e-9:
+                    continue
+                tc   = max(0.0, min(1.0, t))
+                cMx  = Mx_raw[j] + tc * (Mx_raw[j + 1] - Mx_raw[j])
+                cMy  = My_raw[j] + tc * (My_raw[j + 1] - My_raw[j])
+                M2   = cMx * cMx + cMy * cMy
+                if M2 > best_M2:
+                    best_M2 = M2
+                    best_mx = cMx
+                    best_my = cMy
+            P_out.append(round(Pt,       2))
+            Mx_out.append(round(best_mx, 2))
+            My_out.append(round(best_my, 2))
 
     # ── Convex-hull smoothing on TENSION SIDE ONLY ──────────────────────
     # The ACI phi-factor transition (εt going from -εy toward -0.005) creates
@@ -433,6 +464,223 @@ def rect_bars_grid(b: float, h: float, cover: float,
 
 
 # ---------------------------------------------------------------------------
+# Numba JIT kernels — rectangular sections
+# ---------------------------------------------------------------------------
+
+@_njit(cache=True)
+def _rect_comp_block_nb(x0, y0, x1, y1, mi, y0a, comp_top):
+    """
+    Area and centroid of the part of rectangle (x0,y0)-(x1,y1) that lies on
+    the compression side of  y = mi·x + y0a.
+    comp_top=True  → compression is where y − mi·x − y0a ≥ 0 (above line).
+    comp_top=False → compression is where y − mi·x − y0a ≤ 0 (below line).
+    Returns (area, xc, yc).
+    """
+    rx = _np_pmm.empty(4, dtype=_np_pmm.float64)
+    ry = _np_pmm.empty(4, dtype=_np_pmm.float64)
+    rx[0] = x0; ry[0] = y0
+    rx[1] = x1; ry[1] = y0
+    rx[2] = x1; ry[2] = y1
+    rx[3] = x0; ry[3] = y1
+
+    sign = 1.0 if comp_top else -1.0
+
+    buf = _np_pmm.empty(12, dtype=_np_pmm.float64)   # interleaved x,y
+    n = 0
+
+    for i in range(4):
+        j = (i + 1) & 3
+        px, py = rx[i], ry[i]
+        qx, qy = rx[j], ry[j]
+        fp = sign * (py - mi * px - y0a)
+        fq = sign * (qy - mi * qx - y0a)
+
+        if fp >= 0.0:
+            buf[2 * n] = px; buf[2 * n + 1] = py; n += 1
+
+        if (fp > 0.0 and fq < 0.0) or (fp < 0.0 and fq > 0.0):
+            denom = (qy - py) - mi * (qx - px)
+            if abs(denom) > 1e-14:
+                t = (mi * px + y0a - py) / denom
+                buf[2 * n]     = px + t * (qx - px)
+                buf[2 * n + 1] = py + t * (qy - py)
+                n += 1
+
+    if n < 3:
+        return 0.0, 0.0, 0.0
+
+    area = 0.0; cx_n = 0.0; cy_n = 0.0
+    for i in range(n):
+        j = (i + 1) % n
+        ax = buf[2 * i]; ay = buf[2 * i + 1]
+        bx = buf[2 * j]; by = buf[2 * j + 1]
+        cross  = ax * by - bx * ay
+        area  += cross
+        cx_n  += (ax + bx) * cross
+        cy_n  += (ay + by) * cross
+
+    area *= 0.5
+    if area < 0.0:
+        area = -area; cx_n = -cx_n; cy_n = -cy_n
+
+    if area < 1e-14:
+        return 0.0, buf[0], buf[1]
+
+    inv = 1.0 / (6.0 * area)
+    return area, cx_n * inv, cy_n * inv
+
+
+@_njit(cache=True)
+def _sweep_c_loop_rect_nb(
+    c_arr,
+    bar_x, bar_y, bar_a,
+    cx_g, cy_g,
+    eps_y, beta1, fc083, fy, Es, Pn_max,
+    mi, cos_a, comp_top,
+    corner_x, corner_y,
+    rect_x0, rect_y0, rect_x1, rect_y1,
+    include_phi,
+):
+    """
+    JIT c-sweep for one neutral-axis angle on a rectangular section.
+    Returns (P, Mx, My, eps_t) float64 arrays of length len(c_arr).
+    Units: kips and inches (engine units); caller rounds/converts.
+
+    Output convention:
+        P_arr[i]  = phi * Pn
+        Mx_arr[i] = phi * Mny   (y-arm moments → moment about X-axis = Mx)
+        My_arr[i] = phi * Mnx   (x-arm moments → moment about Y-axis = My)
+    """
+    n_c   = c_arr.shape[0]
+    n_bar = bar_x.shape[0]
+
+    P_arr     = _np_pmm.empty(n_c, dtype=_np_pmm.float64)
+    Mx_arr    = _np_pmm.empty(n_c, dtype=_np_pmm.float64)
+    My_arr    = _np_pmm.empty(n_c, dtype=_np_pmm.float64)
+    eps_t_arr = _np_pmm.empty(n_c, dtype=_np_pmm.float64)
+
+    eps_tc = 0.005   # ACI 318 tension-controlled strain limit
+
+    for ci in range(n_c):
+        c   = c_arr[ci]
+        a   = beta1 * c
+        y0a = corner_y - a / cos_a - corner_x * mi
+        y0c = corner_y - c / cos_a - corner_x * mi
+
+        comp_A, Xc, Yc = _rect_comp_block_nb(
+            rect_x0, rect_y0, rect_x1, rect_y1, mi, y0a, comp_top,
+        )
+
+        Ps  = 0.0; Mxs = 0.0; Mys = 0.0
+        comp_A_adj = comp_A
+        eps_t      = 1.0
+
+        denom = (mi * mi + 1.0) ** 0.5
+
+        for bi in range(n_bar):
+            xi = bar_x[bi]; yi = bar_y[bi]; Asi = bar_a[bi]
+            f = yi - mi * xi - y0c
+            on_comp = (f >= 0.0) if comp_top else (f <= 0.0)
+            di      = abs(f) / denom
+
+            if on_comp:
+                eps_i = 0.003 * di / c
+                comp_A_adj -= Asi
+            else:
+                eps_i = -0.003 * di / c
+
+            if abs(eps_i) < eps_y:
+                stress_i = Es * eps_i
+            elif eps_i > 0.0:
+                stress_i = fy
+            else:
+                stress_i = -fy
+
+            Fsi  = Asi * stress_i
+            Ps  += Fsi
+            Mxs += Fsi * (xi - cx_g)
+            Mys += Fsi * (yi - cy_g)
+
+            if eps_i < eps_t:
+                eps_t = eps_i
+
+        ca  = comp_A_adj if comp_A_adj > 0.0 else 0.0
+        Fc  = fc083 * ca
+        Mcx = Fc * (Xc - cx_g)
+        Mcy = Fc * (Yc - cy_g)
+
+        Pn  = Fc + Ps
+        Mnx = Mcx + Mxs
+        Mny = Mcy + Mys
+
+        if Pn > Pn_max:
+            Pn = Pn_max
+
+        if include_phi:
+            if eps_t >= -eps_y:
+                phi = 0.65
+            elif eps_t > -eps_tc:
+                phi = 0.65 + (-eps_t - eps_y) * (0.25 / (eps_tc - eps_y))
+            else:
+                phi = 0.90
+        else:
+            phi = 1.0
+
+        P_arr[ci]     = phi * Pn
+        Mx_arr[ci]    = phi * Mny
+        My_arr[ci]    = phi * Mnx
+        eps_t_arr[ci] = eps_t
+
+    return P_arr, Mx_arr, My_arr, eps_t_arr
+
+
+@_njit(cache=True)
+def _envelope_scan_nb(P_raw, Mx_raw, My_raw, P_levels):
+    """
+    JIT inner scan for _outer_envelope_curve Step 1.
+    For each P level find the segment with maximum |M| and return its (Mx, My).
+    All inputs are 1-D float64 numpy arrays.
+    """
+    n_lev = P_levels.shape[0]
+    n_raw = P_raw.shape[0]
+    bx    = _np_pmm.zeros(n_lev, dtype=_np_pmm.float64)
+    by    = _np_pmm.zeros(n_lev, dtype=_np_pmm.float64)
+
+    for k in range(n_lev):
+        Pt      = P_levels[k]
+        best_M2 = -1.0
+        bmx = bmy = 0.0
+        for j in range(n_raw - 1):
+            p1 = P_raw[j]; p2 = P_raw[j + 1]
+            dp = p2 - p1
+            if abs(dp) < 1e-12:
+                continue
+            t = (Pt - p1) / dp
+            if t < -1e-9 or t > 1.0 + 1e-9:
+                continue
+            tc  = t if t > 0.0 else 0.0
+            if tc > 1.0: tc = 1.0
+            cMx = Mx_raw[j] + tc * (Mx_raw[j + 1] - Mx_raw[j])
+            cMy = My_raw[j] + tc * (My_raw[j + 1] - My_raw[j])
+            M2  = cMx * cMx + cMy * cMy
+            if M2 > best_M2:
+                best_M2 = M2; bmx = cMx; bmy = cMy
+        bx[k] = bmx; by[k] = bmy
+
+    return bx, by
+
+
+def _is_rect_section(coords) -> bool:
+    """True if coords is a 4-vertex axis-aligned rectangle."""
+    if len(coords) != 4:
+        return False
+    xs = [p[0] for p in coords]
+    ys = [p[1] for p in coords]
+    return (len(set(round(x, 8) for x in xs)) == 2 and
+            len(set(round(y, 8) for y in ys)) == 2)
+
+
+# ---------------------------------------------------------------------------
 # Core P-M-M engine
 # ---------------------------------------------------------------------------
 
@@ -485,6 +733,19 @@ def compute_pmm(sec: PMMSection) -> dict:
     n_a = int(360 / sec.alpha_steps)
     alpha_arr = [2 * math.pi * i / n_a for i in range(n_a)]
 
+    # ── Numba fast-path pre-computation (rectangular sections only) ──────────
+    _use_nb = _NUMBA_OK and _np_pmm is not None and _is_rect_section(coords)
+    if _use_nb:
+        _rect_x0 = min(xs); _rect_y0 = min(ys)
+        _rect_x1 = max(xs); _rect_y1 = max(ys)
+        _c_arr  = _np_pmm.array(c_list, dtype=_np_pmm.float64)
+        _bar_x  = _np_pmm.array([p[0] for p in sec.bar_positions], dtype=_np_pmm.float64)
+        _bar_y  = _np_pmm.array([p[1] for p in sec.bar_positions], dtype=_np_pmm.float64)
+        _bar_a  = _np_pmm.array(sec.bar_areas, dtype=_np_pmm.float64)
+        _cx_g, _cy_g = centroid
+        _fc083  = 0.85 * sec.fc
+        _Pn_max = 0.80 * (0.85 * sec.fc * (Ag - Ast) + sec.fy * Ast)
+
     all_P, all_Mx, all_My, all_status, all_eps = [], [], [], [], []
     alpha_data = {}   # alpha_deg → {P, Mx, My}
 
@@ -513,6 +774,35 @@ def compute_pmm(sec: PMMSection) -> dict:
         elif alpha < math.pi:          corner = coords[c_corners[0 % nc]]
         elif alpha < 3 * math.pi / 2: corner = coords[c_corners[1 % nc]]
         else:                          corner = coords[c_corners[2 % nc]]
+
+        # ── Numba fast path (rectangular sections) ───────────────────────────
+        if _use_nb:
+            _comp_top = (alpha <= math.pi / 2 or alpha > 3 * math.pi / 2)
+            _best_val = coords[0][1] - mi * coords[0][0]
+            _best_cx  = coords[0][0]; _best_cy = coords[0][1]
+            for _p in coords[1:]:
+                _v = _p[1] - mi * _p[0]
+                if (_comp_top and _v > _best_val) or (not _comp_top and _v < _best_val):
+                    _best_val = _v; _best_cx = _p[0]; _best_cy = _p[1]
+
+            _P_nb, _Mx_nb, _My_nb, _eps_nb = _sweep_c_loop_rect_nb(
+                _c_arr, _bar_x, _bar_y, _bar_a,
+                _cx_g, _cy_g,
+                eps_y, beta1, _fc083, sec.fy, sec.Es, _Pn_max,
+                mi, cos_a, _comp_top,
+                _best_cx, _best_cy,
+                _rect_x0, _rect_y0, _rect_x1, _rect_y1,
+                sec.include_phi,
+            )
+            P_list  = [round(float(v), 2) for v in _P_nb]
+            Mx_list = [round(float(v), 2) for v in _Mx_nb]
+            My_list = [round(float(v), 2) for v in _My_nb]
+            all_P.extend(P_list); all_Mx.extend(Mx_list); all_My.extend(My_list)
+            all_status.extend([]); all_eps.extend([])
+            alpha_deg = round(math.degrees(alpha_raw), 1)
+            alpha_data[alpha_deg] = {'P': P_list, 'Mx': Mx_list, 'My': My_list}
+            continue   # skip Python path
+        # ── End Numba fast path ──────────────────────────────────────────────
 
         P_list, Mx_list, My_list, st_list, ep_list = [], [], [], [], []
         run_status = True

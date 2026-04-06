@@ -4748,6 +4748,26 @@ function pmmShowSectionPicker(sections) {
   document.body.appendChild(overlay);
 }
 
+const PMM_DCR_COLORSCALE = [
+  [0.0000, '#00e5ff'], [0.1666, '#00e5ff'],
+  [0.1667, '#00dd00'], [0.3332, '#00dd00'],
+  [0.3333, '#ffff00'], [0.4999, '#ffff00'],
+  [0.5000, '#ff8c00'], [0.6665, '#ff8c00'],
+  [0.6666, '#ff007f'], [0.8332, '#ff007f'],
+  [0.8333, '#cc0000'], [1.0000, '#cc0000'],
+];
+const PMM_DCR_TICKVALS = [10, 30, 50, 70, 90, 110];
+const PMM_DCR_TICKTEXT = ['20%', '40%', '60%', '80%', '100%', '>100%'];
+function dcrToColor(dcr) {
+  const pct = (parseFloat(dcr) || 0) * 100;
+  if (pct >= 100) return '#cc0000';
+  if (pct >= 80)  return '#ff007f';
+  if (pct >= 60)  return '#ff8c00';
+  if (pct >= 40)  return '#ffff00';
+  if (pct >= 20)  return '#00dd00';
+  return '#00e5ff';
+}
+
 function pmmRender3D(data, payload, loadPts) {
   const el = document.getElementById('pmm-chart-3d');
   if (!el) return;
@@ -5102,25 +5122,6 @@ function pmmRender3D(data, payload, loadPts) {
     // cmax=120 so all 6 bands are exactly 20 units wide (equal length in legend):
     //   0-20 cyan | 20-40 lime | 40-60 yellow | 60-80 orange | 80-100 pink | 100-120 red
     // Sharp hard edges achieved by repeating stop colours at each boundary (t-ε / t).
-    const dcrColorscale = [
-      [0.0000, '#00e5ff'],  // cyan        — 0 %
-      [0.1666, '#00e5ff'],  // cyan        — 20 %  (20/120)
-      [0.1667, '#00dd00'],  // lime green  — 20 %
-      [0.3332, '#00dd00'],  // lime green  — 40 %
-      [0.3333, '#ffff00'],  // yellow      — 40 %
-      [0.4999, '#ffff00'],  // yellow      — 60 %
-      [0.5000, '#ff8c00'],  // orange      — 60 %
-      [0.6665, '#ff8c00'],  // orange      — 80 %
-      [0.6666, '#ff007f'],  // hot pink    — 80 %
-      [0.8332, '#ff007f'],  // hot pink    — 100 %
-      [0.8333, '#cc0000'],  // dark red    — 100 %
-      [1.0000, '#cc0000'],  // dark red    — >100 %
-    ];
-
-    // Tick labels at band centres (each band = 20 units wide, cmax=120)
-    const dcrTickVals = [10, 30, 50, 70, 90, 110];
-    const dcrTickText = ['20%', '40%', '60%', '80%', '100%', '>100%'];
-
     traces.push({
       type: 'scatter3d', mode: 'markers',
       x: loadPts.map(p => +p.Mx),
@@ -5135,7 +5136,7 @@ function pmmRender3D(data, payload, loadPts) {
         }),
         symbol: 'circle',
         color: loadPts.map(p => Math.min(Math.max((parseFloat(p.DCR) || 0) * 100, 0), 119)),
-        colorscale: dcrColorscale,
+        colorscale: PMM_DCR_COLORSCALE,
         cmin: 0,
         cmax: 120,
         showscale: true,
@@ -5149,8 +5150,8 @@ function pmmRender3D(data, payload, loadPts) {
           len: 0.75,
           x: 1.02,
           xanchor: 'left',
-          tickvals: dcrTickVals,
-          ticktext: dcrTickText,
+          tickvals: PMM_DCR_TICKVALS,
+          ticktext: PMM_DCR_TICKTEXT,
           tickfont: { size: 11, color: '#1e293b' },
           outlinecolor: '#94a3b8',
           outlinewidth: 1,
@@ -5331,11 +5332,7 @@ function pmmRender2D(data, chartId, title, momentKey, payload, loadPts) {
 
   // Load demand markers
   if (loadPts && loadPts.length) {
-    const pass = loadPts.filter(p => p.status === 'PASS');
-    const fail = loadPts.filter(p => p.status === 'FAIL');
-
     // Helper: biaxial capacity component on the plotted moment axis
-    const capComp = p => momentKey === 'Mx' ? p._capMx : p._capMy;
     const demComp = p => momentKey === 'Mx' ? p.Mx : p.My;
     // Build hover text showing full biaxial context
     const hoverText = p =>
@@ -5346,23 +5343,24 @@ function pmmRender2D(data, chartId, title, momentKey, payload, loadPts) {
       `M_cap: ${p.M_cap != null ? (+p.M_cap).toFixed(1) : '–'} kN·m  ` +
       `DCR: ${p.DCR != null ? (+p.DCR).toFixed(3) : '–'}`;
 
-    if (pass.length) traces.push({
+    traces.push({
       type: 'scatter', mode: 'markers',
-      x: pass.map(demComp), y: pass.map(p => -(+p.P)),
-      marker: { size: 9, color: '#16a34a', symbol: 'circle',
-                line: { color: '#fff', width: 1 } },
-      name: 'PASS',
+      x: loadPts.map(demComp), y: loadPts.map(p => -(+p.P)),
+      marker: {
+        size: 9, symbol: 'circle',
+        color: loadPts.map(p => Math.min(Math.max((parseFloat(p.DCR) || 0) * 100, 0), 119)),
+        colorscale: PMM_DCR_COLORSCALE, cmin: 0, cmax: 120, showscale: true,
+        colorbar: {
+          title: { text: 'DCR (%)', side: 'right', font: { size: 11 } },
+          thickness: 14, len: 0.75,
+          tickvals: PMM_DCR_TICKVALS, ticktext: PMM_DCR_TICKTEXT,
+          tickfont: { size: 10 },
+        },
+        line: { color: 'rgba(255,255,255,0.7)', width: 1 },
+      },
+      name: 'Loads',
       hovertemplate: `%{text}<extra></extra>`,
-      text: pass.map(hoverText),
-    });
-    if (fail.length) traces.push({
-      type: 'scatter', mode: 'markers',
-      x: fail.map(demComp), y: fail.map(p => -(+p.P)),
-      marker: { size: 10, color: '#dc2626', symbol: 'x',
-                line: { color: '#dc2626', width: 2 } },
-      name: 'FAIL',
-      hovertemplate: `%{text}<extra></extra>`,
-      text: fail.map(hoverText),
+      text: loadPts.map(hoverText),
     });
   } else {
     // Single-demand fallback (no loadPts): demand_P is in user sign (compression = negative),
@@ -5438,7 +5436,7 @@ function pmmRender2D(data, chartId, title, momentKey, payload, loadPts) {
   const layout = {
     paper_bgcolor: '#ffffff',
     plot_bgcolor:  '#f8fafc',
-    margin: { l: 56, r: 20, t: 36, b: 50 },
+    margin: { l: 56, r: 80, t: 36, b: 50 },
     xaxis: {
       title: { text: `${momentKey} (kN·m)`, font: { color: '#475569' } },
       color: '#475569', gridcolor: '#e2e8f0', zeroline: true, zerolinecolor: '#94a3b8',
@@ -5866,62 +5864,32 @@ function pmmRenderMxMy(data, payload, Ptarget, loadPts) {
         p.status = p.DCR <= 1.0 ? 'PASS' : 'FAIL';
       });
 
-      // Pass 2: draw radial projection lines using the updated geometric cap points.
-      // capX/capY already in display convention; demand line uses display (p.Mx, p.My).
-      near.forEach(p => {
-        const mx = +p.Mx, my = +p.My;   // display: Mx=M22, My=M33
-        const Md = p.M_demand != null ? +p.M_demand : 0;
-        if (Md < 1e-6 || p._capX == null) return;
-        const capMx = p._capX, capMy = p._capY;
-        const M_geo = p.M_cap;
-        const col = p.status !== 'FAIL' ? '#16a34a' : '#dc2626';
-        // Dashed line: origin → capacity boundary
-        traces.push({
-          type: 'scatter', mode: 'lines',
-          x: [0, capMx], y: [0, capMy],
-          line: { color: col, width: 1.2, dash: 'dot' },
-          showlegend: false, hoverinfo: 'skip',
-        });
-        // Solid line: origin → demand point
-        traces.push({
-          type: 'scatter', mode: 'lines',
-          x: [0, mx], y: [0, my],
-          line: { color: col, width: 2 },
-          showlegend: false, hoverinfo: 'skip',
-        });
-        // Diamond marker at capacity boundary
+      // Draw demand markers — DCR-colored, no radial projection lines
+      if (near.length) {
         traces.push({
           type: 'scatter', mode: 'markers',
-          x: [capMx], y: [capMy],
-          marker: { symbol: 'diamond', size: 7, color: col,
-                    line: { color: '#fff', width: 1 } },
-          showlegend: false,
-          hovertemplate: `M_cap (boundary): ${M_geo.toFixed(2)} kN·m<extra></extra>`,
-        });
-      });
-
-      const pass = near.filter(p => p.status !== 'FAIL');
-      const fail = near.filter(p => p.status === 'FAIL');
-      [pass, fail].forEach((pts, fi) => {
-        if (!pts.length) return;
-        const col = fi ? '#dc2626' : '#16a34a';
-        traces.push({
-          type: 'scatter', mode: 'markers+text',
-          x: pts.map(p => +p.Mx), y: pts.map(p => +p.My),
-          text: pts.map(p => p.label || ''),
-          textposition: 'top center',
-          textfont: { size: 9, color: col },
-          marker: { symbol: 'star', size: 10, color: col,
-                    line: { color: '#fff', width: 1 } },
-          name: fi ? 'FAIL' : 'PASS',
-          hovertemplate: pts.map(p => {
+          x: near.map(p => +p.Mx), y: near.map(p => +p.My),
+          marker: {
+            symbol: 'circle', size: 10,
+            color: near.map(p => Math.min(Math.max((parseFloat(p.DCR) || 0) * 100, 0), 119)),
+            colorscale: PMM_DCR_COLORSCALE, cmin: 0, cmax: 120, showscale: true,
+            colorbar: {
+              title: { text: 'DCR (%)', side: 'right', font: { size: 11 } },
+              thickness: 14, len: 0.75,
+              tickvals: PMM_DCR_TICKVALS, ticktext: PMM_DCR_TICKTEXT,
+              tickfont: { size: 10 },
+            },
+            line: { color: 'rgba(255,255,255,0.7)', width: 1 },
+          },
+          name: 'Loads',
+          hovertemplate: near.map(p => {
             const dcr = p.DCR != null ? (parseFloat(p.DCR)*100).toFixed(1)+'%' : '–';
             const md  = p.M_demand != null ? (+p.M_demand).toFixed(2) : '–';
             const mc  = p.M_cap    != null ? (+p.M_cap   ).toFixed(2) : '–';
             return `${p.label||''}<br>Mx: ${(+p.Mx).toFixed(2)} kN·m<br>My: ${(+p.My).toFixed(2)} kN·m<br>M_d: ${md} kN·m<br>M_cap: ${mc} kN·m<br>DCR: ${dcr}<extra></extra>`;
           }),
         });
-      });
+      }
     }
   }
 
@@ -5953,7 +5921,7 @@ function pmmRenderMxMy(data, payload, Ptarget, loadPts) {
   const Pdisplay = (-Ptarget).toFixed(1);
   const layout = {
     paper_bgcolor: '#ffffff', plot_bgcolor: '#f8fafc',
-    margin: { l: 64, r: 40, t: 48, b: 64 },
+    margin: { l: 64, r: 90, t: 48, b: 64 },
     title: {
       text: `Mx–My Interaction  |  P = ${Pdisplay} kN`,
       font: { size: 13, color: '#1e293b' }, x: 0.5,
