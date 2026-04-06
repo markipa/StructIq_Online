@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml"  href="/app/favicon.svg">
   <link rel="icon" type="image/x-icon"   href="/favicon.ico">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/app/styles.css?v=103" />
+  <link rel="stylesheet" href="/app/styles.css?v=104" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
 <body>
@@ -1313,11 +1313,7 @@
               </select>
             </div>
             <div id="pmm-rho-info" class="pmm-rho-info"></div>
-            <!-- Section preview -->
-            <div class="pmm-section-preview">
-              <svg id="pmm-section-svg" width="100%" viewBox="0 0 220 220"
-                   xmlns="http://www.w3.org/2000/svg"></svg>
-            </div>
+            <!-- Section preview moved to floating overlay on the 3D chart -->
           </div>
 
           <div class="pmm-group">
@@ -1447,7 +1443,14 @@
                 <button class="pmm-3d-vbtn"        data-view="top"   onclick="pmmSet3DView('top')"   title="Top — Mx·My plane">Top</button>
                 <button class="pmm-3d-vbtn"        data-view="front" onclick="pmmSet3DView('front')" title="Front — P·Mx plane">Front</button>
                 <button class="pmm-3d-vbtn"        data-view="side"  onclick="pmmSet3DView('side')"  title="Side — P·My plane">Side</button>
-                <button class="pmm-3d-vbtn" id="pmm-3d-rotate-btn"   onclick="pmmToggleRotate()"     title="Auto-rotate">▶</button>
+                <button class="pmm-3d-vbtn active" id="pmm-3d-wire-btn"    onclick="pmmToggleWireframe()" title="Toggle wireframe rings">⊞ Wire</button>
+                <button class="pmm-3d-vbtn active" id="pmm-3d-section-btn" onclick="pmmToggleSection()"   title="Toggle cross-section">⬛ Section</button>
+                <button class="pmm-3d-vbtn" id="pmm-3d-rotate-btn"        onclick="pmmToggleRotate()"     title="Auto-rotate">▶</button>
+                <button class="pmm-3d-vbtn" id="pmm-3d-loads-btn"         onclick="pmmToggleDemands()"    title="Hide / show Demand Loads panel">⊟ Loads</button>
+              </div>
+              <!-- Floating cross-section preview — top-left of 3D chart -->
+              <div id="pmm-3d-section-float" class="pmm-3d-section-float">
+                <div id="pmm-section-plot" style="width:100%;height:100%;"></div>
               </div>
             </div>
             <div id="pmm-chart-loads" class="pmm-loads-panel"></div>
@@ -1492,6 +1495,18 @@
               <button class="btn btn-ghost btn-sm" onclick="pmmBatchExportCSV()">⬇ Export CSV</button>
               <button class="btn btn-ghost btn-sm" onclick="pmmBatchOpen()">↻ Re-run</button>
             </div>
+            <!-- Sub-tabs: Section Results | Story Summary -->
+            <div id="pmm-batch-results-subtabs" class="hidden" style="display:flex;gap:0;border-bottom:1px solid var(--bdr);flex-shrink:0;padding:0 14px;background:#f8fafc">
+              <button id="brs-tab-section" onclick="pmmBrSubTab('section')"
+                style="padding:7px 16px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid var(--blue);color:var(--blue)">
+                Section Results
+              </button>
+              <button id="brs-tab-story" onclick="pmmBrSubTab('story')"
+                style="padding:7px 16px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--t2)">
+                Story Summary
+              </button>
+            </div>
+            <!-- Section Results pane -->
             <div id="pmm-batch-results-table-wrap" class="hidden" style="overflow:auto;flex:1;padding:0">
               <table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff">
                 <thead id="pmm-batch-results-thead">
@@ -1503,16 +1518,21 @@
                     <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="4" onclick="pmmBrSort(4)">φPn,max (kN) <span class="pmm-br-arrow"></span></th>
                     <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="5" onclick="pmmBrSort(5)">Frames <span class="pmm-br-arrow"></span></th>
                     <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="6" onclick="pmmBrSort(6)">Worst Combo <span class="pmm-br-arrow"></span></th>
-                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="7" onclick="pmmBrSort(7)">P (kN) <span class="pmm-br-arrow"></span></th>
-                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="8" onclick="pmmBrSort(8)">Mx (kN·m) <span class="pmm-br-arrow"></span></th>
-                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="9" onclick="pmmBrSort(9)">My (kN·m) <span class="pmm-br-arrow"></span></th>
-                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="10" onclick="pmmBrSort(10)">Max DCR <span class="pmm-br-arrow"></span></th>
-                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="11" onclick="pmmBrSort(11)">Status <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th" style="background:#f1f5f9;border:1px solid #cbd5e1">Loc</th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="8" onclick="pmmBrSort(8)">P (kN) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="9" onclick="pmmBrSort(9)">Mx (kN·m) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="10" onclick="pmmBrSort(10)">My (kN·m) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="11" onclick="pmmBrSort(11)">Max DCR <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="12" onclick="pmmBrSort(12)">Status <span class="pmm-br-arrow"></span></th>
                     <th class="pmm-batch-th" style="background:#f1f5f9;border:1px solid #cbd5e1"></th>
                   </tr>
                 </thead>
                 <tbody id="pmm-batch-results-tbody"></tbody>
               </table>
+            </div>
+            <!-- Story Summary pane -->
+            <div id="pmm-batch-results-story-pane" style="display:none;overflow:auto;flex:1;padding:0">
+              <div id="pmm-batch-results-story-wrap"></div>
             </div>
           </div>
 
@@ -2939,6 +2959,7 @@
         <button onclick="pmmBatchClose()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--t2);line-height:1">×</button>
       </div>
       <div style="overflow:auto;flex:1;padding:0 4px 8px 4px">
+        <div id="pmm-batch-story-wrap"></div>
         <table id="pmm-batch-table" style="width:100%;border-collapse:collapse;font-size:12px">
           <thead>
             <tr style="background:var(--bg2);position:sticky;top:0;z-index:1">
@@ -2965,6 +2986,6 @@
   </div>
 </div>
 
-<script src="/app/app.js?v=135"></script>
+<script src="/app/app.js?v=136"></script>
 </body>
 </html>

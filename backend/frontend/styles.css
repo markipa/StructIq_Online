@@ -3728,6 +3728,22 @@ body {
   position: absolute; top: 8px; right: 8px;
   display: flex; gap: 4px; z-index: 10;
 }
+
+/* Floating cross-section — top-left corner of the 3D chart */
+.pmm-3d-section-float {
+  position: absolute; top: 8px; left: 8px;
+  width: 240px; height: 240px;
+  background: rgba(255,255,255,0.60);
+  border: 1px solid rgba(148,163,184,0.45);
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 10;
+  overflow: hidden;
+  pointer-events: auto;   /* allow hover tooltips on bars */
+}
 .pmm-3d-vbtn {
   padding: 3px 9px; font-size: 11px; font-weight: 600; font-family: inherit;
   border-radius: 4px; cursor: pointer;
@@ -3742,7 +3758,8 @@ body {
 
 /* ── Loads side panel ───────────────────────────────────────────────────────── */
 .pmm-loads-panel {
-  width: 820px;
+  flex: 1;
+  min-width: 900px;
   flex-shrink: 0;
   display: flex; flex-direction: column; gap: 8px;
   padding: 12px; overflow: hidden;
@@ -3916,7 +3933,7 @@ body {
   border: 1px solid var(--bdr-sm); border-radius: 5px;
 }
 .pmm-loads-table {
-  min-width: 720px; width: 100%; border-collapse: collapse; font-size: 12px; color: var(--t1);
+  min-width: 860px; width: 100%; border-collapse: collapse; font-size: 12px; color: var(--t1);
   table-layout: fixed;
 }
 .pmm-loads-table thead { position: sticky; top: 0; z-index: 1; }
@@ -3930,12 +3947,46 @@ body {
   font-size: 10px; font-weight: 400; color: var(--t3);
 }
 .pmm-loads-table th:first-child { width: 26px; }   /* row number */
-.pmm-loads-table th.col-label   { width: 80px; }
+.pmm-loads-table th.col-story   { width: 44px; }
+.pmm-loads-table th.col-colid   { width: 58px; }
+.pmm-loads-table th.col-combo   { width: 86px; }
+.pmm-loads-table th.col-loc     { width: 38px; }
 .pmm-loads-table th.col-num     { width: 72px; }
 .pmm-loads-table th.col-res     { width: 72px; }   /* read-only result cols: M_d, M_cap, α */
 .pmm-loads-table th.col-dcr     { width: 64px; }
 .pmm-loads-table th.col-st      { width: 54px; }
 .pmm-loads-table th.col-del     { width: 22px; border-right: none; }
+/* Location (Top/Bot) badge pill */
+.pmm-loc-tag { display:inline-block; padding:1px 6px; border-radius:3px;
+               font-size:10px; font-weight:600; letter-spacing:.3px; }
+.pmm-loc-top { background:#1a6aff22; color:#4a9eff; }
+.pmm-loc-bot { background:#ff880022; color:#ffaa44; }
+/* Story badge */
+.pmm-story-tag { display:inline-block; padding:1px 5px; border-radius:3px;
+                 font-size:10px; font-weight:600; background:#e8f5e9; color:#2e7d32; }
+/* Story / Combo read-only cells */
+.pmm-loads-table .td-story { text-align:center; padding:3px 4px; }
+.pmm-loads-table .td-combo { text-align:left; padding:3px 6px; font-size:11px;
+                              color:var(--t2); overflow:hidden; text-overflow:ellipsis;
+                              white-space:nowrap; }
+.pmm-story-summary {
+  margin: 10px 10px 0 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+.pmm-story-summary-title {
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+}
+.pmm-story-summary table { margin-bottom: 0; }
 .pmm-loads-table td {
   padding: 0; border-right: 1px solid var(--bdr-xs);
   border-bottom: 1px solid var(--bdr-xs);
