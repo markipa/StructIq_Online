@@ -2295,6 +2295,137 @@ def pmm_etabs_batch_diag():
         raise HTTPException(500, str(e))
 
 
+def _perframe_envelope(rows: list) -> list:
+    """
+    Reduce a flat list of force rows to the 7 worst-case demands per
+    (frame, location) pair, keeping:
+        max/min P,  max/min M33,  max/min M22,  max √(M33²+M22²)
+    ~15× demand reduction on typical models.
+    """
+    import math as _m
+    buckets: dict = {}
+    for r in rows:
+        key = (r.get("frame"), r.get("location", ""))
+        P   = float(r.get("P_kN",   0))
+        M3  = float(r.get("M3_kNm", 0))
+        M2  = float(r.get("M2_kNm", 0))
+        Mv  = _m.sqrt(M3 * M3 + M2 * M2)
+        if key not in buckets:
+            buckets[key] = {
+                "maxP":  (P,  r), "minP":  (P,  r),
+                "maxM3": (M3, r), "minM3": (M3, r),
+                "maxM2": (M2, r), "minM2": (M2, r),
+                "maxMv": (Mv, r),
+            }
+        else:
+            b = buckets[key]
+            if P  > b["maxP"][0]:  b["maxP"]  = (P,  r)
+            if P  < b["minP"][0]:  b["minP"]  = (P,  r)
+            if M3 > b["maxM3"][0]: b["maxM3"] = (M3, r)
+            if M3 < b["minM3"][0]: b["minM3"] = (M3, r)
+            if M2 > b["maxM2"][0]: b["maxM2"] = (M2, r)
+            if M2 < b["minM2"][0]: b["minM2"] = (M2, r)
+            if Mv > b["maxMv"][0]: b["maxMv"] = (Mv, r)
+    seen: set = set()
+    out: list = []
+    for b in buckets.values():
+        for _, r in b.values():
+            rid = id(r)
+            if rid not in seen:
+                seen.add(rid); out.append(r)
+    return out
+
+
+def _alpha_data_boundary_dcr(alpha_data: dict, Pmax_kN: float,
+                              Pmin_kN: float, demands: list) -> list:
+    """
+    Boundary ray-intersection DCR — mirrors the frontend pmmUpdateDCRFromBoundary.
+    Replaces check_demands in the batch endpoint for accuracy on biaxial sections.
+    Returns a list of dicts with keys: DCR, M_demand, M_cap, status.
+    """
+    import math as _m
+    allP: list = []; allMx: list = []; allMy: list = []
+    for adeg in sorted(alpha_data.keys(), key=float):
+        c = alpha_data[adeg]
+        allP.extend(c["P"]); allMx.extend(c["Mx"]); allMy.extend(c["My"])
+    nAlpha = len(alpha_data)
+    nPts   = len(allP) // nAlpha if nAlpha else 1
+    gPmax  = max(allP); gPmin = min(allP)
+    N = 360
+    hcos = [_m.cos(i / N * 2 * _m.pi) for i in range(N + 1)]
+    hsin = [_m.sin(i / N * 2 * _m.pi) for i in range(N + 1)]
+
+    results = []
+    for d in demands:
+        Pd = float(d["P"]); dx = float(d["Mx"]); dy = float(d["My"])
+        Md = _m.sqrt(dx * dx + dy * dy)
+        if Md < 1e-9:
+            dcr = (Pd / Pmax_kN if Pmax_kN > 1e-9 and Pd >= 0
+                   else abs(Pd / Pmin_kN) if Pmin_kN < -1e-9 else 0.0)
+            results.append({"DCR": round(dcr, 3), "M_demand": 0.0, "M_cap": None,
+                             "status": "PASS" if dcr <= 1.0 else "FAIL"})
+            continue
+        if Pd > gPmax + 1e-6 or Pd < gPmin - 1e-6:
+            results.append({"DCR": 999.0, "M_demand": round(Md, 3),
+                             "M_cap": 0.0, "status": "FAIL"})
+            continue
+
+        raw_mx = [0.0] * nAlpha; raw_my = [0.0] * nAlpha
+        for a in range(nAlpha):
+            base = a * nPts
+            mP = allP[base:base + nPts]
+            mMx = allMx[base:base + nPts]
+            mMy = allMy[base:base + nPts]
+            if Pd > max(mP) + 1e-6:
+                continue
+            bx = by = bM = -1.0
+            for j in range(nPts - 1):
+                p1, p2 = mP[j], mP[j + 1]; dp = p2 - p1
+                if abs(dp) < 1e-12: continue
+                t = (Pd - p1) / dp
+                if t < -1e-9 or t > 1 + 1e-9: continue
+                tc = max(0.0, min(1.0, t))
+                cx2 = mMx[j] + tc * (mMx[j + 1] - mMx[j])
+                cy2 = mMy[j] + tc * (mMy[j + 1] - mMy[j])
+                M2 = cx2 * cx2 + cy2 * cy2
+                if M2 > bM: bM = M2; bx = cx2; by = cy2
+            if bM < 0:
+                bx, by = (mMx[0], mMy[0]) if Pd <= min(mP) else (0.0, 0.0)
+            raw_mx[a] = bx; raw_my[a] = by
+
+        cx_c: list = []; cy_c: list = []
+        for a in range(nAlpha):
+            mx, my = raw_mx[a], raw_my[a]
+            cx_c += [mx, mx, -mx, -mx]; cy_c += [my, -my, my, -my]
+
+        bx_h: list = []; by_h: list = []
+        for i in range(N + 1):
+            dc, ds = hcos[i], hsin[i]; bd = -1e30; bxv = byv = 0.0
+            for j in range(len(cx_c)):
+                dot = dc * cx_c[j] + ds * cy_c[j]
+                if dot > bd: bd = dot; bxv = cx_c[j]; byv = cy_c[j]
+            bx_h.append(bxv); by_h.append(byv)
+
+        best_t = float("inf")
+        for i in range(N):
+            Ax, Ay = bx_h[i], by_h[i]; Bx, By = bx_h[i + 1], by_h[i + 1]
+            dBx, dBy = Bx - Ax, By - Ay; det = dx * dBy - dy * dBx
+            if abs(det) < 1e-10: continue
+            t = (Ax * dBy - Ay * dBx) / det; s = (Ax * dy - Ay * dx) / det
+            if t > 1e-9 and -1e-9 <= s <= 1 + 1e-9 and t < best_t:
+                best_t = t
+
+        if best_t == float("inf"):
+            results.append({"DCR": 999.0, "M_demand": round(Md, 3),
+                             "M_cap": 0.0, "status": "FAIL"})
+            continue
+        dcr = 1.0 / best_t if best_t > 1e-9 else 999.0
+        results.append({"DCR": round(dcr, 3), "M_demand": round(Md, 3),
+                         "M_cap": round(best_t * Md, 3),
+                         "status": "PASS" if dcr <= 1.0 else "FAIL"})
+    return results
+
+
 @app.post("/api/pmm/etabs-batch-check")
 def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
                            current_user: dict = Depends(get_current_user)):
@@ -2426,25 +2557,29 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
             continue
 
         try:
+            # Reduce to worst-case demands per (frame, location) — ~15× speedup
+            rows_check = _perframe_envelope(rows)
+
             # Build demands (engine sign: compression positive → negate P_kN from ETABS)
             # Engine: Mx = x-arm (b-dir, weak axis) = ETABS M33
             #         My = y-arm (h-dir, strong axis) = ETABS M22
             demands = [
-                {"label": f"{r['frame']} / {r['combo']}",
+                {"label": f"{r['frame']} / {r['combo']} [{r.get('location','?')}]",
                  "P":  -r["P_kN"],
                  "Mx":  r["M3_kNm"],
                  "My":  r["M2_kNm"]}
-                for r in rows
+                for r in rows_check
             ]
 
-            dcr_raw = check_demands(alpha_data, Pmax_kN, Pmin_kN, demands)
+            # Boundary ray-intersection DCR — matches individual check and SpColumn
+            dcr_raw = _alpha_data_boundary_dcr(alpha_data, Pmax_kN, Pmin_kN, demands)
 
             # Attach frame/combo metadata
             dcr_items = []
             for i, dr in enumerate(dcr_raw):
-                if i >= len(rows):
+                if i >= len(rows_check):
                     break
-                row = rows[i]
+                row = rows_check[i]
                 # Sanitize DCR: None or NaN → None (avoids float(None) TypeError
                 # and JSON serialization failure for out-of-range demands)
                 raw_dcr = dr.get("DCR")
