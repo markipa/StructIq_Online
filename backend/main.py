@@ -2471,6 +2471,8 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
     }
 
     results = []
+    story_summary: dict = {}   # story → aggregated stats
+
     for sec in sections:
         sec_name = sec.get("prop_name") or sec.get("name", "?")
         rows = by_section.get(sec_name, [])
@@ -2594,11 +2596,13 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
                 dr_clean = {**dr, "DCR": safe_dcr}
                 dcr_items.append({
                     **dr_clean,
-                    "frame":   row["frame"],
-                    "combo":   row["combo"],
-                    "P_kN":    row["P_kN"],
-                    "Mx_kNm":  row["M3_kNm"],
-                    "My_kNm":  row["M2_kNm"],
+                    "frame":    row["frame"],
+                    "story":    row.get("story", "?"),
+                    "combo":    row["combo"],
+                    "location": row.get("location", ""),
+                    "P_kN":     row["P_kN"],
+                    "Mx_kNm":   row["M3_kNm"],
+                    "My_kNm":   row["M2_kNm"],
                 })
 
             # worst = item with highest valid DCR; items with DCR=None sort to 0
@@ -2610,6 +2614,36 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
             n_fail   = sum(1 for r in dcr_items if r.get("status") == "FAIL")
             n_frames = len({r["frame"] for r in rows})
             n_bars   = 2 * nbars_b + 2 * nbars_h
+
+            # ── Story-level aggregation ───────────────────────────────────────
+            for item in dcr_items:
+                st = item.get("story") or "?"
+                if st not in story_summary:
+                    story_summary[st] = {
+                        "story": st, "n_checks": 0, "n_pass": 0, "n_fail": 0,
+                        "max_dcr": None, "critical_section": None,
+                        "critical_frame": None, "critical_combo": None,
+                        "critical_location": None,
+                    }
+                ss = story_summary[st]
+                ss["n_checks"] += 1
+                status = item.get("status", "")
+                if status == "FAIL":
+                    ss["n_fail"] += 1
+                elif status == "PASS":
+                    ss["n_pass"] += 1
+                dcr_val = item.get("DCR")
+                if dcr_val is not None:
+                    try:
+                        dcr_f = float(dcr_val)
+                        if ss["max_dcr"] is None or dcr_f > ss["max_dcr"]:
+                            ss["max_dcr"]           = round(dcr_f, 3)
+                            ss["critical_section"]  = sec_name
+                            ss["critical_frame"]    = item.get("frame")
+                            ss["critical_combo"]    = item.get("combo")
+                            ss["critical_location"] = item.get("location")
+                    except (TypeError, ValueError):
+                        pass
 
             results.append({
                 "section":        sec_name,
@@ -2630,7 +2664,9 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
                                   if worst else "NO DATA",
                 "worst": {
                     "frame":    worst["frame"],
+                    "story":    worst.get("story", "?"),
                     "combo":    worst["combo"],
+                    "location": worst.get("location", ""),
                     "P_kN":     worst["P_kN"],
                     "Mx_kNm":   worst["Mx_kNm"],
                     "My_kNm":   worst["My_kNm"],
@@ -2653,13 +2689,19 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
                 pass
             results.append({"section": sec_name, "error": f"DCR evaluation failed: {exc}"})
 
-    # Sort: FAIL first, then by max_dcr descending
+    # Sort sections: FAIL first, then by max_dcr descending
     results.sort(key=lambda r: (
         0 if r.get("status") == "FAIL" else (1 if r.get("status") == "PASS" else 2),
         -(r.get("max_dcr") or 0),
     ))
 
-    return {"columns": results}
+    # Sort stories: FAIL first, then by max_dcr descending
+    story_list = sorted(
+        story_summary.values(),
+        key=lambda s: (0 if s["n_fail"] > 0 else 1, -(s["max_dcr"] or 0)),
+    )
+
+    return {"columns": results, "story_summary": story_list}
 
 
 # ── 2D FEM endpoints ──────────────────────────────────────────────────────────
