@@ -4338,6 +4338,13 @@ function pmmShowTab(tab) {
   const showBatch  = tab === 'batch';
   batchPanel?.classList.toggle('hidden', !showBatch);
   batchBtn?.classList.toggle('active', showBatch);
+
+  // chart-empty: only show on diagram tabs (3d/pmx/pmy/mxmy) when no result yet
+  const chartEmpty = document.getElementById('pmm-chart-empty');
+  if (chartEmpty) {
+    const isDiagramTab = ['3d','pmx','pmy','mxmy'].includes(tab);
+    chartEmpty.classList.toggle('hidden', !isDiagramTab || !!_pmmResult);
+  }
   if (showMxMy) pmmPopulateMxMyPDropdown();
   if (showMxMy && _pmmResult) {
     const checkedLoads = _pmmLoads.filter(l => l.status);
@@ -7048,6 +7055,8 @@ async function pmmBatchCheckIndividual(sectionName) {
 }
 
 // ── Run ───────────────────────────────────────────────────────────
+let _pmmBatchElapsedMs = 0;
+
 async function pmmBatchRun() {
   const note = document.getElementById('pmm-batch-note');
   const checked = [...document.querySelectorAll('.pmm-batch-cb:checked')].map(cb => cb.value);
@@ -7056,10 +7065,21 @@ async function pmmBatchRun() {
     return;
   }
   const loadType = document.querySelector('input[name="pmm-batch-type"]:checked')?.value || 'combo';
-  _pmmBatchUsedCombos = checked; // store for "→ Check" individual use
+  _pmmBatchUsedCombos = checked;
+  _geomCache = null;        // invalidate 3D geometry cache on new batch run
+  _axialEtabsCache = {};    // invalidate per-combo ETABS axial cache
+  _3dStoryFilter = 'all';   // reset story filter so new geometry populates fresh
   if (note) note.textContent = '';
 
   pmmBatchShowStep(2);
+
+  // ── Live timer ──────────────────────────────────────────────────
+  const timerEl = document.getElementById('pmm-batch-timer');
+  const t0 = performance.now();
+  if (timerEl) timerEl.textContent = '0.0s';
+  const _timerInterval = setInterval(() => {
+    if (timerEl) timerEl.textContent = ((performance.now() - t0) / 1000).toFixed(1) + 's';
+  }, 100);
 
   try {
     const res = await authFetch('/api/pmm/etabs-batch-check', {
@@ -7070,11 +7090,17 @@ async function pmmBatchRun() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
 
+    clearInterval(_timerInterval);
+    _pmmBatchElapsedMs = performance.now() - t0;
+    if (timerEl) timerEl.textContent = (_pmmBatchElapsedMs / 1000).toFixed(1) + 's';
+
     _pmmBatchResults = data;
     pmmBatchRenderResults(data);
     pmmRenderBatchResultsTab();
     pmmBatchShowStep(3);
   } catch (err) {
+    clearInterval(_timerInterval);
+    _pmmBatchElapsedMs = performance.now() - t0;
     pmmBatchShowStep(1);
     if (note) { note.textContent = `⚠ ${err.message}`; note.style.color = '#f66'; }
   }
@@ -7186,7 +7212,7 @@ function pmmBatchRenderResults(data) {
       const secEscErr = c.section.replace(/'/g, "\\'");
       return `<tr style="background:#fff1f2">
         <td class="pmm-batch-td" style="text-align:left">${c.section}</td>
-        <td class="pmm-batch-td" colspan="10" style="color:#ef4444">${c.error}</td>
+        <td class="pmm-batch-td" colspan="12" style="color:#ef4444">${c.error}</td>
         <td class="pmm-batch-td">
           <button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 8px;white-space:nowrap"
                   onclick="pmmBatchCheckIndividual('${secEscErr}')">→ Check</button>
@@ -7201,6 +7227,7 @@ function pmmBatchRenderResults(data) {
     const dcrColor = c.max_dcr > 1.0 ? '#ef4444' : c.max_dcr > 0.9 ? '#f59e0b' : '#16a34a';
     const secEsc = c.section.replace(/'/g, "\\'");
     const barInfo = c.nbars != null ? `${c.nbars}${c.rebar_size ? '-' + c.rebar_size : ''}` : '—';
+    const storyTag2 = w.story && w.story !== '?' ? `<span class="pmm-story-tag">${w.story}</span>` : (w.story || '—');
     return `<tr style="${rowBg}">
       <td class="pmm-batch-td" style="text-align:left;font-weight:600">${c.section}</td>
       <td class="pmm-batch-td">${Math.round(c.b_mm)}×${Math.round(c.h_mm)}</td>
@@ -7208,6 +7235,8 @@ function pmmBatchRenderResults(data) {
       <td class="pmm-batch-td">${(c.rho_pct || 0).toFixed(2)}</td>
       <td class="pmm-batch-td">${(c.phi_Pn_max_kN || 0).toFixed(0)}</td>
       <td class="pmm-batch-td">${c.n_frames ?? '—'}</td>
+      <td class="pmm-batch-td" style="text-align:center">${storyTag2}</td>
+      <td class="pmm-batch-td" style="font-size:11px;font-weight:600">${w.frame || '—'}</td>
       <td class="pmm-batch-td" style="font-size:10px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${w.combo||''}">${w.combo || '—'}</td>
       <td class="pmm-batch-td" style="text-align:center">${w.location ? `<span class="pmm-loc-tag pmm-loc-${w.location.toLowerCase()}">${w.location}</span>` : '—'}</td>
       <td class="pmm-batch-td">${w.P_kN != null ? w.P_kN.toFixed(1) : '—'}</td>
@@ -7239,9 +7268,13 @@ function pmmRenderBatchResultsTab() {
   // Update summary in tab toolbar
   const summEl = document.getElementById('pmm-batch-results-summary');
   if (summEl) {
+    const elapsed = _pmmBatchElapsedMs > 0
+      ? ` · <span style="color:var(--t3,#64748b)">⏱ ${(_pmmBatchElapsedMs / 1000).toFixed(1)}s</span>`
+      : '';
     summEl.innerHTML = `${cols.length} section(s) — `
       + `<span style="color:#16a34a;font-weight:700">${nPass} PASS</span>`
-      + (nFail ? ` · <span style="color:#ef4444;font-weight:700">${nFail} FAIL</span>` : '');
+      + (nFail ? ` · <span style="color:#ef4444;font-weight:700">${nFail} FAIL</span>` : '')
+      + elapsed;
   }
 
   // Show sub-tabs and populate story summary pane
@@ -7260,7 +7293,7 @@ function pmmRenderBatchResultsTab() {
       const secEscErr = c.section.replace(/'/g, "\\'");
       return `<tr style="background:#fff1f2">
         <td class="pmm-batch-td" style="text-align:left">${c.section}</td>
-        <td class="pmm-batch-td" colspan="10" style="color:#ef4444">${c.error}</td>
+        <td class="pmm-batch-td" colspan="12" style="color:#ef4444">${c.error}</td>
         <td class="pmm-batch-td">
           <button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 8px;white-space:nowrap"
                   onclick="pmmBatchCheckIndividual('${secEscErr}')">→ Check</button>
@@ -7275,6 +7308,7 @@ function pmmRenderBatchResultsTab() {
     const dcrColor = c.max_dcr > 1.0 ? '#ef4444' : c.max_dcr > 0.9 ? '#f59e0b' : '#16a34a';
     const secEsc = c.section.replace(/'/g, "\\'");
     const barInfo = c.nbars != null ? `${c.nbars}${c.rebar_size ? '-' + c.rebar_size : ''}` : '—';
+    const storyTag = w.story && w.story !== '?' ? `<span class="pmm-story-tag">${w.story}</span>` : (w.story || '—');
     return `<tr style="${rowBg}">
       <td class="pmm-batch-td" style="text-align:left;font-weight:600">${c.section}</td>
       <td class="pmm-batch-td">${Math.round(c.b_mm)}×${Math.round(c.h_mm)}</td>
@@ -7282,6 +7316,8 @@ function pmmRenderBatchResultsTab() {
       <td class="pmm-batch-td">${(c.rho_pct || 0).toFixed(2)}</td>
       <td class="pmm-batch-td">${(c.phi_Pn_max_kN || 0).toFixed(0)}</td>
       <td class="pmm-batch-td">${c.n_frames ?? '—'}</td>
+      <td class="pmm-batch-td" style="text-align:center">${storyTag}</td>
+      <td class="pmm-batch-td" style="font-size:11px;font-weight:600">${w.frame || '—'}</td>
       <td class="pmm-batch-td" style="font-size:10px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${w.combo||''}">${w.combo || '—'}</td>
       <td class="pmm-batch-td" style="text-align:center">${w.location ? `<span class="pmm-loc-tag pmm-loc-${w.location.toLowerCase()}">${w.location}</span>` : '—'}</td>
       <td class="pmm-batch-td">${w.P_kN != null ? w.P_kN.toFixed(1) : '—'}</td>
@@ -7330,18 +7366,44 @@ function pmmBrFilter() {
 }
 
 function pmmBrSubTab(tab) {
-  const sectionPane = document.getElementById('pmm-batch-results-table-wrap');
-  const storyPane   = document.getElementById('pmm-batch-results-story-pane');
-  const tabSection  = document.getElementById('brs-tab-section');
-  const tabStory    = document.getElementById('brs-tab-story');
+  const sectionPane  = document.getElementById('pmm-batch-results-table-wrap');
+  const storyPane    = document.getElementById('pmm-batch-results-story-pane');
+  const buildingPane = document.getElementById('pmm-batch-results-3d-pane');
+  const tabSection   = document.getElementById('brs-tab-section');
+  const tabStory     = document.getElementById('brs-tab-story');
+  const tabBuilding  = document.getElementById('brs-tab-3d');
   if (!sectionPane || !storyPane) return;
-  const isSection = tab === 'section';
-  sectionPane.style.display = isSection ? '' : 'none';
-  storyPane.style.display   = isSection ? 'none' : '';
-  tabSection.style.borderBottomColor = isSection ? 'var(--blue)' : 'transparent';
-  tabSection.style.color = isSection ? 'var(--blue)' : 'var(--t2)';
-  tabStory.style.borderBottomColor = isSection ? 'transparent' : 'var(--blue)';
-  tabStory.style.color = isSection ? 'var(--t2)' : 'var(--blue)';
+
+  const active = (el) => {
+    if (!el) return;
+    el.style.borderBottomColor = 'var(--blue)';
+    el.style.color = 'var(--blue)';
+  };
+  const inactive = (el) => {
+    if (!el) return;
+    el.style.borderBottomColor = 'transparent';
+    el.style.color = 'var(--t2)';
+  };
+
+  sectionPane.style.display  = tab === 'section'  ? '' : 'none';
+  storyPane.style.display    = tab === 'story'    ? '' : 'none';
+  if (buildingPane) buildingPane.style.display = tab === '3d' ? 'flex' : 'none';
+
+  inactive(tabSection); inactive(tabStory); inactive(tabBuilding);
+  if (tab === 'section') active(tabSection);
+  else if (tab === 'story') active(tabStory);
+  else if (tab === '3d') {
+    active(tabBuilding);
+    // Relayout with correct height now that the pane is visible
+    if (_geomCache) {
+      requestAnimationFrame(() => {
+        const el3d = document.getElementById('pmm-3d-building-chart');
+        if (!el3d) return;
+        const h = Math.max(el3d.getBoundingClientRect().height, 640);
+        try { Plotly.relayout('pmm-3d-building-chart', {height: h, autosize: true}); } catch(_) {}
+      });
+    }
+  }
 }
 
 function pmmBrSort(col) {
@@ -7380,114 +7442,6 @@ function pmmBrSort(col) {
   rows.forEach(r => tbody.appendChild(r));
 }
 
-// ── Batch Optimize ───────────────────────────────────────────────
-async function pmmBatchOptimize() {
-  if (!_pmmBatchUsedCombos.length) {
-    alert('Run Batch Check first to establish the load combos, then click Batch Optimize.');
-    return;
-  }
-  const btn = document.getElementById('btn-batch-optimize');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Optimizing…'; }
-
-  const loadType = document.querySelector('input[name="pmm-batch-type"]:checked')?.value || 'combo';
-
-  try {
-    const res = await authFetch('/api/pmm/etabs-batch-optimize', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        combo_names:     _pmmBatchUsedCombos,
-        load_type:       loadType,
-        sweep_bar_sizes: true,
-        target_dcr:      0.90,
-        min_rho_pct:     1.0,
-        max_rho_pct:     4.0,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Optimize failed');
-
-    _pmmBatchOptimizeResults = data.sections || [];
-    pmmBatchOptimizeRender(_pmmBatchOptimizeResults);
-  } catch (err) {
-    alert('Batch Optimize error: ' + err.message);
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '⚡ Batch Optimize'; }
-  }
-}
-
-let _pmmBatchOptimizeResults = null;
-
-function pmmBatchOptimizeRender(sections) {
-  // Show in a modal overlay
-  document.getElementById('pmm-batch-opt-modal')?.remove();
-
-  const modal = document.createElement('div');
-  modal.id = 'pmm-batch-opt-modal';
-  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,0.6);display:flex;align-items:center;justify-content:center;';
-
-  const nOk   = sections.filter(s => s.status === 'OK').length;
-  const nWarn = sections.filter(s => s.status === 'WARN').length;
-  const nFail = sections.filter(s => s.status === 'FAIL' || s.status === 'ERROR').length;
-
-  const rows = sections.map(s => {
-    const r = s.result;
-    const statusColor = s.status === 'OK' ? '#16a34a' : (s.status === 'WARN' ? '#d97706' : '#ef4444');
-    if (!r) {
-      return `<tr style="background:#fff1f2">
-        <td style="padding:7px 10px;border:1px solid #e2e8f0;font-weight:600">${s.section}</td>
-        <td style="padding:7px 10px;border:1px solid #e2e8f0;text-align:center">${Math.round(s.b_mm)}×${Math.round(s.h_mm)}</td>
-        <td colspan="5" style="padding:7px 10px;border:1px solid #e2e8f0;color:${statusColor}">${s.status}${s.error ? ' — ' + s.error : ''}</td>
-      </tr>`;
-    }
-    const dcr = r.achieved_dcr != null ? (r.achieved_dcr * 100).toFixed(1) + '%' : '–';
-    const rho = r.rho_pct != null ? r.rho_pct.toFixed(2) + '%' : '–';
-    const barInfo = r.bar_size ? `${r.bar_size} × ${r.n_total ?? '?'}` : '–';
-    const arrangement = r.nbars_b != null
-      ? `${r.nbars_b}b + ${r.nbars_h}h`
-      : '–';
-    return `<tr>
-      <td style="padding:7px 10px;border:1px solid #e2e8f0;font-weight:600">${s.section}</td>
-      <td style="padding:7px 10px;border:1px solid #e2e8f0;text-align:center">${Math.round(s.b_mm)}×${Math.round(s.h_mm)}</td>
-      <td style="padding:7px 10px;border:1px solid #e2e8f0;text-align:center">${barInfo}</td>
-      <td style="padding:7px 10px;border:1px solid #e2e8f0;text-align:center">${arrangement}</td>
-      <td style="padding:7px 10px;border:1px solid #e2e8f0;text-align:center">${rho}</td>
-      <td style="padding:7px 10px;border:1px solid #e2e8f0;text-align:center">${dcr}</td>
-      <td style="padding:7px 10px;border:1px solid #e2e8f0;text-align:center;color:${statusColor};font-weight:700">${s.status}</td>
-    </tr>`;
-  }).join('');
-
-  modal.innerHTML = `
-    <div style="background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);width:820px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden">
-      <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:12px">
-        <div style="font-size:15px;font-weight:700;flex:1">⚡ Batch Optimize Results</div>
-        <span style="color:#16a34a;font-weight:700">${nOk} OK</span>
-        ${nWarn ? `<span style="color:#d97706;font-weight:700">${nWarn} WARN</span>` : ''}
-        ${nFail ? `<span style="color:#ef4444;font-weight:700">${nFail} FAIL</span>` : ''}
-        <button onclick="document.getElementById('pmm-batch-opt-modal').remove()"
-          style="border:none;background:#f1f5f9;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:13px">✕ Close</button>
-      </div>
-      <div style="overflow:auto;flex:1;padding:0">
-        <table style="width:100%;border-collapse:collapse;font-size:12.5px">
-          <thead>
-            <tr style="background:#f8fafc;position:sticky;top:0;z-index:1">
-              <th style="padding:8px 10px;border:1px solid #e2e8f0;text-align:left">Section</th>
-              <th style="padding:8px 10px;border:1px solid #e2e8f0">b×h (mm)</th>
-              <th style="padding:8px 10px;border:1px solid #e2e8f0">Bar Size × Count</th>
-              <th style="padding:8px 10px;border:1px solid #e2e8f0">Arrangement</th>
-              <th style="padding:8px 10px;border:1px solid #e2e8f0">ρ (%)</th>
-              <th style="padding:8px 10px;border:1px solid #e2e8f0">DCR</th>
-              <th style="padding:8px 10px;border:1px solid #e2e8f0">Status</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-    </div>`;
-
-  document.body.appendChild(modal);
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-}
 
 // ── Export CSV ────────────────────────────────────────────────────
 function pmmBatchExportCSV() {
@@ -7520,6 +7474,634 @@ function pmmBatchExportCSV() {
   const a    = Object.assign(document.createElement('a'), { href: url, download: 'pmm_batch_check.csv' });
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+// ── 3D Building View ──────────────────────────────────────────────────────────
+
+let _geomCache   = null;   // cached GET /api/etabs/geometry response
+let _3dDarkBg    = false;  // false = light/white by default
+let _3dColorMode = 'dcr';  // 'dcr' | 'axial'
+let _3dStoryFilter = 'all'; // 'all' | Z-elevation string
+
+const _DCR_BANDS = [
+  {max: 0.2,        color: '#00e5ff', label: '0–20%'},
+  {max: 0.4,        color: '#00dd00', label: '20–40%'},
+  {max: 0.6,        color: '#ffff00', label: '40–60%'},
+  {max: 0.8,        color: '#ff8c00', label: '60–80%'},
+  {max: 1.0,        color: '#ff007f', label: '80–100%'},
+  {max: Infinity,   color: '#cc0000', label: '>100%'},
+];
+
+/**
+ * Build 8 vertices + 12 triangle face indices for a rectangular column prism.
+ * Centreline runs (x1,y1,z1)→(x2,y2,z2).
+ * b_m = width along ETABS local-2; h_m = depth along local-3.
+ * angleDeg = rotation of local 2-3 axes about column axis (ETABS local axes angle).
+ * Default local-2 = global X, local-3 = global Y.
+ */
+function _columnBox(x1, y1, z1, x2, y2, z2, b_m, h_m, angleDeg) {
+  const rad = (angleDeg || 0) * Math.PI / 180;
+  const ca = Math.cos(rad), sa = Math.sin(rad);
+  const hb = b_m / 2, hh = h_m / 2;
+  // Column centroid XY (midpoint — handles slightly inclined columns too)
+  const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+  // 4 corners in local frame: ±hb along local-2, ±hh along local-3
+  // Rotated to global XY: local-2 → (ca, sa), local-3 → (-sa, ca)
+  const corners = [
+    [-hb, -hh], [hb, -hh], [hb, hh], [-hb, hh]
+  ].map(([lb, lh]) => [
+    cx + lb * ca - lh * sa,
+    cy + lb * sa + lh * ca,
+  ]);
+  const xs = [...corners.map(c => c[0]), ...corners.map(c => c[0])];
+  const ys = [...corners.map(c => c[1]), ...corners.map(c => c[1])];
+  const zs = [z1, z1, z1, z1, z2, z2, z2, z2];
+  // 12 triangles covering all 6 faces
+  const fi = [0, 0, 4, 4, 0, 0, 2, 2, 0, 0, 1, 1];
+  const fj = [1, 2, 6, 7, 1, 5, 3, 7, 3, 7, 2, 6];
+  const fk = [2, 3, 5, 6, 5, 4, 7, 6, 7, 4, 6, 5];
+  return {xs, ys, zs, fi, fj, fk};
+}
+
+/** One mesh3d trace per DCR color band; all columns batched together.
+ *  frameDims: {frame_name -> {b_m, h_m}} from batch results (reliable, mm→m converted).
+ *  minColSize: fallback when dims unavailable. */
+function _buildColumnTraces(frames, frameDcr, minColSize = 0.25, frameDims = {}) {
+  const acc = _DCR_BANDS.map(() => ({x:[], y:[], z:[], i:[], j:[], k:[], text:[]}));
+  for (const f of frames) {
+    if (f.type !== 'column') continue;
+    const dcr = frameDcr[f.name] ?? 0;
+    const bi = _DCR_BANDS.findIndex(b => dcr < b.max);
+    // Prefer batch-derived dims (exact, from PMM calc) over geometry API dims
+    const dims = frameDims[f.name];
+    const bm = dims ? dims.b_m : (f.b_m > 0 ? f.b_m : minColSize);
+    const hm = dims ? dims.h_m : (f.h_m > 0 ? f.h_m : minColSize);
+    const box = _columnBox(f.x1, f.y1, f.z1, f.x2, f.y2, f.z2, bm, hm, f.angle || 0);
+    const vOff = acc[bi].x.length;
+    acc[bi].x.push(...box.xs); acc[bi].y.push(...box.ys); acc[bi].z.push(...box.zs);
+    acc[bi].i.push(...box.fi.map(v => v + vOff));
+    acc[bi].j.push(...box.fj.map(v => v + vOff));
+    acc[bi].k.push(...box.fk.map(v => v + vOff));
+    const tip = `<b>${f.name}</b><br>Section: ${f.section}<br>DCR: ${dcr.toFixed(3)}`;
+    for (let n = 0; n < 8; n++) acc[bi].text.push(tip);
+  }
+  return _DCR_BANDS.map((band, bi) => ({
+    type: 'mesh3d',
+    name: `Col ${band.label}`,
+    x: acc[bi].x, y: acc[bi].y, z: acc[bi].z,
+    i: acc[bi].i, j: acc[bi].j, k: acc[bi].k,
+    text: acc[bi].text,
+    hovertemplate: '%{text}<extra></extra>',
+    color: band.color,
+    opacity: 1.0,
+    showlegend: acc[bi].x.length > 0,
+    legendgroup: 'columns',
+  }));
+}
+
+/** Shared color ramp used by both DCR bands and the axial load colorscale. */
+const _COL_RAMP = [
+  [0.00, '#00e5ff'], [0.30, '#00dd00'], [0.50, '#ffff00'],
+  [0.75, '#ff8c00'], [1.00, '#cc0000'],
+];
+
+/**
+ * Single mesh3d trace for all columns, coloured by max absolute axial load.
+ * Uses Plotly intensity + colorscale for a continuous gradient.
+ */
+function _buildColumnTracesAxial(frames, frameAxial, minColSize, frameDims) {
+  const xs=[], ys=[], zs=[], fi=[], fj=[], fk=[], intens=[], tips=[];
+  let vOff = 0;
+  for (const f of frames) {
+    if (f.type !== 'column') continue;
+    const dims = frameDims[f.name];
+    const bm = dims ? dims.b_m : (f.b_m > 0 ? f.b_m : minColSize);
+    const hm = dims ? dims.h_m : (f.h_m > 0 ? f.h_m : minColSize);
+    const box = _columnBox(f.x1, f.y1, f.z1, f.x2, f.y2, f.z2, bm, hm, f.angle || 0);
+    if (!box) continue;
+    const axial = frameAxial[f.name] ?? 0;
+    xs.push(...box.xs); ys.push(...box.ys); zs.push(...box.zs);
+    fi.push(...box.fi.map(v => v + vOff));
+    fj.push(...box.fj.map(v => v + vOff));
+    fk.push(...box.fk.map(v => v + vOff));
+    const tip = `<b>${f.name}</b><br>Section: ${f.section}<br>P<sub>max</sub>: ${axial.toFixed(0)} kN`;
+    for (let n = 0; n < 8; n++) { intens.push(axial); tips.push(tip); }
+    vOff += 8;
+  }
+  if (!xs.length) return [];
+  const maxAxial = Math.max(...intens, 1);
+  return [{
+    type: 'mesh3d',
+    name: 'Columns — Axial',
+    x: xs, y: ys, z: zs,
+    i: fi, j: fj, k: fk,
+    intensity: intens,
+    colorscale: _COL_RAMP,
+    colorbar: {
+      title: {text: 'kN', side: 'right'},
+      thickness: 14, len: 0.65,
+      tickfont: {size: 10},
+    },
+    cmin: 0, cmax: maxAxial,
+    text: tips,
+    hovertemplate: '%{text}<extra></extra>',
+    opacity: 1.0,
+    showlegend: true,
+    legendgroup: 'columns',
+  }];
+}
+
+/**
+ * Extruded box for a beam running from (x1,y1,z1)→(x2,y2,z2).
+ * b_m = width (horizontal, perp to beam); h_m = depth (vertical).
+ * angleDeg rotates the cross-section about the beam axis.
+ */
+function _beamBox(x1, y1, z1, x2, y2, z2, b_m, h_m, angleDeg) {
+  const dx = x2-x1, dy = y2-y1, dz = z2-z1;
+  const len = Math.sqrt(dx*dx + dy*dy + dz*dz);
+  if (len < 1e-6) return null;
+  // Unit vector along beam (local axis 1)
+  const e1 = [dx/len, dy/len, dz/len];
+
+  // Default local-2 for horizontal beam: cross(e1, globalZ) → horizontal perp to beam
+  const gZ = [0, 0, 1];
+  let cwx = e1[1]*gZ[2] - e1[2]*gZ[1];
+  let cwy = e1[2]*gZ[0] - e1[0]*gZ[2];
+  let cwz = e1[0]*gZ[1] - e1[1]*gZ[0];
+  let cmag = Math.sqrt(cwx*cwx + cwy*cwy + cwz*cwz);
+
+  let e_w, e_d;
+  if (cmag < 1e-6) {
+    // Beam is vertical — use globalX as width direction
+    e_w = [1, 0, 0]; e_d = [0, 1, 0];
+  } else {
+    e_w = [cwx/cmag, cwy/cmag, cwz/cmag];
+    // depth direction: cross(e_w, e1) → approximately vertical for horizontal beams
+    e_d = [
+      e_w[1]*e1[2] - e_w[2]*e1[1],
+      e_w[2]*e1[0] - e_w[0]*e1[2],
+      e_w[0]*e1[1] - e_w[1]*e1[0],
+    ];
+  }
+
+  // Apply local axes rotation angle about beam axis
+  if (angleDeg) {
+    const rad = angleDeg * Math.PI / 180;
+    const ca = Math.cos(rad), sa = Math.sin(rad);
+    const nw = [ca*e_w[0]+sa*e_d[0], ca*e_w[1]+sa*e_d[1], ca*e_w[2]+sa*e_d[2]];
+    const nd = [-sa*e_w[0]+ca*e_d[0], -sa*e_w[1]+ca*e_d[1], -sa*e_w[2]+ca*e_d[2]];
+    e_w = nw; e_d = nd;
+  }
+
+  const hb = b_m / 2, hh = h_m / 2;
+  // 4 cross-section corners × 2 ends = 8 vertices
+  const corners = [[-hb,-hh],[hb,-hh],[hb,hh],[-hb,hh]];
+  const pts = [[x1,y1,z1],[x2,y2,z2]];
+  const xs = [], ys = [], zs = [];
+  for (const [px,py,pz] of pts) {
+    for (const [ow,od] of corners) {
+      xs.push(px + ow*e_w[0] + od*e_d[0]);
+      ys.push(py + ow*e_w[1] + od*e_d[1]);
+      zs.push(pz + ow*e_w[2] + od*e_d[2]);
+    }
+  }
+  const fi = [0,0,4,4, 0,0,2,2, 0,0,1,1];
+  const fj = [1,2,6,7, 1,5,3,7, 3,7,2,6];
+  const fk = [2,3,5,6, 5,4,7,6, 7,4,6,5];
+  return {xs, ys, zs, fi, fj, fk};
+}
+
+/** Single grey mesh3d trace — all beams extruded to actual cross-section. */
+function _buildBeamTrace(frames, minSize = 0.25, darkBg = true) {
+  const bx=[], by=[], bz=[], bi2=[], bj2=[], bk2=[], bt=[];
+  for (const f of frames) {
+    if (f.type !== 'beam') continue;
+    const bm = f.b_m > 0 ? f.b_m : minSize;
+    const hm = f.h_m > 0 ? f.h_m : minSize;
+    const box = _beamBox(f.x1, f.y1, f.z1, f.x2, f.y2, f.z2, bm, hm, f.angle || 0);
+    if (!box) continue;
+    const vOff = bx.length;
+    bx.push(...box.xs); by.push(...box.ys); bz.push(...box.zs);
+    bi2.push(...box.fi.map(v=>v+vOff));
+    bj2.push(...box.fj.map(v=>v+vOff));
+    bk2.push(...box.fk.map(v=>v+vOff));
+    const tip = `<b>${f.name}</b><br>${f.section}<br>${Math.round(bm*1000)}×${Math.round(hm*1000)} mm`;
+    for (let n=0; n<8; n++) bt.push(tip);
+  }
+  return [{
+    type: 'mesh3d',
+    x: bx, y: by, z: bz,
+    i: bi2, j: bj2, k: bk2,
+    text: bt,
+    hovertemplate: '%{text}<extra></extra>',
+    color: darkBg ? '#64748b' : '#475569', opacity: 0.75,
+    name: 'Beams', showlegend: true,
+  }];
+}
+
+/** Single mesh3d trace coloured by column cross-section area (cm²). */
+function _buildColumnTracesSize(frames, minColSize = 0.25, frameDims = {}) {
+  const sx=[], sy=[], sz=[], si=[], sj=[], sk=[], intensities=[], texts=[];
+  let maxArea = 0;
+
+  const cols = frames.filter(f => f.type === 'column').map(f => {
+    const dims = frameDims[f.name];
+    const bm = dims ? dims.b_m : (f.b_m > 0 ? f.b_m : minColSize);
+    const hm = dims ? dims.h_m : (f.h_m > 0 ? f.h_m : minColSize);
+    const area = Math.round(bm * hm * 10000); // cm²
+    maxArea = Math.max(maxArea, area);
+    return {f, bm, hm, area};
+  });
+  if (!cols.length) return [];
+
+  for (const {f, bm, hm, area} of cols) {
+    const box = _columnBox(f.x1, f.y1, f.z1, f.x2, f.y2, f.z2, bm, hm, f.angle || 0);
+    const vOff = sx.length;
+    sx.push(...box.xs); sy.push(...box.ys); sz.push(...box.zs);
+    si.push(...box.fi.map(v=>v+vOff));
+    sj.push(...box.fj.map(v=>v+vOff));
+    sk.push(...box.fk.map(v=>v+vOff));
+    const tip = `<b>${f.name}</b><br>${f.section}<br>${Math.round(bm*1000)}×${Math.round(hm*1000)} mm<br>Area: ${area} cm²`;
+    for (let n=0; n<8; n++) { intensities.push(area); texts.push(tip); }
+  }
+
+  return [{
+    type: 'mesh3d',
+    x: sx, y: sy, z: sz, i: si, j: sj, k: sk,
+    intensity: intensities,
+    colorscale: 'Blues',
+    showscale: true,
+    cmin: 0, cmax: maxArea || 1,
+    colorbar: {
+      title: {text: 'Area (cm²)', font: {size: 11}},
+      thickness: 14, len: 0.6, tickfont: {size: 10},
+    },
+    text: texts,
+    hovertemplate: '%{text}<extra></extra>',
+    name: 'Columns — Size', showlegend: true,
+  }];
+}
+
+/** Single grey mesh3d trace for all wall panels (fan triangulation). */
+function _buildWallTraces(walls) {
+  const wx = [], wy = [], wz = [], wi = [], wj = [], wk = [];
+  for (const w of walls) {
+    const pts = w.points || [];
+    if (pts.length < 3) continue;
+    const vOff = wx.length;
+    pts.forEach(([x, y, z]) => { wx.push(x); wy.push(y); wz.push(z); });
+    for (let p = 1; p < pts.length - 1; p++) {
+      wi.push(vOff); wj.push(vOff + p); wk.push(vOff + p + 1);
+    }
+  }
+  return [{
+    type: 'mesh3d',
+    x: wx, y: wy, z: wz,
+    i: wi, j: wj, k: wk,
+    color: '#94a3b8', opacity: 0.55,
+    name: 'Walls', showlegend: true,
+    hoverinfo: 'skip',
+  }];
+}
+
+/** Semi-transparent mesh3d trace for horizontal floor slabs. */
+function _buildSlabTraces(slabs) {
+  const sx = [], sy = [], sz = [], si = [], sj = [], sk = [];
+  for (const s of slabs) {
+    const pts = s.points || [];
+    if (pts.length < 3) continue;
+    const vOff = sx.length;
+    pts.forEach(([x, y, z]) => { sx.push(x); sy.push(y); sz.push(z); });
+    for (let p = 1; p < pts.length - 1; p++) {
+      si.push(vOff); sj.push(vOff + p); sk.push(vOff + p + 1);
+    }
+  }
+  return [{
+    type: 'mesh3d',
+    x: sx, y: sy, z: sz,
+    i: si, j: sj, k: sk,
+    color: '#b0c4de', opacity: 0.35,
+    name: 'Slabs', showlegend: true,
+    hoverinfo: 'skip',
+  }];
+}
+
+/** Extract sorted unique floor elevations from horizontal beam Z values. */
+function _extractStoryLevels(frames) {
+  const zSet = new Set();
+  for (const f of frames) {
+    if (f.type === 'beam') {
+      // Round to nearest mm to collapse floating-point scatter
+      const z = Math.round(((f.z1 + f.z2) / 2) * 1000) / 1000;
+      zSet.add(z);
+    }
+  }
+  return [...zSet].sort((a, b) => a - b);
+}
+
+/** Filter frames to one story: beams AT storyZ, columns whose TOP is at storyZ. */
+function _filterFramesByStory(frames, storyZ) {
+  const tol = 0.15; // 150 mm — handles typical modelling tolerance
+  return frames.filter(f => {
+    if (f.type === 'beam') {
+      return Math.abs(((f.z1 + f.z2) / 2) - storyZ) < tol;
+    } else {
+      // Column: show the column whose top lands on this floor
+      return Math.abs(f.z2 - storyZ) < tol;
+    }
+  });
+}
+
+/** Filter walls to one story: keep panels whose top corners are at storyZ. */
+function _filterWallsByStory(walls, storyZ) {
+  const tol = 0.15;
+  return walls.filter(w => {
+    const pts = w.points || [];
+    if (!pts.length) return false;
+    const maxZ = Math.max(...pts.map(p => p[2]));
+    return Math.abs(maxZ - storyZ) < tol;
+  });
+}
+
+/** Populate the story-level dropdown from geometry; preserves current selection. */
+function _populate3DStorySelect(frames) {
+  const sel = document.getElementById('pmm-3d-story');
+  if (!sel) return;
+  const levels = _extractStoryLevels(frames);
+  sel.innerHTML = '<option value="all">All Levels</option>' +
+    levels.map(z => `<option value="${z}">Z = ${z.toFixed(2)} m</option>`).join('');
+  // Restore previous selection if it still exists in the list
+  if (_3dStoryFilter !== 'all' && levels.map(String).includes(_3dStoryFilter)) {
+    sel.value = _3dStoryFilter;
+  } else {
+    _3dStoryFilter = 'all';
+    sel.value = 'all';
+  }
+}
+
+async function render3DBuilding(geometry, frameDcr, frameDims = {}, opts = {}) {
+  const el = document.getElementById('pmm-3d-building-chart');
+  if (!el) return;
+  if (typeof Plotly === 'undefined') return;
+
+  // Preserve camera before purging so view doesn't reset on mode/theme change
+  let savedCamera = null;
+  try { savedCamera = el._fullLayout?.scene?.camera; } catch(_) {}
+
+  Plotly.purge(el);
+  const chartH = Math.max(el.getBoundingClientRect().height, 640);
+
+  const colorMode  = opts.colorMode  || 'dcr';
+  const darkBg     = opts.darkBg !== false;        // default dark
+  const frameAxial = opts.frameAxial || {};
+
+  // Force the div's own CSS background — overrides app dark theme
+  el.style.background = darkBg ? '#0f172a' : '#ffffff';
+
+  // Theme colours
+  const sceneBg    = darkBg ? '#0f172a' : '#f1f5f9';
+  const paperBg    = darkBg ? '#0f172a' : '#ffffff';
+  const gridCol    = darkBg ? '#334155' : '#cbd5e1';
+  const axisFont   = darkBg ? '#94a3b8' : '#475569';
+  const titleColor = darkBg ? '#e2e8f0' : '#1e293b';
+  const lgBg       = darkBg ? 'rgba(15,23,42,0.85)' : 'rgba(255,255,255,0.9)';
+  const lgFont     = darkBg ? '#e2e8f0' : '#1e293b';
+  const lgBdr      = darkBg ? '#334155' : '#cbd5e1';
+
+  // Auto-scale column fallback size from building footprint
+  const frames = geometry.frames || [];
+  let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
+  for (const f of frames) {
+    xMin = Math.min(xMin, f.x1, f.x2); xMax = Math.max(xMax, f.x1, f.x2);
+    yMin = Math.min(yMin, f.y1, f.y2); yMax = Math.max(yMax, f.y1, f.y2);
+  }
+  const footprint  = Math.max(xMax - xMin, yMax - yMin, 1);
+  const minColSize = footprint * 0.008;
+
+  const colTraces = colorMode === 'axial'
+    ? _buildColumnTracesAxial(frames, frameAxial, minColSize, frameDims)
+    : colorMode === 'size'
+    ? _buildColumnTracesSize(frames, minColSize, frameDims)
+    : _buildColumnTraces(frames, frameDcr || {}, minColSize, frameDims);
+
+  const traces = [
+    ...colTraces,
+    ..._buildBeamTrace(frames, minColSize, darkBg),
+    ..._buildWallTraces(geometry.walls || []),
+    ..._buildSlabTraces(geometry.slabs || []),
+  ].filter(t => (t.x?.length > 0 || t.i?.length > 0));
+
+  const titleText = colorMode === 'axial' ? '3D Building — Column Axial Load'
+    : colorMode === 'size'  ? '3D Building — Column Size (cm²)'
+    : '3D Building — Column DCR';
+
+  const _axis = (lbl) => ({
+    title:       {text: lbl, font: {color: axisFont, size: 11}},
+    tickfont:    {color: axisFont, size: 10},
+    showgrid:    true,
+    gridcolor:   gridCol,
+    zerolinecolor: gridCol,
+    backgroundcolor: sceneBg,
+  });
+  const layout = {
+    scene: {
+      xaxis: _axis('X (m)'),
+      yaxis: _axis('Y (m)'),
+      zaxis: _axis('Z (m)'),
+      bgcolor: sceneBg,
+      aspectmode: 'data',
+      camera: savedCamera || {eye: {x: 1.5, y: 1.5, z: 0.8}},
+    },
+    legend: {
+      x: 0.01, y: 0.99,
+      bgcolor: lgBg, font: {color: lgFont, size: 11},
+      bordercolor: lgBdr, borderwidth: 1,
+    },
+    margin: {l: 0, r: 0, t: 36, b: 0},
+    paper_bgcolor: paperBg,
+    title: {text: titleText, font: {color: titleColor, size: 13}},
+    height: chartH,
+  };
+
+  await Plotly.newPlot(el, traces, layout, {responsive: true, displayModeBar: true});
+}
+
+async function pmmLoad3DView() {
+  const btn    = document.getElementById('btn-load-3d');
+  const status = document.getElementById('pmm-3d-status');
+  if (!_pmmBatchResults?.frame_dcr) {
+    if (status) status.textContent = 'Run a batch check first.';
+    return;
+  }
+  if (btn) btn.disabled = true;
+  if (status) status.textContent = 'Loading geometry from ETABS…';
+  try {
+    if (!_geomCache) {
+      const res = await authFetch('/api/etabs/geometry');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+      _geomCache = await res.json();
+    }
+    if (status) status.textContent = 'Rendering…';
+    // Populate selectors (in case this is a fresh batch result)
+    _populate3DAxialCombos();
+    _populate3DStorySelect(_geomCache.frames || []);
+    const cmbSel = document.getElementById('pmm-3d-axial-combo');
+    if (cmbSel) cmbSel.style.display = (_3dColorMode === 'axial') ? '' : 'none';
+    await _3dRerender();
+    const nf = (_geomCache.frames || []).length;
+    const nc = (_geomCache.frames || []).filter(f => f.type === 'column').length;
+    const nw = (_geomCache.walls || []).length;
+    if (status && _3dStoryFilter === 'all') {
+      status.textContent = `${nc} columns · ${nf - nc} beams · ${nw} walls`;
+    }
+    if (btn) btn.textContent = '↻ Refresh';
+  } catch (err) {
+    if (status) status.textContent = `Error: ${err.message}`;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+let _axialEtabsCache = {};   // combo_name -> {frame_name: P_kN} fetched from ETABS
+
+/** Returns the axial map to use for the current selector state. */
+function _get3DAxialMap() {
+  const combo = document.getElementById('pmm-3d-axial-combo')?.value || '__max__';
+  if (combo === '__max__') return _pmmBatchResults?.frame_axial || {};
+  return _axialEtabsCache[combo] || {};
+}
+
+/** Populate the axial combo dropdown from batch results. */
+function _populate3DAxialCombos() {
+  const sel = document.getElementById('pmm-3d-axial-combo');
+  if (!sel) return;
+  const combos = Object.keys(_pmmBatchResults?.frame_axial_by_combo || {}).sort();
+  // Keep the first "Max" option, rebuild the rest
+  sel.innerHTML = '<option value="__max__">Max (all combos)</option>' +
+    combos.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+/** Re-render with the new color mode; show/hide axial combo picker. */
+async function pmm3DColorModeChange() {
+  const sel    = document.getElementById('pmm-3d-color-mode');
+  const cmbSel = document.getElementById('pmm-3d-axial-combo');
+  _3dColorMode = sel?.value || 'dcr';
+  // Show combo picker only in axial mode
+  if (cmbSel) {
+    cmbSel.style.display = (_3dColorMode === 'axial') ? '' : 'none';
+    if (_3dColorMode === 'axial') _populate3DAxialCombos();
+  }
+  await _3dRerender();
+}
+
+/** Set a camera view preset: 'top', 'front', 'side', or 'reset'. */
+function pmm3DSetView(preset) {
+  const el = document.getElementById('pmm-3d-building-chart');
+  if (!el || !el._fullLayout) return;
+  const cameras = {
+    top:   { eye: {x:0,   y:0.001, z:2.5}, up: {x:0, y:1, z:0}, center: {x:0, y:0, z:0} },
+    front: { eye: {x:0,   y:-2.5,  z:0.5}, up: {x:0, y:0, z:1}, center: {x:0, y:0, z:0} },
+    side:  { eye: {x:-2.5, y:0,    z:0.5}, up: {x:0, y:0, z:1}, center: {x:0, y:0, z:0} },
+    reset: { eye: {x:1.5,  y:1.5,  z:0.8}, up: {x:0, y:0, z:1}, center: {x:0, y:0, z:0} },
+  };
+  const cam = cameras[preset];
+  if (cam) Plotly.relayout('pmm-3d-building-chart', {'scene.camera': cam});
+}
+
+/** Re-render when the axial combo selector changes — fetches from ETABS if needed. */
+async function pmm3DAxialComboChange() {
+  const combo  = document.getElementById('pmm-3d-axial-combo')?.value || '__max__';
+  const status = document.getElementById('pmm-3d-status');
+  if (combo !== '__max__' && !_axialEtabsCache[combo]) {
+    if (status) status.textContent = `Fetching axial forces for ${combo}…`;
+    try {
+      // Pass column frame names from geometry cache — avoids re-classifying in backend
+      const colFrames = (_geomCache?.frames || [])
+        .filter(f => f.type === 'column')
+        .map(f => f.name);
+      if (!colFrames.length) throw new Error('No columns in geometry cache — load 3D View first');
+      const res = await authFetch('/api/etabs/column-axial', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ combo, col_frames: colFrames }),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.detail || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      _axialEtabsCache[combo] = data.axial || {};
+      if (status) status.textContent =
+        `${Object.keys(_axialEtabsCache[combo]).length} columns · ${combo}`;
+    } catch (err) {
+      if (status) status.textContent = `Error: ${err.message}`;
+      return;
+    }
+  }
+  await _3dRerender();
+}
+
+/** Toggle dark ↔ light background — button label shows current state. */
+async function pmmToggle3DBg() {
+  _3dDarkBg = !_3dDarkBg;
+  const btn = document.getElementById('pmm-3d-bg-btn');
+  if (btn) btn.textContent = _3dDarkBg ? '🌙 Dark' : '☀ Light';
+  await _3dRerender();
+}
+
+/** Story level dropdown changed — filter frames to selected floor. */
+async function pmm3DStoryChange() {
+  const sel = document.getElementById('pmm-3d-story');
+  _3dStoryFilter = sel?.value || 'all';
+  await _3dRerender();
+}
+
+/** Central re-render helper — reads current state from globals and selects. */
+async function _3dRerender() {
+  if (!_geomCache || !_pmmBatchResults) return;
+  const status = document.getElementById('pmm-3d-status');
+  try {
+    const allFrames = _geomCache.frames || [];
+    const allWalls  = _geomCache.walls  || [];
+    const allSlabs  = _geomCache.slabs  || [];
+    let filteredFrames, filteredWalls, filteredSlabs;
+    if (_3dStoryFilter === 'all') {
+      filteredFrames = allFrames;
+      filteredWalls  = allWalls;
+      filteredSlabs  = allSlabs;
+    } else {
+      const storyZ = parseFloat(_3dStoryFilter);
+      filteredFrames = _filterFramesByStory(allFrames, storyZ);
+      filteredWalls  = _filterWallsByStory(allWalls, storyZ);
+      // Slabs: keep panels whose Z ≈ storyZ
+      filteredSlabs  = allSlabs.filter(s => {
+        const pts = s.points || [];
+        if (!pts.length) return false;
+        const avgZ = pts.reduce((a, p) => a + p[2], 0) / pts.length;
+        return Math.abs(avgZ - storyZ) < 0.15;
+      });
+    }
+    const geom = { ..._geomCache, frames: filteredFrames, walls: filteredWalls, slabs: filteredSlabs };
+    await render3DBuilding(
+      geom,
+      _pmmBatchResults.frame_dcr,
+      _pmmBatchResults.frame_dims || {},
+      { colorMode: _3dColorMode, darkBg: _3dDarkBg, frameAxial: _get3DAxialMap() }
+    );
+    if (status && _3dStoryFilter !== 'all') {
+      const nc = filteredFrames.filter(f => f.type === 'column').length;
+      const nb = filteredFrames.filter(f => f.type === 'beam').length;
+      const nw = filteredWalls.length;
+      const ns = filteredSlabs.length;
+      status.textContent = `Story Z=${parseFloat(_3dStoryFilter).toFixed(2)} m · ${nc} cols · ${nb} beams · ${nw} walls · ${ns} slabs`;
+    }
+  } catch (e) {
+    if (status) status.textContent = `Render error: ${e.message}`;
+    console.error('3D re-render failed:', e);
+  }
 }
 
 // Close modal on overlay click

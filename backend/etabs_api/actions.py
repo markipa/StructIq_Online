@@ -1,3 +1,4 @@
+import os
 from .connection import get_active_etabs
 from typing import Optional, List
 
@@ -688,26 +689,24 @@ def get_pmm_column_sections():
     if not SapModel:
         return {"error": "ETABS is not currently running."}
     try:
+        # Switch to kN·mm (code 5): dimensions come back in mm, stresses in N/mm² = MPa.
+        # This eliminates all unit-conversion guesswork regardless of model settings.
+        _KN_MM = 5
         try:
-            unit_code = SapModel.GetDatabaseUnits()
+            _sec_orig_units = SapModel.GetPresentUnits()
         except Exception:
-            try:
-                unit_code = SapModel.GetPresentUnits()
-            except Exception:
-                unit_code = 6
+            _sec_orig_units = _KN_MM
+        try:
+            SapModel.SetPresentUnits(_KN_MM)
+        except Exception:
+            pass
 
+        # With kN·mm units: lengths → mm (identity), stress → kN/mm² (× 1000 → MPa).
         def to_mm(v):
-            return _length_to_mm_local(v, unit_code)
+            return float(v)
 
         def to_mpa(v):
-            if unit_code in (1, 2):   return v * 6.89476e-3
-            if unit_code in (3, 4):   return v * 6.89476
-            if unit_code in (5, 9):   return v
-            if unit_code == 6:        return v * 1e-3
-            if unit_code == 10:       return v * 1e-6
-            if unit_code == 7:        return v * 9.80665
-            if unit_code == 8:        return v * 9.80665e-3
-            return v
+            return float(v) * 1000.0   # kN/mm² → N/mm² = MPa
 
         mat_cache = {}
 
@@ -870,10 +869,16 @@ def get_pmm_column_sections():
             })
 
         if not sections:
+            _restore_units(SapModel, _sec_orig_units)
             return {"error": "No rectangular RC column sections found in ETABS model."}
+        _restore_units(SapModel, _sec_orig_units)
         return {"status": "success", "sections": sections}
 
     except Exception as e:
+        try:
+            _restore_units(SapModel, _sec_orig_units)
+        except Exception:
+            pass
         return {"error": f"Failed to get PMM column sections: {str(e)}"}
 
 
@@ -1360,6 +1365,14 @@ def _to_kNm(moment: float, unit_code: int) -> float:
     return moment
 
 
+def _restore_units(SapModel, orig_units: int) -> None:
+    """Restore ETABS present units to their original value (best-effort, never raises)."""
+    try:
+        SapModel.SetPresentUnits(orig_units)
+    except Exception:
+        pass
+
+
 def get_etabs_combos():
     """Return all load combinations and load cases from the active ETABS model."""
     SapModel = get_active_etabs()
@@ -1383,19 +1396,33 @@ def get_etabs_frame_forces(combo_names: list, load_type: str = "combo"):
     Returns {results: [{label, P_kN, M3_kNm, M2_kNm}, ...]}
     P sign: ETABS compression = negative P; we negate so PMM receives positive compression.
     """
+    _err_log = os.path.join(os.path.dirname(os.path.abspath(__file__)), "etabs_import_err.txt")
     SapModel = get_active_etabs()
     if not SapModel:
         return {"error": "ETABS is not currently running."}
-    # Frame force results are returned in the PRESENT units, not database units
+    # Switch to kN-m (unit_code=6) so FrameForce returns values directly in kN / kN·m.
+    # Restore original units after reading regardless of success or failure.
+    _KN_M = 6
     try:
-        unit_code = SapModel.GetPresentUnits()
+        _orig_units = SapModel.GetPresentUnits()
     except Exception:
-        unit_code = 6  # assume kN-m
+        _orig_units = _KN_M
+    try:
+        SapModel.SetPresentUnits(_KN_M)
+    except Exception:
+        pass
+    unit_code = _KN_M  # values will now be in kN / kN·m — no further conversion needed
 
     try:
         # --- 1. Get selected frame objects ---
-        sel_ret = SapModel.SelectObj.GetSelected()
+        try:
+            sel_ret = SapModel.SelectObj.GetSelected()
+        except Exception as _se:
+            with open(_err_log, "w") as _f: _f.write(f"GetSelected() raised: {_se!r}\n")
+            return {"error": f"GetSelected failed: {_se}"}
         # Returns: (count, type_array, name_array, retcode)
+        with open(_err_log, "w") as _f:
+            _f.write(f"sel_ret={sel_ret!r}\n  retcode={sel_ret[-1] if sel_ret else 'N/A'}, count={sel_ret[0] if sel_ret else 'N/A'}\n")
         if not sel_ret or int(sel_ret[-1]) != 0 or sel_ret[0] == 0:
             return {"error": "No objects selected in ETABS. Please select columns first."}
 
@@ -1415,9 +1442,55 @@ def get_etabs_frame_forces(combo_names: list, load_type: str = "combo"):
             else:
                 SapModel.Results.Setup.SetComboSelectedForOutput(name, True)
 
-        # --- 3. Loop frames and extract forces ---
+        # --- 3. Build frame → story map from "Column Object Connectivity" table ---
+        # This table is shown in ETABS and directly maps UniqueName → Story.
+        # Read "Column Object Connectivity" table: tbl[2]=fields, tbl[3]=nRec, tbl[4]=data, tbl[5]=retcode
+        frame_to_story = {}
+        try:
+            tbl = SapModel.DatabaseTables.GetTableForDisplayArray(
+                "Column Object Connectivity", [], "All", 1, [], 0, []
+            )
+            if tbl and int(tbl[5]) == 0 and int(tbl[3]) > 0:
+                fields = list(tbl[2])
+                n_rec  = int(tbl[3])
+                data   = tbl[4]
+                n_flds = len(fields)
+                name_idx  = next((i for i, f in enumerate(fields) if f.lower() in ("uniquename", "unique name")), -1)
+                story_idx = next((i for i, f in enumerate(fields) if f.lower() == "story"), -1)
+                if name_idx >= 0 and story_idx >= 0:
+                    for r in range(n_rec):
+                        base = r * n_flds
+                        frame_to_story[str(data[base + name_idx])] = str(data[base + story_idx])
+        except Exception:
+            pass
+
+        # --- 4. Loop frames and extract forces ---
         results = []
         for frame_name in frame_names:
+            # ── Determine which physical end is Bottom vs Top ─────────────────
+            # ObjSta=0 corresponds to the I-end of the frame; ObjSta=max to J-end.
+            # We cannot assume I-end is always the lower node — it depends on how
+            # the column was drawn in ETABS.  Look up the Z-coordinates of both
+            # joints and let gravity decide.
+            i_is_bottom = True   # default fallback: treat I-end as bottom
+            try:
+                pts_ret = SapModel.FrameObj.GetPoints(frame_name)
+                # pts_ret = (Point1_name, Point2_name, retcode)
+                if pts_ret and int(pts_ret[-1]) == 0:
+                    pt_i_name = pts_ret[0]
+                    pt_j_name = pts_ret[1]
+                    coord_i = SapModel.PointObj.GetCoordCartesian(pt_i_name)
+                    coord_j = SapModel.PointObj.GetCoordCartesian(pt_j_name)
+                    # coord = (x, y, z, retcode)
+                    if (coord_i and int(coord_i[-1]) == 0 and
+                            coord_j and int(coord_j[-1]) == 0):
+                        z_i = float(coord_i[2])
+                        z_j = float(coord_j[2])
+                        # I-end is the bottom when its Z is less than or equal to J-end Z
+                        i_is_bottom = z_i <= z_j
+            except Exception:
+                i_is_bottom = True  # safe fallback
+
             # eItemType=0 means Object (frame by name)
             ret = SapModel.Results.FrameForce(frame_name, 0)
             # ret = (NumberResults, Obj, ObjSta, Elm, ElmSta, LoadCase,
@@ -1426,35 +1499,58 @@ def get_etabs_frame_forces(combo_names: list, load_type: str = "combo"):
                 continue
 
             n        = int(ret[0])
-            stations = ret[2]   # station positions along element
+            stations = ret[2]   # ObjSta — distance from I-end along the member
             lc_names = ret[5]   # LoadCase label per result row
             P_raw    = ret[8]   # axial force (ETABS: compression = negative)
             M2_raw   = ret[12]  # weak-axis moment
             M3_raw   = ret[13]  # strong-axis moment
 
-            # Group by load case, pick the station with maximum |P|
-            best: dict = {}
+            # Group all stations by load case, then identify the two physical ends
+            by_lc: dict = {}
             for i in range(n):
                 lc = lc_names[i]
-                if lc not in best or abs(P_raw[i]) > abs(best[lc]["P"]):
-                    best[lc] = {"P": P_raw[i], "M2": M2_raw[i], "M3": M3_raw[i]}
+                if lc not in by_lc:
+                    by_lc[lc] = []
+                by_lc[lc].append((float(stations[i]), P_raw[i], M2_raw[i], M3_raw[i]))
 
-            for lc, forces in best.items():
-                P_kN   = _to_kN(forces["P"],  unit_code)
-                M3_kNm = _to_kNm(forces["M3"], unit_code)
-                M2_kNm = _to_kNm(forces["M2"], unit_code)
-                results.append({
-                    "label":   f"{frame_name}/{lc}",
-                    "P_kN":    round(P_kN, 2),     # ETABS sign: compression = negative P
-                    "M3_kNm":  round(M3_kNm, 2),
-                    "M2_kNm":  round(M2_kNm, 2),
-                })
+            for lc, pts in by_lc.items():
+                pts.sort(key=lambda x: x[0])   # ascending station → I-end first
+                i_end_pt = pts[0]               # ObjSta = 0  →  I-end of member
+                j_end_pt = pts[-1]              # ObjSta = max →  J-end of member
+
+                if i_end_pt[0] == j_end_pt[0]:
+                    # Only one station returned — emit once as Bot
+                    locs = [("Bot", i_end_pt)]
+                elif i_is_bottom:
+                    # I-end has lower Z → I-end is physically the bottom
+                    locs = [("Bot", i_end_pt), ("Top", j_end_pt)]
+                else:
+                    # J-end has lower Z → J-end is physically the bottom
+                    locs = [("Bot", j_end_pt), ("Top", i_end_pt)]
+
+                for loc_label, (_, P_v, M2_v, M3_v) in locs:
+                    results.append({
+                        "frame":    frame_name,
+                        "story":    frame_to_story.get(frame_name, "?"),
+                        "combo":    lc,
+                        "location": loc_label,
+                        "P_kN":     round(_to_kN  (P_v,  unit_code), 2),
+                        "M3_kNm":   round(_to_kNm (M3_v, unit_code), 2),
+                        "M2_kNm":   round(_to_kNm (M2_v, unit_code), 2),
+                    })
 
         if not results:
+            _restore_units(SapModel, _orig_units)
             return {"error": "No force results returned. Ensure selected frames have results for the chosen combinations."}
 
+        _restore_units(SapModel, _orig_units)
         return {"status": "success", "results": results}
     except Exception as e:
+        _restore_units(SapModel, _orig_units)
+        try:
+            with open(_err_log, "a") as _f: _f.write(f"OUTER EXCEPTION: {e!r}\n")
+        except Exception:
+            pass
         return {"error": f"Failed to get frame forces: {str(e)}"}
 
 
@@ -1475,10 +1571,17 @@ def get_etabs_all_column_forces(sec_names: list, combo_names: list, load_type: s
         return {"error": "ETABS is not currently running."}
 
     try:
+        # Switch to kN-m so all FrameForce output is in kN / kN·m directly.
+        _KN_M2 = 6
         try:
-            unit_code = SapModel.GetPresentUnits()
+            _orig_units2 = SapModel.GetPresentUnits()
         except Exception:
-            unit_code = 6  # kN-m
+            _orig_units2 = _KN_M2
+        try:
+            SapModel.SetPresentUnits(_KN_M2)
+        except Exception:
+            pass
+        unit_code = _KN_M2
 
         sec_set = set(str(s) for s in sec_names)
 
@@ -1516,45 +1619,549 @@ def get_etabs_all_column_forces(sec_names: list, combo_names: list, load_type: s
             else:
                 SapModel.Results.Setup.SetComboSelectedForOutput(name, True)
 
-        # ── 3. Loop frames and extract forces ────────────────────────────────
+        # ── 3. Build frame → story map from "Column Object Connectivity" table ──
+        _frame_to_story_b = {}
+        try:
+            tbl2 = SapModel.DatabaseTables.GetTableForDisplayArray(
+                "Column Object Connectivity", [], "All", 1, [], 0, []
+            )
+            if tbl2 and int(tbl2[5]) == 0 and int(tbl2[3]) > 0:
+                fields2 = list(tbl2[2])
+                n_rec2  = int(tbl2[3])
+                data2   = tbl2[4]
+                nf2     = len(fields2)
+                ni2 = next((i for i, f in enumerate(fields2) if f.lower() in ("uniquename", "unique name")), -1)
+                si2 = next((i for i, f in enumerate(fields2) if f.lower() == "story"), -1)
+                if ni2 >= 0 and si2 >= 0:
+                    for r in range(n_rec2):
+                        base = r * nf2
+                        _frame_to_story_b[str(data2[base + ni2])] = str(data2[base + si2])
+        except Exception:
+            pass
+
+        # ── 4. Loop frames and extract forces ────────────────────────────────
         by_section: dict = {s: [] for s in sec_set}
 
         for frame_name, sec_name in frame_to_sec.items():
             try:
+                # Determine physical orientation via joint Z-coordinates
+                # Also derive story from top joint Z matching story elevations
+                story = "?"
+                i_is_bottom = True
+                try:
+                    pts_ret = SapModel.FrameObj.GetPoints(frame_name)
+                    if pts_ret and int(pts_ret[-1]) == 0:
+                        coord_i = SapModel.PointObj.GetCoordCartesian(pts_ret[0])
+                        coord_j = SapModel.PointObj.GetCoordCartesian(pts_ret[1])
+                        if (coord_i and int(coord_i[-1]) == 0 and
+                                coord_j and int(coord_j[-1]) == 0):
+                            zi = float(coord_i[2])
+                            zj = float(coord_j[2])
+                            i_is_bottom = zi <= zj
+                            story = _frame_to_story_b.get(frame_name, "?")
+                except Exception:
+                    i_is_bottom = True
+
                 ret = SapModel.Results.FrameForce(frame_name, 0)
                 # ret = (NumberResults, Obj, ObjSta, Elm, ElmSta, LoadCase,
                 #         StepType, StepNum, P, V2, V3, T, M2, M3, retcode)
                 if not ret or int(ret[-1]) != 0 or int(ret[0]) == 0:
                     continue
 
-                n        = int(ret[0])
-                lc_names = ret[5]
-                P_raw    = ret[8]
-                M2_raw   = ret[12]
-                M3_raw   = ret[13]
+                n         = int(ret[0])
+                stations  = ret[2]
+                lc_names  = ret[5]
+                P_raw     = ret[8]
+                M2_raw    = ret[12]
+                M3_raw    = ret[13]
 
-                # Per frame: keep worst (max |P|) station per load case
-                best: dict = {}
+                # Group by load case, then emit both Bot and Top per combo
+                by_lc: dict = {}
                 for i in range(n):
                     lc = lc_names[i]
-                    if lc not in best or abs(P_raw[i]) > abs(best[lc]["P"]):
-                        best[lc] = {"P": P_raw[i], "M2": M2_raw[i], "M3": M3_raw[i]}
+                    if lc not in by_lc:
+                        by_lc[lc] = []
+                    by_lc[lc].append((float(stations[i]), P_raw[i], M2_raw[i], M3_raw[i]))
 
-                for lc, forces in best.items():
-                    by_section[sec_name].append({
-                        "frame":  frame_name,
-                        "combo":  lc,
-                        "P_kN":   round(_to_kN  (forces["P"],  unit_code), 2),
-                        "M3_kNm": round(_to_kNm (forces["M3"], unit_code), 2),
-                        "M2_kNm": round(_to_kNm (forces["M2"], unit_code), 2),
-                    })
+                for lc, pts in by_lc.items():
+                    pts.sort(key=lambda x: x[0])   # ascending station → I-end first
+                    i_end_pt = pts[0]
+                    j_end_pt = pts[-1]
+
+                    if i_end_pt[0] == j_end_pt[0]:
+                        locs = [("Bot", i_end_pt)]
+                    elif i_is_bottom:
+                        locs = [("Bot", i_end_pt), ("Top", j_end_pt)]
+                    else:
+                        locs = [("Bot", j_end_pt), ("Top", i_end_pt)]
+
+                    for loc_label, (_, P_v, M2_v, M3_v) in locs:
+                        by_section[sec_name].append({
+                            "frame":    frame_name,
+                            "story":    story,
+                            "combo":    lc,
+                            "location": loc_label,
+                            "P_kN":     round(_to_kN  (P_v,  unit_code), 2),
+                            "M3_kNm":   round(_to_kNm (M3_v, unit_code), 2),
+                            "M2_kNm":   round(_to_kNm (M2_v, unit_code), 2),
+                        })
             except Exception:
                 continue
 
+        _restore_units(SapModel, _orig_units2)
         return {"status": "success", "sections": by_section}
 
     except Exception as e:
+        try:
+            _restore_units(SapModel, _orig_units2)
+        except Exception:
+            pass
         return {"error": f"get_etabs_all_column_forces failed: {e}"}
+
+
+def get_column_axial_for_combo(combo_name: str, col_frames: list,
+                               load_type: str = "combo"):
+    """
+    Extract axial force (kN) at station-0 (I-end) for each supplied column frame.
+
+    col_frames: list of ETABS frame names already classified as columns by the
+                frontend geometry cache — avoids re-classifying here.
+
+    Returns {"axial": {frame_name: abs_P_kN}, "combo": combo_name}
+    """
+    SapModel = get_active_etabs()
+    if not SapModel:
+        return {"error": "ETABS is not currently running."}
+    if not col_frames:
+        return {"error": "No column frames supplied."}
+
+    _KN_M = 6
+    try:
+        orig_units = SapModel.GetPresentUnits()
+    except Exception:
+        orig_units = _KN_M
+    try:
+        SapModel.SetPresentUnits(_KN_M)
+    except Exception:
+        pass
+
+    try:
+        # ── 1. Select the single combo/case for output ────────────────────────
+        SapModel.Results.Setup.DeselectAllCasesAndCombosForOutput()
+        if load_type == "case":
+            SapModel.Results.Setup.SetCaseSelectedForOutput(combo_name, True)
+        else:
+            rc = SapModel.Results.Setup.SetComboSelectedForOutput(combo_name, True)
+            if rc != 0:
+                SapModel.Results.Setup.SetCaseSelectedForOutput(combo_name, True)
+
+        # ── 2. FrameForce at station-0 (bottom end) for each column ──────────
+        # Station 0 = I-end of the element.  For gravity-loaded columns the
+        # axial force is nearly constant along the height, so station 0 gives
+        # the bottom-end (maximum compression) value in the standard ETABS
+        # orientation where the I-joint is the lower floor level.
+        axial = {}
+        for fname in col_frames:
+            try:
+                ret = SapModel.Results.FrameForce(fname, 0)
+                # ret tuple: (nResults, Obj[], ObjSta[], Elm[], ElmSta[],
+                #             LoadCase[], StepType[], StepNum[],
+                #             P[], V2[], V3[], T[], M2[], M3[], retcode)
+                if not ret or int(ret[-1]) != 0 or int(ret[0]) == 0:
+                    continue
+                n        = int(ret[0])
+                stations = [float(ret[2][k]) for k in range(n)]
+                p_vals   = [float(ret[8][k]) for k in range(n)]
+                # Sort ascending by station → index 0 = I-end (bottom)
+                pairs    = sorted(zip(stations, p_vals), key=lambda x: x[0])
+                p_bottom = pairs[0][1]   # ETABS sign: compression = negative
+                axial[fname] = round(abs(p_bottom), 1)
+            except Exception:
+                continue
+
+        return {"axial": axial, "combo": combo_name}
+
+    except Exception as e:
+        return {"error": f"get_column_axial_for_combo failed: {e}"}
+    finally:
+        try:
+            SapModel.SetPresentUnits(orig_units)
+        except Exception:
+            pass
+
+
+def get_building_geometry():
+    """
+    Return frame (column/beam) and wall geometry for the 3D building view.
+    Uses ETABS database tables for batch retrieval (fast).
+    Falls back to per-element COM calls if tables are unavailable.
+    All coordinates are in metres (kN·m unit system).
+    """
+    SapModel = get_active_etabs()
+    if not SapModel:
+        return {"error": "ETABS is not currently running."}
+
+    _KN_M = 6
+    try:
+        orig_units = SapModel.GetPresentUnits()
+    except Exception:
+        orig_units = _KN_M
+    try:
+        SapModel.SetPresentUnits(_KN_M)
+    except Exception:
+        pass
+
+    try:
+        # ── 1. Joint coordinates (batch via DB table) ────────────────────────
+        coord_map = {}   # joint_name -> (x, y, z) in metres
+
+        try:
+            pt_tbl = SapModel.DatabaseTables.GetTableForDisplayArray(
+                "Point Object Coordinates", [], "All", 1, [], 0, []
+            )
+            if pt_tbl and int(pt_tbl[5]) == 0 and int(pt_tbl[3]) > 0:
+                fields  = list(pt_tbl[2])
+                n_rec   = int(pt_tbl[3])
+                data    = pt_tbl[4]
+                nf      = len(fields)
+                ni  = next((i for i, f in enumerate(fields) if f.lower() in ("point","uniquename","unique name","joint")), -1)
+                xi  = next((i for i, f in enumerate(fields) if f.lower() in ("globalx","x")), -1)
+                yi  = next((i for i, f in enumerate(fields) if f.lower() in ("globaly","y")), -1)
+                zi  = next((i for i, f in enumerate(fields) if f.lower() in ("globalz","z")), -1)
+                if ni >= 0 and xi >= 0 and yi >= 0 and zi >= 0:
+                    for r in range(n_rec):
+                        b = r * nf
+                        try:
+                            coord_map[str(data[b + ni])] = (
+                                float(data[b + xi]),
+                                float(data[b + yi]),
+                                float(data[b + zi]),
+                            )
+                        except (ValueError, TypeError):
+                            pass
+        except Exception:
+            pass   # will fill lazily below
+
+        def _get_coord(jname):
+            if jname in coord_map:
+                return coord_map[jname]
+            try:
+                cr = SapModel.PointObj.GetCoordCartesian(jname)
+                if cr and int(cr[-1]) == 0:
+                    coord_map[jname] = (float(cr[0]), float(cr[1]), float(cr[2]))
+                    return coord_map[jname]
+            except Exception:
+                pass
+            return (0.0, 0.0, 0.0)
+
+        # ── 2. Frame connectivity ────────────────────────────────────────────
+        frame_joints = {}   # frame_name -> (joint_i, joint_j)
+        try:
+            fc_tbl = SapModel.DatabaseTables.GetTableForDisplayArray(
+                "Frame Object Connectivity", [], "All", 1, [], 0, []
+            )
+            if fc_tbl and int(fc_tbl[5]) == 0 and int(fc_tbl[3]) > 0:
+                flds = list(fc_tbl[2])
+                n_r  = int(fc_tbl[3])
+                dat  = fc_tbl[4]
+                nf2  = len(flds)
+                fi_n = next((i for i, f in enumerate(flds) if f.lower() in ("frame","uniquename","unique name")), -1)
+                ji_n = next((i for i, f in enumerate(flds) if f.lower() in ("jointi","pointi","jpointi")), -1)
+                jj_n = next((i for i, f in enumerate(flds) if f.lower() in ("jointj","pointj","jpointj")), -1)
+                if fi_n >= 0 and ji_n >= 0 and jj_n >= 0:
+                    for r in range(n_r):
+                        b = r * nf2
+                        frame_joints[str(dat[b + fi_n])] = (
+                            str(dat[b + ji_n]),
+                            str(dat[b + jj_n]),
+                        )
+        except Exception:
+            pass
+
+        # Fallback: per-frame GetPoints
+        if not frame_joints:
+            try:
+                fr = SapModel.FrameObj.GetNameList()
+                if fr and int(fr[-1]) == 0:
+                    names_arr = None
+                    for item in fr[:-1]:
+                        if hasattr(item, '__iter__') and not isinstance(item, str):
+                            names_arr = list(item)
+                            break
+                    for fname in (names_arr or []):
+                        try:
+                            pts = SapModel.FrameObj.GetPoints(fname)
+                            if pts and int(pts[-1]) == 0:
+                                frame_joints[fname] = (str(pts[0]), str(pts[1]))
+                        except Exception:
+                            continue
+            except Exception:
+                pass
+
+        # ── 3. Frame section assignment ──────────────────────────────────────
+        frame_section = {}   # frame_name -> section_name
+        try:
+            fs_tbl = SapModel.DatabaseTables.GetTableForDisplayArray(
+                "Frame Assignments - Sections", [], "All", 1, [], 0, []
+            )
+            if fs_tbl and int(fs_tbl[5]) == 0 and int(fs_tbl[3]) > 0:
+                flds3 = list(fs_tbl[2])
+                n_r3  = int(fs_tbl[3])
+                dat3  = fs_tbl[4]
+                nf3   = len(flds3)
+                fi3 = next((i for i, f in enumerate(flds3) if f.lower() in ("frame","uniquename","unique name")), -1)
+                si3 = next((i for i, f in enumerate(flds3) if f.lower() in ("analysissection","section","sectionname")), -1)
+                if fi3 >= 0 and si3 >= 0:
+                    for r in range(n_r3):
+                        b = r * nf3
+                        frame_section[str(dat3[b + fi3])] = str(dat3[b + si3])
+        except Exception:
+            pass
+
+        # Fallback: per-frame GetSection
+        if not frame_section:
+            for fname in frame_joints:
+                try:
+                    sr = SapModel.FrameObj.GetSection(fname)
+                    if sr and int(sr[-1]) == 0 and sr[0]:
+                        frame_section[fname] = str(sr[0])
+                except Exception:
+                    continue
+
+        # ── 4. Section dimensions ─────────────────────────────────────────────
+        import sys as _sys_dbg, os as _os_dbg
+        _log_p = _os_dbg.path.join(
+            _os_dbg.path.dirname(_sys_dbg.executable) if getattr(_sys_dbg, 'frozen', False)
+            else _os_dbg.path.dirname(_os_dbg.path.abspath(__file__)),
+            'structiq.log')
+        def _dbg(m):
+            try:
+                with open(_log_p, 'a', encoding='utf-8') as _f: _f.write(m + '\n')
+            except Exception: pass
+
+        try:
+            db_unit = SapModel.GetDatabaseUnits()
+            _dbg(f"[geom] GetDatabaseUnits={db_unit}  GetPresentUnits={SapModel.GetPresentUnits()}")
+        except Exception:
+            db_unit = 6
+            _dbg("[geom] GetDatabaseUnits FAILED — defaulting to 6")
+
+        def _to_m(val):
+            """Convert a length from ETABS database units to metres."""
+            # unit codes where 1 unit = 1 mm: 5(kN_mm),8(kgf_mm),11(N_mm),14(Ton_mm)
+            if db_unit in (5, 8, 11, 14):   return val / 1000.0
+            # unit codes where 1 unit = 1 cm: 6(kN_cm),9(kgf_cm),12(N_cm),15(Ton_cm)
+            if db_unit in (6, 9, 12, 15):   return val / 100.0
+            # unit codes where 1 unit = 1 m: 7(kN_m),10(kgf_m),13(N_m),16(Ton_m)
+            if db_unit in (7, 10, 13, 16):  return val
+            # unit codes in inches: 1(lb_in),3(kip_in)
+            if db_unit in (1, 3):           return val * 0.0254
+            # unit codes in feet: 2(lb_ft),4(kip_ft)
+            if db_unit in (2, 4):           return val * 0.3048
+            return val   # unknown — pass through
+
+        sec_dims = {}   # section_name -> (b_m, h_m) in metres
+
+        # Primary: database table for ALL section types (fast, reliable)
+        _dbg(f"[geom] unique sections to resolve: {list(set(frame_section.values()))}")
+        _sec_tbl_names = [
+            "Frame Section Property Definitions 01 - General",
+            "Frame Section Property Definitions",
+            "Frame Section Properties 01 - General",
+        ]
+        for _tbl in _sec_tbl_names:
+            try:
+                sp_tbl = SapModel.DatabaseTables.GetTableForDisplayArray(
+                    _tbl, [], "All", 1, [], 0, []
+                )
+                if sp_tbl and int(sp_tbl[5]) == 0 and int(sp_tbl[3]) > 0:
+                    sp_flds = list(sp_tbl[2])
+                    sp_n    = int(sp_tbl[3])
+                    sp_dat  = sp_tbl[4]
+                    sp_nf   = len(sp_flds)
+                    _dbg(f"[geom] table '{_tbl}' found — fields={sp_flds}")
+                    sp_ni = next((i for i, f in enumerate(sp_flds)
+                                  if f.lower() in ("section","sectionname","uniquename","name","unique name")), -1)
+                    sp_t3 = next((i for i, f in enumerate(sp_flds)
+                                  if f.lower() in ("t3","depth","d","t3 (depth)","t3depth")), -1)
+                    sp_t2 = next((i for i, f in enumerate(sp_flds)
+                                  if f.lower() in ("t2","width","b","t2 (width)","t2width")), -1)
+                    _dbg(f"[geom] name_idx={sp_ni} t3_idx={sp_t3} t2_idx={sp_t2}")
+                    if sp_ni >= 0 and sp_t3 >= 0 and sp_t2 >= 0:
+                        for r in range(sp_n):
+                            b2 = r * sp_nf
+                            try:
+                                sn  = str(sp_dat[b2 + sp_ni])
+                                t3v = float(sp_dat[b2 + sp_t3])
+                                t2v = float(sp_dat[b2 + sp_t2])
+                                sec_dims[sn] = (t2v, t3v)  # (b_m=T2, h_m=T3) — already in metres
+                            except (ValueError, TypeError):
+                                pass
+                    _dbg(f"[geom] sec_dims after table: {dict(sec_dims)}")
+                    if sec_dims:
+                        break   # got data from this table
+            except Exception as _et:
+                _dbg(f"[geom] table '{_tbl}' exception: {_et}")
+                continue
+
+        # Fallback: PropFrame.GetRectangle per unique section
+        # Return tuple: (FileName, MatProp, T3, T2, Color, Notes, GUID, retcode)
+        # rect[2]=T3 (depth/h), rect[3]=T2 (width/b).
+        # SetPresentUnits was already called above — values already in metres,
+        # no further conversion needed (same as coordinate values).
+        missing = [s for s in set(frame_section.values()) if s not in sec_dims]
+        _dbg(f"[geom] missing after table path: {missing}")
+        for sname in missing:
+            try:
+                rect = SapModel.PropFrame.GetRectangle(sname)
+                _dbg(f"[geom] GetRectangle({sname!r}) raw={[str(v) for v in rect]}")
+                if rect and int(rect[-1]) == 0:
+                    sec_dims[sname] = (float(rect[3]), float(rect[2]))  # (b_m=T2, h_m=T3)
+                else:
+                    sec_dims[sname] = (0.0, 0.0)
+            except Exception as _ex:
+                _dbg(f"[geom] GetRectangle({sname!r}) EXCEPTION: {_ex}")
+                sec_dims[sname] = (0.0, 0.0)
+        _dbg(f"[geom] final sec_dims={dict(sec_dims)}")
+
+        # ── 4b. Local axis angles (batch via DB table) ───────────────────────
+        # angle = rotation (deg) of local 2-3 plane about local 1 (length axis)
+        # For a vertical column: local-2 default = global X; angle rotates CCW
+        frame_angle = {}   # frame_name -> angle_deg
+        try:
+            la_tbl = SapModel.DatabaseTables.GetTableForDisplayArray(
+                "Frame Local Axes", [], "All", 1, [], 0, []
+            )
+            if la_tbl and int(la_tbl[5]) == 0 and int(la_tbl[3]) > 0:
+                la_flds = list(la_tbl[2])
+                la_n    = int(la_tbl[3])
+                la_dat  = la_tbl[4]
+                la_nf   = len(la_flds)
+                la_fi = next((i for i, f in enumerate(la_flds) if f.lower() in ("frame","uniquename","unique name")), -1)
+                la_ai = next((i for i, f in enumerate(la_flds) if f.lower() in ("angle","axisangle","localangle","ang")), -1)
+                if la_fi >= 0 and la_ai >= 0:
+                    for r in range(la_n):
+                        b2 = r * la_nf
+                        try:
+                            frame_angle[str(la_dat[b2 + la_fi])] = float(la_dat[b2 + la_ai])
+                        except (ValueError, TypeError):
+                            pass
+        except Exception:
+            pass   # fallback: query per-element below if angle missing
+
+        # ── 5. Build frame list with column/beam classification ──────────────
+        frames = []
+        for fname, (ji, jj) in frame_joints.items():
+            x1, y1, z1 = _get_coord(ji)
+            x2, y2, z2 = _get_coord(jj)
+            # Ensure bottom→top ordering for columns
+            if z1 > z2:
+                x1, y1, z1, x2, y2, z2 = x2, y2, z2, x1, y1, z1
+            dz = abs(z2 - z1)
+            dh = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
+            is_col = dz > dh
+
+            sec_name = frame_section.get(fname, "")
+            b_m, h_m = sec_dims.get(sec_name, (0.0, 0.0))
+
+            # Per-element angle fallback if not in table
+            angle = frame_angle.get(fname)
+            if angle is None and is_col:
+                try:
+                    la = SapModel.FrameObj.GetLocalAxes(fname)
+                    angle = float(la[0]) if la and int(la[-1]) == 0 else 0.0
+                except Exception:
+                    angle = 0.0
+            if angle is None:
+                angle = 0.0
+
+            frames.append({
+                "name":    fname,
+                "section": sec_name,
+                "type":    "column" if is_col else "beam",
+                "x1": round(x1, 4), "y1": round(y1, 4), "z1": round(z1, 4),
+                "x2": round(x2, 4), "y2": round(y2, 4), "z2": round(z2, 4),
+                "b_m":   round(b_m, 4),
+                "h_m":   round(h_m, 4),
+                "angle": round(float(angle), 2),
+            })
+
+        # ── 6. Area (wall / slab) geometry ──────────────────────────────────
+        # Classify: z_range < 0.3 m → slab (horizontal), else → wall (vertical)
+        walls = []
+        slabs = []
+
+        def _classify_area(aname, pts):
+            if len(pts) < 3:
+                return
+            zs = [p[2] for p in pts]
+            if (max(zs) - min(zs)) < 0.3:
+                slabs.append({"name": aname, "points": pts})
+            else:
+                walls.append({"name": aname, "points": pts})
+
+        try:
+            ao_tbl = SapModel.DatabaseTables.GetTableForDisplayArray(
+                "Area Object Connectivity", [], "All", 1, [], 0, []
+            )
+            if ao_tbl and int(ao_tbl[5]) == 0 and int(ao_tbl[3]) > 0:
+                flds4 = list(ao_tbl[2])
+                n_r4  = int(ao_tbl[3])
+                dat4  = ao_tbl[4]
+                nf4   = len(flds4)
+                ai4 = next((i for i, f in enumerate(flds4) if f.lower() in ("area","uniquename","unique name")), -1)
+                jcols = [(i, f) for i, f in enumerate(flds4)
+                         if f.lower().startswith(("joint","point")) and f[-1].isdigit()]
+                jcols.sort(key=lambda t: int(''.join(c for c in t[1] if c.isdigit()) or '0'))
+                if ai4 >= 0 and jcols:
+                    for r in range(n_r4):
+                        b = r * nf4
+                        aname = str(dat4[b + ai4])
+                        pts = []
+                        for (ci, _) in jcols:
+                            jn = str(dat4[b + ci]).strip()
+                            if jn:
+                                cx, cy, cz = _get_coord(jn)
+                                pts.append([round(cx, 4), round(cy, 4), round(cz, 4)])
+                        _classify_area(aname, pts)
+        except Exception:
+            pass
+
+        # Fallback: per-area GetPoints
+        if not walls and not slabs:
+            try:
+                ar = SapModel.AreaObj.GetNameList()
+                if ar and int(ar[-1]) == 0:
+                    names_arr2 = None
+                    for item in ar[:-1]:
+                        if hasattr(item, '__iter__') and not isinstance(item, str):
+                            names_arr2 = list(item)
+                            break
+                    for aname in (names_arr2 or []):
+                        try:
+                            ap = SapModel.AreaObj.GetPoints(aname)
+                            if ap and int(ap[-1]) == 0:
+                                n_pts = int(ap[0])
+                                jnames = list(ap[1])[:n_pts]
+                                pts = []
+                                for jn in jnames:
+                                    cx, cy, cz = _get_coord(str(jn))
+                                    pts.append([round(cx, 4), round(cy, 4), round(cz, 4)])
+                                _classify_area(aname, pts)
+                        except Exception:
+                            continue
+            except Exception:
+                pass
+
+        _restore_units(SapModel, orig_units)
+        return {"frames": frames, "walls": walls, "slabs": slabs}
+
+    except Exception as e:
+        try:
+            _restore_units(SapModel, orig_units)
+        except Exception:
+            pass
+        return {"error": f"get_building_geometry failed: {e}"}
 
 
 def debug_rc_column_raw(section_name: str):

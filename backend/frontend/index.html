@@ -1505,6 +1505,10 @@
                 style="padding:7px 16px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--t2)">
                 Story Summary
               </button>
+              <button id="brs-tab-3d" onclick="pmmBrSubTab('3d')"
+                style="padding:7px 16px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--t2)">
+                3D View
+              </button>
             </div>
             <!-- Section Results pane -->
             <div id="pmm-batch-results-table-wrap" class="hidden" style="overflow:auto;flex:1;padding:0">
@@ -1517,13 +1521,15 @@
                     <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="3" onclick="pmmBrSort(3)">ρ (%) <span class="pmm-br-arrow"></span></th>
                     <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="4" onclick="pmmBrSort(4)">φPn,max (kN) <span class="pmm-br-arrow"></span></th>
                     <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="5" onclick="pmmBrSort(5)">Frames <span class="pmm-br-arrow"></span></th>
-                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="6" onclick="pmmBrSort(6)">Worst Combo <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="6" onclick="pmmBrSort(6)">Story <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="7" onclick="pmmBrSort(7)">Column ID <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="8" onclick="pmmBrSort(8)">Worst Combo <span class="pmm-br-arrow"></span></th>
                     <th class="pmm-batch-th" style="background:#f1f5f9;border:1px solid #cbd5e1">Loc</th>
-                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="8" onclick="pmmBrSort(8)">P (kN) <span class="pmm-br-arrow"></span></th>
-                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="9" onclick="pmmBrSort(9)">Mx (kN·m) <span class="pmm-br-arrow"></span></th>
-                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="10" onclick="pmmBrSort(10)">My (kN·m) <span class="pmm-br-arrow"></span></th>
-                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="11" onclick="pmmBrSort(11)">Max DCR <span class="pmm-br-arrow"></span></th>
-                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="12" onclick="pmmBrSort(12)">Status <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="10" onclick="pmmBrSort(10)">P (kN) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="11" onclick="pmmBrSort(11)">Mx (kN·m) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="12" onclick="pmmBrSort(12)">My (kN·m) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="13" onclick="pmmBrSort(13)">Max DCR <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="14" onclick="pmmBrSort(14)">Status <span class="pmm-br-arrow"></span></th>
                     <th class="pmm-batch-th" style="background:#f1f5f9;border:1px solid #cbd5e1"></th>
                   </tr>
                 </thead>
@@ -1533,6 +1539,54 @@
             <!-- Story Summary pane -->
             <div id="pmm-batch-results-story-pane" style="display:none;overflow:auto;flex:1;padding:0">
               <div id="pmm-batch-results-story-wrap"></div>
+            </div>
+            <!-- 3D Building View pane -->
+            <div id="pmm-batch-results-3d-pane" style="display:none;flex:1;flex-direction:column;min-height:0">
+              <!-- Toolbar row 1: load / color mode / combos / bg toggle / status -->
+              <div style="padding:6px 14px;display:flex;gap:8px;align-items:center;flex-wrap:nowrap;overflow-x:auto;border-bottom:1px solid var(--bdr);flex-shrink:0">
+                <button id="btn-load-3d" class="btn btn-ghost btn-sm" onclick="pmmLoad3DView()"
+                  style="font-size:12px;padding:4px 12px">Load 3D View</button>
+
+                <select id="pmm-3d-color-mode" onchange="pmm3DColorModeChange()"
+                  style="font-size:12px;padding:3px 8px;border-radius:5px;border:1px solid #94a3b8;background:#fff;color:#1e293b;cursor:pointer;min-width:140px">
+                  <option value="dcr">Column DCR</option>
+                  <option value="axial">Axial Load (kN)</option>
+                  <option value="size">Column Size</option>
+                </select>
+
+                <select id="pmm-3d-axial-combo" onchange="pmm3DAxialComboChange()"
+                  style="display:none;font-size:12px;padding:3px 8px;border-radius:5px;border:1px solid #94a3b8;background:#fff;color:#1e293b;cursor:pointer;max-width:220px">
+                  <option value="__max__">Max (all combos)</option>
+                </select>
+
+                <button id="pmm-3d-bg-btn" class="btn btn-ghost btn-sm" onclick="pmmToggle3DBg()"
+                  title="Toggle light / dark background"
+                  style="font-size:12px;padding:4px 10px;border:1px solid #94a3b8;border-radius:5px;background:#fff;color:#1e293b">&#9728; Light</button>
+
+                <!-- View presets -->
+                <div style="display:flex;gap:4px;margin-left:4px">
+                  <button onclick="pmm3DSetView('top')"   title="Top view (plan)"
+                    style="font-size:11px;padding:3px 8px;border:1px solid #94a3b8;border-radius:5px;background:#fff;color:#1e293b;cursor:pointer">&#8633; Top</button>
+                  <button onclick="pmm3DSetView('front')" title="Front elevation"
+                    style="font-size:11px;padding:3px 8px;border:1px solid #94a3b8;border-radius:5px;background:#fff;color:#1e293b;cursor:pointer">Front</button>
+                  <button onclick="pmm3DSetView('side')"  title="Side elevation"
+                    style="font-size:11px;padding:3px 8px;border:1px solid #94a3b8;border-radius:5px;background:#fff;color:#1e293b;cursor:pointer">Side</button>
+                  <button onclick="pmm3DSetView('reset')" title="Reset to default 3D view"
+                    style="font-size:11px;padding:3px 8px;border:1px solid #94a3b8;border-radius:5px;background:#fff;color:#1e293b;cursor:pointer">&#8635; 3D</button>
+                </div>
+
+                <span id="pmm-3d-status" style="font-size:12px;color:var(--t3,#64748b);margin-left:4px"></span>
+              </div>
+              <!-- Toolbar row 2: story / level filter -->
+              <div style="padding:4px 14px;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--bdr);flex-shrink:0;background:#f8fafc">
+                <span style="font-size:12px;color:#475569;font-weight:500">Floor Level:</span>
+                <select id="pmm-3d-story" onchange="pmm3DStoryChange()"
+                  style="font-size:12px;padding:3px 8px;border-radius:5px;border:1px solid #94a3b8;background:#fff;color:#1e293b;cursor:pointer;min-width:150px">
+                  <option value="all">All Levels</option>
+                </select>
+                <span style="font-size:11px;color:#94a3b8">Select a floor to isolate that story</span>
+              </div>
+              <div id="pmm-3d-building-chart" style="width:100%;flex:1;min-height:0"></div>
             </div>
           </div>
 
@@ -2900,7 +2954,7 @@
 
 <!-- ══════════════════ PMM BATCH CHECK MODAL ══════════════════ -->
 <div id="pmm-batch-modal" class="modal-overlay hidden">
-  <div class="modal-box" style="width:1300px;max-width:96vw;max-height:90vh;display:flex;flex-direction:column;padding:0;overflow:hidden">
+  <div class="modal-box" style="width:1500px;max-width:98vw;max-height:96vh;display:flex;flex-direction:column;padding:0;overflow:hidden">
 
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--bdr);flex-shrink:0">
@@ -2948,6 +3002,7 @@
       <div style="font-size:28px">⏳</div>
       <div id="pmm-batch-progress-text" style="font-size:14px;font-weight:600">Running batch check…</div>
       <div style="font-size:12px;color:var(--t3)">Fetching forces and computing PMM surfaces for all column sections.</div>
+      <div id="pmm-batch-timer" style="font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--accent,#6366f1);letter-spacing:1px">0.0s</div>
     </div>
 
     <!-- Step 3: Results -->
@@ -2969,7 +3024,10 @@
               <th class="pmm-batch-th">ρ (%)</th>
               <th class="pmm-batch-th">φPn,max (kN)</th>
               <th class="pmm-batch-th">Frames</th>
+              <th class="pmm-batch-th">Story</th>
+              <th class="pmm-batch-th">Column ID</th>
               <th class="pmm-batch-th">Worst Combo</th>
+              <th class="pmm-batch-th">Loc</th>
               <th class="pmm-batch-th">P (kN)</th>
               <th class="pmm-batch-th">Mx (kN·m)</th>
               <th class="pmm-batch-th">My (kN·m)</th>
@@ -2986,6 +3044,6 @@
   </div>
 </div>
 
-<script src="/app/app.js?v=136"></script>
+<script src="/app/app.js?v=151"></script>
 </body>
 </html>

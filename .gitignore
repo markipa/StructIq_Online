@@ -1,0 +1,34 @@
+# ── Secrets / environment ─────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Databases (contain real user data — never commit) ─────────────
+*.db
+*.db-shm
+*.db-wal
+
+# ── Python ────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyd
+.venv/
+venv/
+.Python
+
+# ── PyInstaller build output ──────────────────────────────────────
+backend/build/
+backend/dist/
+
+# ── Electron packaged app (large binary — not source) ─────────────
+electron/dist/
+
+# ── Logs ──────────────────────────────────────────────────────────
+*.log
+backend/structiq.log
+backend/test_output.txt
+
+# ── OS junk ───────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini

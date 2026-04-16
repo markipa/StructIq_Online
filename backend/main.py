@@ -240,7 +240,8 @@ class LoginRequest(BaseModel):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://127.0.0.1", "http://localhost"],
+    allow_origin_regex=r"http://(127\.0\.0\.1|localhost)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -325,10 +326,12 @@ def login(body: LoginRequest):
                 timeout=4,
             )
             if reg_r.status_code == 429:
-                # Enterprise plan is at full capacity — block this login
-                database.delete_session(token)
-                detail = reg_r.json().get("detail", "Maximum simultaneous users reached for this plan.")
-                raise HTTPException(429, detail=detail)
+                # Admin emails always bypass session limits
+                _is_admin_login = body.email.lower() in [e.lower() for e in config.ADMIN_EMAILS]
+                if not _is_admin_login:
+                    database.delete_session(token)
+                    detail = reg_r.json().get("detail", "Maximum simultaneous users reached for this plan.")
+                    raise HTTPException(429, detail=detail)
         except HTTPException:
             raise
         except Exception:
@@ -1628,8 +1631,10 @@ def _run_pmm_opt(b_in, h_in, fc_ksi, fy_ksi, Es_ksi, cover_in,
 
     Returns max DCR (float) or None on error.
     """
-    alpha_steps = ui_alpha
-    num_points  = ui_npts
+    # Coarse (bisection) pass: 30° × 20 pts  — ~10× faster, still monotone-correct
+    # Fine  (verify)    pass: ui_alpha × ui_npts — full user-selected accuracy
+    alpha_steps = 30.0 if fast else ui_alpha
+    num_points  = 20   if fast else ui_npts
     try:
         corners = rect_coords(b_in, h_in)
         areas, positions = rect_bars_grid(b_in, h_in, cover_in, nb, nh, bar_area_in2)
@@ -2156,10 +2161,13 @@ def pmm_etabs_section_forces(body: ETABSSectionForcesRequest,
                 rows = val
                 break
     results = [
-        {"label": f"{r['frame']} / {r['combo']}",
-         "P_kN":   r["P_kN"],
-         "M3_kNm": r["M3_kNm"],   # ETABS M33 = user Mx (strong axis)
-         "M2_kNm": r["M2_kNm"]}   # ETABS M22 = user My (weak axis)
+        {"frame":    r["frame"],
+         "story":    r.get("story", "?"),
+         "combo":    r["combo"],
+         "location": r.get("location", ""),
+         "P_kN":     r["P_kN"],
+         "M3_kNm":   r["M3_kNm"],   # ETABS M33 = user Mx (strong axis)
+         "M2_kNm":   r["M2_kNm"]}   # ETABS M22 = user My (weak axis)
         for r in rows
     ]
     return {"results": results}
@@ -2471,7 +2479,11 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
     }
 
     results = []
-    story_summary: dict = {}   # story → aggregated stats
+    story_summary: dict = {}   # story -> aggregated stats
+    frame_dcr: dict = {}       # frame_name -> max DCR across all sections/combos
+    frame_dims: dict = {}      # frame_name -> {"b_m": float, "h_m": float}
+    frame_axial: dict = {}              # frame_name -> max |P_kN| across all combos
+    frame_axial_by_combo: dict = {}    # combo -> {frame_name -> max |P_kN|}
 
     for sec in sections:
         sec_name = sec.get("prop_name") or sec.get("name", "?")
@@ -2605,6 +2617,37 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
                     "My_kNm":   row["M2_kNm"],
                 })
 
+            # Accumulate per-frame max DCR and section dims for 3D building view
+            for _item in dcr_items:
+                _fn = _item.get("frame")
+                _dv = _item.get("DCR")
+                if _fn and _dv is not None:
+                    try:
+                        _dv_f = float(_dv)
+                        if _fn not in frame_dcr or _dv_f > frame_dcr[_fn]:
+                            frame_dcr[_fn] = round(_dv_f, 3)
+                    except (TypeError, ValueError):
+                        pass
+                # Store section dims (mm→m) keyed by frame — reliable source
+                if _fn and _fn not in frame_dims:
+                    frame_dims[_fn] = {"b_m": round(b_mm / 1000.0, 4),
+                                       "h_m": round(h_mm / 1000.0, 4)}
+                # Max absolute axial load per frame — global max and per-combo
+                _pv = _item.get("P_kN")
+                _cb = _item.get("combo", "")
+                if _fn and _pv is not None:
+                    try:
+                        _pa = abs(float(_pv))
+                        if _fn not in frame_axial or _pa > frame_axial[_fn]:
+                            frame_axial[_fn] = round(_pa, 1)
+                        if _cb:
+                            if _cb not in frame_axial_by_combo:
+                                frame_axial_by_combo[_cb] = {}
+                            if _fn not in frame_axial_by_combo[_cb] or _pa > frame_axial_by_combo[_cb][_fn]:
+                                frame_axial_by_combo[_cb][_fn] = round(_pa, 1)
+                    except (TypeError, ValueError):
+                        pass
+
             # worst = item with highest valid DCR; items with DCR=None sort to 0
             worst = max(dcr_items, key=lambda r: float(r.get("DCR") or 0)) if dcr_items else None
             # If worst has no valid DCR (all None), treat as no data
@@ -2637,11 +2680,11 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
                     try:
                         dcr_f = float(dcr_val)
                         if ss["max_dcr"] is None or dcr_f > ss["max_dcr"]:
-                            ss["max_dcr"]           = round(dcr_f, 3)
-                            ss["critical_section"]  = sec_name
-                            ss["critical_frame"]    = item.get("frame")
-                            ss["critical_combo"]    = item.get("combo")
-                            ss["critical_location"] = item.get("location")
+                            ss["max_dcr"]            = round(dcr_f, 3)
+                            ss["critical_section"]   = sec_name
+                            ss["critical_frame"]     = item.get("frame")
+                            ss["critical_combo"]     = item.get("combo")
+                            ss["critical_location"]  = item.get("location")
                     except (TypeError, ValueError):
                         pass
 
@@ -2698,10 +2741,67 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
     # Sort stories: FAIL first, then by max_dcr descending
     story_list = sorted(
         story_summary.values(),
-        key=lambda s: (0 if s["n_fail"] > 0 else 1, -(s["max_dcr"] or 0)),
+        key=lambda s: (
+            0 if s["n_fail"] > 0 else 1,
+            -(s["max_dcr"] or 0),
+        ),
     )
 
-    return {"columns": results, "story_summary": story_list}
+    # Invalidate cached geometry when a fresh batch run completes
+    _geometry_cache.clear()
+
+    return {"columns": results, "story_summary": story_list,
+            "frame_dcr": frame_dcr, "frame_dims": frame_dims,
+            "frame_axial": frame_axial,
+            "frame_axial_by_combo": frame_axial_by_combo}
+
+
+# ── Column Axial Force endpoint ───────────────────────────────────────────────
+
+class _AxialReq(BaseModel):
+    combo:      str
+    col_frames: list        # frame names from geometry cache (already column-classified)
+    load_type:  str = "combo"
+
+@app.post("/api/etabs/column-axial")
+def etabs_column_axial(req: _AxialReq,
+                       current_user: dict = Depends(get_current_user)):
+    """
+    Extract axial force at station-0 (bottom) of each supplied column frame.
+    Returns {axial: {frame_name: abs_P_kN}, combo: str}.
+    """
+    helper = getattr(actions, "get_column_axial_for_combo", None)
+    if not callable(helper):
+        raise HTTPException(503, "get_column_axial_for_combo not available.")
+    result = helper(req.combo, req.col_frames, req.load_type)
+    if "error" in result:
+        raise HTTPException(503, result["error"])
+    return result
+
+
+# ── 3D Building Geometry endpoint ─────────────────────────────────────────────
+_geometry_cache: dict = {}   # {"data": {...}} — invalidated on each batch run
+
+
+@app.get("/api/etabs/geometry")
+def etabs_geometry(current_user: dict = Depends(get_current_user)):
+    """
+    Returns all frame (column/beam) and wall geometry for the 3D building view.
+    Result is cached until the next batch check run.
+    """
+    if _geometry_cache.get("data"):
+        return _geometry_cache["data"]
+
+    helper = getattr(actions, "get_building_geometry", None)
+    if not callable(helper):
+        raise HTTPException(503, "get_building_geometry not available in actions.py.")
+
+    result = helper()
+    if "error" in result:
+        raise HTTPException(503, result["error"])
+
+    _geometry_cache["data"] = result
+    return result
 
 
 # ── 2D FEM endpoints ──────────────────────────────────────────────────────────

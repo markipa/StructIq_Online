@@ -11,6 +11,14 @@ import webbrowser
 import socket
 import subprocess
 
+# Force UTF-8 output so Unicode in logs never causes charmap errors on Windows
+if hasattr(sys.stdout, 'reconfigure'):
+    try: sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    except Exception: pass
+if hasattr(sys.stderr, 'reconfigure'):
+    try: sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception: pass
+
 # ── When packaged with PyInstaller, resources live in sys._MEIPASS ──
 if getattr(sys, 'frozen', False):
     # Running as compiled .exe — all files extracted to _MEIPASS (_internal/)
@@ -123,26 +131,42 @@ def run_server(port: int):
         log(f"[ERROR] Server failed to start: {e}")
         import traceback
         log(traceback.format_exc())
-        input("Press Enter to exit...")   # keep window open on crash
+        try: input("Press Enter to exit...")
+        except (EOFError, OSError): pass   # keep window open on crash
 
 
 def main():
     global URL
-    port = find_free_port(PORT)
+
+    # ── CLI flags (used by Electron wrapper) ───────────────────────────────
+    # --no-browser   skip opening a system browser tab (Electron handles the window)
+    # --port PORT    use a specific port instead of auto-detecting
+    no_browser  = '--no-browser' in sys.argv
+    forced_port = None
+    if '--port' in sys.argv:
+        idx = sys.argv.index('--port')
+        if idx + 1 < len(sys.argv):
+            try:
+                forced_port = int(sys.argv[idx + 1])
+            except ValueError:
+                pass
+
+    port = forced_port if forced_port else find_free_port(PORT)
     URL  = f"http://{HOST}:{port}"
 
     log(f"""
-  ╔══════════════════════════════════════════╗
-  ║         StructIQ  is starting...         ║
-  ║                                          ║
-  ║   Opening → {URL:<29}║
-  ║   Close this window to stop the app.     ║
-  ╚══════════════════════════════════════════╝
+  +------------------------------------------+
+  |         StructIQ  is starting...          |
+  |                                          |
+  |   Server  -> {URL:<28}|
+  |   Close this window to stop the app.     |
+  +------------------------------------------+
 """)
 
-    # Open browser in background thread
-    t = threading.Thread(target=open_browser, args=(URL,), daemon=True)
-    t.start()
+    if not no_browser:
+        # Open browser in background thread (standalone mode, no Electron)
+        t = threading.Thread(target=open_browser, args=(URL,), daemon=True)
+        t.start()
 
     # Start server (blocks until window closed)
     run_server(port)
@@ -155,4 +179,5 @@ if __name__ == "__main__":
         log(f"[FATAL] {e}")
         import traceback
         log(traceback.format_exc())
-        input("Press Enter to exit...")
+        try: input("Press Enter to exit...")
+        except (EOFError, OSError): pass
