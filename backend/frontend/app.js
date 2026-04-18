@@ -397,6 +397,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (btn.dataset.target === 'joint-panel' && isConnected && !jointAllCombos.length) {
         jointLoadSources();
       }
+      // Batch nav shortcut: jump to results if they exist, otherwise open the dialog
+      if (btn.dataset.action === 'batch') {
+        const hasResults = !document.getElementById('btn-pmm-batch-results')?.classList.contains('hidden');
+        setTimeout(() => { hasResults ? pmmShowTab('batch') : pmmBatchOpen(); }, 80);
+      }
     });
   });
 
