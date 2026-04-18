@@ -46,6 +46,8 @@ import database
 import config
 import math
 import os
+import time as _time
+from concurrent.futures import ThreadPoolExecutor as _TPE
 
 try:
     import requests as _requests
@@ -62,6 +64,10 @@ except ImportError:
 
 # Cache for last computed PMM surface (used by /api/pmm/check)
 _pmm_cache: dict = {'alpha_data': None, 'Pmax': None, 'Pmin': None, 'si': True}
+
+# Batch PMM surface cache — keyed by section fingerprint, cleared on each new batch run.
+# Avoids recomputing the same interaction surface when the user re-runs with the same model.
+_PMM_SURFACE_CACHE: dict = {}
 
 # Unit conversion constants (engine works in kips / kip·in)
 _KN_TO_KIPS  = 1.0 / 4.44822
@@ -2452,6 +2458,8 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
     if not body.combo_names:
         raise HTTPException(400, "combo_names must not be empty.")
 
+    _t_start = _time.perf_counter()
+
     # ── 1. Get all PMM column sections ────────────────────────────────────────
     helper_sec = getattr(actions, "get_pmm_column_sections", None)
     sec_result = helper_sec() if callable(helper_sec) else _get_pmm_column_sections_fallback()
@@ -2472,11 +2480,98 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
         raise HTTPException(503, forces_result["error"])
     by_section: dict = forces_result.get("sections", {})
 
+    _t_forces = _time.perf_counter()
+    try:
+        with open(_LOG_PATH, 'a', encoding='utf-8') as _lf:
+            _lf.write(f"[batch] forces fetch: {_t_forces - _t_start:.2f}s\n")
+    except Exception:
+        pass
+
     # ── 3. PMM check per section ──────────────────────────────────────────────
     _REBAR_DIA_MM = {
         "Ø8": 8.0,  "Ø10": 10.0, "Ø12": 12.0, "Ø16": 16.0, "Ø20": 20.0,
         "Ø25": 25.0,"Ø28": 28.0, "Ø32": 32.0, "Ø36": 36.0, "Ø40": 40.0,
     }
+
+    # ── 3a. Pre-compute all PMM surfaces in parallel ──────────────────────────
+    # Each section's interaction surface is independent — parallelise using threads.
+    # Numba-JIT code releases the GIL so threads genuinely run in parallel.
+    def _build_surface(sec):
+        sec_name = sec.get("prop_name") or sec.get("name", "?")
+        b_mm  = float(sec.get("width") or sec.get("b_mm") or 400)
+        h_mm  = float(sec.get("depth") or sec.get("h_mm") or 400)
+        fc    = float(sec.get("fc_mpa")  or 28.0)
+        fy    = float(sec.get("fy_mpa")  or 420.0)
+        Es    = float(sec.get("Es_mpa")  or 200000.0)
+        cover = float(sec.get("cover_mm") or sec.get("cover") or 40.0)
+        stirrup_dia = 10.0
+        nbars_b = max(2, int(sec.get("nbars_b") or sec.get("nbars_2") or 3))
+        _nb3_raw = int(sec.get("nbars_3") or 3)
+        nbars_h = max(0, int(sec["nbars_h"]) if sec.get("nbars_h") is not None
+                       else _nb3_raw - 2)
+        raw_bar = str(sec.get("rebar_size") or "Ø20")
+        bar_key = _normalize_bar_size(raw_bar)
+
+        # Cache hit — skip recomputation
+        _cache_key = (sec_name, b_mm, h_mm, fc, fy, nbars_b, nbars_h, bar_key)
+        if _cache_key in _PMM_SURFACE_CACHE:
+            return sec_name, _PMM_SURFACE_CACHE[_cache_key]
+
+        try:
+            bar_area_mm2 = REBAR_TABLE_SI.get(bar_key) or REBAR_TABLE_SI["Ø20"]
+            bar_dia_mm   = _REBAR_DIA_MM.get(bar_key, 20.0)
+            eff_cover    = cover + stirrup_dia + bar_dia_mm / 2.0
+            b_in   = b_mm  * _MM_TO_IN;  h_in   = h_mm  * _MM_TO_IN
+            fc_ksi = fc    * _MPA_TO_KSI; fy_ksi = fy    * _MPA_TO_KSI
+            Es_ksi = Es    * _MPA_TO_KSI; cov_in = eff_cover * _MM_TO_IN
+            ba_in2 = bar_area_mm2 * (_MM_TO_IN ** 2)
+            corners   = rect_coords(b_in, h_in)
+            areas, positions = rect_bars_grid(b_in, h_in, cov_in, nbars_b, nbars_h, ba_in2)
+            sec_obj = PMMSection(
+                corner_coords=corners, fc=fc_ksi, fy=fy_ksi, Es=Es_ksi,
+                alpha_steps=30, num_points=30, include_phi=True,
+                bar_areas=areas, bar_positions=positions,
+            )
+            pmm_raw = compute_pmm(sec_obj)
+            alpha_data = pmm_raw.get("alpha_data", {})
+            for curve in alpha_data.values():
+                curve["P"]  = [v * _KIPS_TO_KN  for v in curve["P"]]
+                curve["Mx"] = [v * _KIN_TO_KNM for v in curve["Mx"]]
+                curve["My"] = [v * _KIN_TO_KNM for v in curve["My"]]
+            result = {
+                "alpha_data": alpha_data,
+                "Pmax_kN": pmm_raw["Pmax"] * _KIPS_TO_KN,
+                "Pmin_kN": pmm_raw["Pmin"] * _KIPS_TO_KN,
+                "Ag_mm2":  pmm_raw["Ag"]   * _IN2_TO_MM2,
+                "Ast_mm2": pmm_raw["Ast"]  * _IN2_TO_MM2,
+                "b_mm": b_mm, "h_mm": h_mm, "bar_key": bar_key,
+                "nbars_b": nbars_b, "nbars_h": nbars_h, "raw_bar": raw_bar,
+                "_nb3_raw": _nb3_raw,
+            }
+            _PMM_SURFACE_CACHE[_cache_key] = result
+            return sec_name, result
+        except Exception as exc:
+            return sec_name, {"error": str(exc)}
+
+    _n_workers = min(len(sections), 8)
+    _surfaces: dict = {}
+    try:
+        with _TPE(max_workers=_n_workers) as _pool:
+            for _sname, _surf in _pool.map(_build_surface, sections):
+                _surfaces[_sname] = _surf
+    except Exception:
+        # Fallback: sequential
+        for _sec in sections:
+            _sname, _surf = _build_surface(_sec)
+            _surfaces[_sname] = _surf
+
+    _t_surfaces = _time.perf_counter()
+    try:
+        with open(_LOG_PATH, 'a', encoding='utf-8') as _lf:
+            _lf.write(f"[batch] PMM surfaces ({len(sections)} sections, {_n_workers} workers): "
+                      f"{_t_surfaces - _t_forces:.2f}s\n")
+    except Exception:
+        pass
 
     results = []
     story_summary: dict = {}   # story -> aggregated stats
@@ -2489,24 +2584,27 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
         sec_name = sec.get("prop_name") or sec.get("name", "?")
         rows = by_section.get(sec_name, [])
 
-        b_mm  = float(sec.get("width") or sec.get("b_mm") or 400)
-        h_mm  = float(sec.get("depth") or sec.get("h_mm") or 400)
-        fc    = float(sec.get("fc_mpa")  or 28.0)
-        fy    = float(sec.get("fy_mpa")  or 420.0)
-        Es    = float(sec.get("Es_mpa")  or 200000.0)
-        cover = float(sec.get("cover_mm") or sec.get("cover") or 40.0)
-        stirrup_dia = 10.0
-        # Prefer normalized fields (nbars_b / nbars_h) set by _get_pmm_column_sections_fallback.
-        # nbars_b = top/bottom face bars INCLUDING corners (≥2)  → raw nbars_2
-        # nbars_h = side face INTERMEDIATE bars EXCLUDING corners (≥0) → raw nbars_3 - 2
-        # Falling back to raw nbars_2/nbars_3 and subtracting 2 corners for nbars_h.
-        nbars_b = max(2, int(sec.get("nbars_b") or sec.get("nbars_2") or 3))
-        _nb3_raw = int(sec.get("nbars_3") or 3)
-        nbars_h = max(0, int(sec["nbars_h"]) if sec.get("nbars_h") is not None
-                       else _nb3_raw - 2)
-        raw_bar = str(sec.get("rebar_size") or "Ø20")
-        bar_key = _normalize_bar_size(raw_bar)
-        # Diagnostic log: raw ETABS bar fields for all sections
+        # ── Retrieve pre-computed surface (built in parallel above) ──────────
+        _surf = _surfaces.get(sec_name, {})
+        if "error" in _surf:
+            results.append({"section": sec_name, "error": _surf["error"]})
+            continue
+
+        b_mm    = _surf.get("b_mm", float(sec.get("width") or sec.get("b_mm") or 400))
+        h_mm    = _surf.get("h_mm", float(sec.get("depth") or sec.get("h_mm") or 400))
+        bar_key = _surf.get("bar_key", "Ø20")
+        raw_bar = _surf.get("raw_bar", bar_key)
+        nbars_b = _surf.get("nbars_b", 3)
+        nbars_h = _surf.get("nbars_h", 1)
+        _nb3_raw = _surf.get("_nb3_raw", 3)
+        alpha_data = _surf.get("alpha_data", {})
+        Pmax_kN    = _surf.get("Pmax_kN", 0.0)
+        Pmin_kN    = _surf.get("Pmin_kN", 0.0)
+        Ag_mm2     = _surf.get("Ag_mm2", b_mm * h_mm)
+        Ast_mm2    = _surf.get("Ast_mm2", 0.0)
+        rho_pct    = Ast_mm2 / Ag_mm2 * 100.0 if Ag_mm2 else 0.0
+
+        # Diagnostic log
         try:
             with open(_LOG_PATH, 'a', encoding='utf-8') as _lf:
                 _lf.write(
@@ -2516,46 +2614,8 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
         except Exception:
             pass
 
-        try:
-            bar_area_mm2 = REBAR_TABLE_SI.get(bar_key) or REBAR_TABLE_SI["Ø20"]
-            bar_dia_mm   = _REBAR_DIA_MM.get(bar_key, 20.0)
-            eff_cover    = cover + stirrup_dia + bar_dia_mm / 2.0
-
-            b_in     = b_mm  * _MM_TO_IN
-            h_in     = h_mm  * _MM_TO_IN
-            fc_ksi   = fc    * _MPA_TO_KSI
-            fy_ksi   = fy    * _MPA_TO_KSI
-            Es_ksi   = Es    * _MPA_TO_KSI
-            cov_in   = eff_cover * _MM_TO_IN
-            ba_in2   = bar_area_mm2 * (_MM_TO_IN ** 2)
-
-            corners  = rect_coords(b_in, h_in)
-            areas, positions = rect_bars_grid(b_in, h_in, cov_in, nbars_b, nbars_h, ba_in2)
-
-            sec_obj  = PMMSection(
-                corner_coords = corners,
-                fc=fc_ksi, fy=fy_ksi, Es=Es_ksi,
-                alpha_steps=30, num_points=30,  # coarser for batch speed; fine for DCR
-                include_phi=True,
-                bar_areas=areas, bar_positions=positions,
-            )
-            pmm_raw  = compute_pmm(sec_obj)
-
-            # Convert to SI
-            alpha_data = pmm_raw.get("alpha_data", {})
-            for curve in alpha_data.values():
-                curve["P"]  = [v * _KIPS_TO_KN  for v in curve["P"]]
-                curve["Mx"] = [v * _KIN_TO_KNM for v in curve["Mx"]]
-                curve["My"] = [v * _KIN_TO_KNM for v in curve["My"]]
-
-            Pmax_kN = pmm_raw["Pmax"] * _KIPS_TO_KN
-            Pmin_kN = pmm_raw["Pmin"] * _KIPS_TO_KN
-            Ag_mm2  = pmm_raw["Ag"]   * _IN2_TO_MM2
-            Ast_mm2 = pmm_raw["Ast"]  * _IN2_TO_MM2
-            rho_pct = Ast_mm2 / Ag_mm2 * 100.0
-
-        except Exception as exc:
-            results.append({"section": sec_name, "error": str(exc)})
+        if not alpha_data:
+            results.append({"section": sec_name, "error": "PMM surface not available"})
             continue
 
         if not rows:
@@ -2749,6 +2809,16 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
 
     # Invalidate cached geometry when a fresh batch run completes
     _geometry_cache.clear()
+
+    _t_end = _time.perf_counter()
+    try:
+        with open(_LOG_PATH, 'a', encoding='utf-8') as _lf:
+            _lf.write(
+                f"[batch] TOTAL: {_t_end - _t_start:.2f}s "
+                f"({len(sections)} sections, {len(body.combo_names)} combos)\n"
+            )
+    except Exception:
+        pass
 
     return {"columns": results, "story_summary": story_list,
             "frame_dcr": frame_dcr, "frame_dims": frame_dims,
