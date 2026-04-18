@@ -7374,32 +7374,36 @@ function pmmBrSubTab(tab) {
   const sectionPane  = document.getElementById('pmm-batch-results-table-wrap');
   const storyPane    = document.getElementById('pmm-batch-results-story-pane');
   const buildingPane = document.getElementById('pmm-batch-results-3d-pane');
+  const optPane      = document.getElementById('pmm-batch-opt-pane');
   const tabSection   = document.getElementById('brs-tab-section');
   const tabStory     = document.getElementById('brs-tab-story');
   const tabBuilding  = document.getElementById('brs-tab-3d');
+  const tabOpt       = document.getElementById('brs-tab-opt');
   if (!sectionPane || !storyPane) return;
 
-  const active = (el) => {
+  const active = (el, color) => {
     if (!el) return;
-    el.style.borderBottomColor = 'var(--blue)';
-    el.style.color = 'var(--blue)';
+    el.style.borderBottomColor = color || 'var(--blue)';
+    el.style.color = color || 'var(--blue)';
   };
-  const inactive = (el) => {
+  const inactive = (el, color) => {
     if (!el) return;
     el.style.borderBottomColor = 'transparent';
-    el.style.color = 'var(--t2)';
+    el.style.color = color || 'var(--t2)';
   };
 
-  sectionPane.style.display  = tab === 'section'  ? '' : 'none';
-  storyPane.style.display    = tab === 'story'    ? '' : 'none';
-  if (buildingPane) buildingPane.style.display = tab === '3d' ? 'flex' : 'none';
+  sectionPane.style.display  = tab === 'section' ? '' : 'none';
+  storyPane.style.display    = tab === 'story'   ? '' : 'none';
+  if (buildingPane) buildingPane.style.display   = tab === '3d'  ? 'flex' : 'none';
+  if (optPane)      optPane.style.display        = tab === 'opt' ? ''     : 'none';
 
   inactive(tabSection); inactive(tabStory); inactive(tabBuilding);
+  inactive(tabOpt, '#ea6c00');
   if (tab === 'section') active(tabSection);
   else if (tab === 'story') active(tabStory);
+  else if (tab === 'opt') active(tabOpt, '#ea6c00');
   else if (tab === '3d') {
     active(tabBuilding);
-    // Relayout with correct height now that the pane is visible
     if (_geomCache) {
       requestAnimationFrame(() => {
         const el3d = document.getElementById('pmm-3d-building-chart');
@@ -7409,6 +7413,127 @@ function pmmBrSubTab(tab) {
       });
     }
   }
+}
+
+// ── Rebar Optimization ─────────────────────────────────────────────────────
+
+async function pmmBatchOptimize() {
+  const targetDcr = parseFloat(document.getElementById('pmm-opt-target-dcr')?.value || 0.90);
+  const minRho    = parseFloat(document.getElementById('pmm-opt-min-rho')?.value    || 1.0);
+
+  // Switch to opt tab and show loading state
+  pmmBrSubTab('opt');
+  const loadEl  = document.getElementById('pmm-batch-opt-loading');
+  const wrapEl  = document.getElementById('pmm-batch-opt-wrap');
+  const timerEl = document.getElementById('pmm-opt-timer');
+  if (loadEl)  loadEl.style.display  = '';
+  if (wrapEl)  wrapEl.style.display  = 'none';
+
+  const t0 = performance.now();
+  const _tick = setInterval(() => {
+    if (timerEl) timerEl.textContent = ((performance.now() - t0) / 1000).toFixed(1) + 's';
+  }, 100);
+
+  try {
+    const res = await authFetch('/api/pmm/batch-optimize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target_dcr: targetDcr, min_rho_pct: minRho }),
+    });
+    const data = await res.json();
+    clearInterval(_tick);
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+
+    if (loadEl) loadEl.style.display = 'none';
+    if (wrapEl) { wrapEl.style.display = ''; pmmBatchRenderOptResults(data); }
+  } catch (err) {
+    clearInterval(_tick);
+    if (loadEl) loadEl.style.display = 'none';
+    if (wrapEl) {
+      wrapEl.style.display = '';
+      wrapEl.innerHTML = `<div style="padding:24px;color:#f66;font-size:13px">⚠ ${err.message}</div>`;
+    }
+  }
+}
+
+function pmmBatchRenderOptResults(data) {
+  const wrap = document.getElementById('pmm-batch-opt-wrap');
+  if (!wrap) return;
+  const rows = data.results || [];
+  const targetDcr  = data.target_dcr  ?? 0.90;
+  const minRho     = data.min_rho_pct ?? 1.0;
+  const elapsed    = data.elapsed_s   ?? 0;
+
+  const statusStyle = {
+    DOWNSIZE:     'background:#dcfce7;color:#166534;font-weight:700',
+    OPTIMAL:      'background:#dbeafe;color:#1e40af;font-weight:700',
+    UPSIZE:       'background:#fef9c3;color:#854d0e;font-weight:700',
+    OVERSTRESSED: 'background:#fee2e2;color:#991b1b;font-weight:700',
+    'NO DATA':    'background:#f1f5f9;color:#64748b',
+  };
+  const statusIcon = { DOWNSIZE:'↓', OPTIMAL:'✓', UPSIZE:'↑', OVERSTRESSED:'✗', 'NO DATA':'–' };
+
+  // Summary bar
+  const nDown = rows.filter(r => r.status === 'DOWNSIZE').length;
+  const nUp   = rows.filter(r => r.status === 'UPSIZE').length;
+  const nOk   = rows.filter(r => r.status === 'OPTIMAL').length;
+  const nOver = rows.filter(r => r.status === 'OVERSTRESSED').length;
+
+  let html = `
+    <div style="padding:10px 14px;background:#f8fafc;border-bottom:1px solid var(--bdr);font-size:12px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+      <span style="font-weight:700">Target DCR ≤ ${(targetDcr*100).toFixed(0)}% &nbsp;·&nbsp; Min ρ ≥ ${minRho}% &nbsp;·&nbsp; Computed in ${elapsed}s</span>
+      ${nDown ? `<span style="color:#166534;font-weight:600">↓ ${nDown} can downsize</span>` : ''}
+      ${nOk   ? `<span style="color:#1e40af;font-weight:600">✓ ${nOk} already optimal</span>` : ''}
+      ${nUp   ? `<span style="color:#854d0e;font-weight:600">↑ ${nUp} need upsize</span>` : ''}
+      ${nOver ? `<span style="color:#991b1b;font-weight:600">✗ ${nOver} overstressed</span>` : ''}
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead>
+        <tr style="background:#f1f5f9;position:sticky;top:0;z-index:2">
+          <th style="text-align:left;padding:8px 10px;border:1px solid #cbd5e1">Section</th>
+          <th style="padding:8px 10px;border:1px solid #cbd5e1">b×h (mm)</th>
+          <th style="padding:8px 10px;border:1px solid #cbd5e1">n Bars</th>
+          <th style="padding:8px 10px;border:1px solid #cbd5e1">Current Bar</th>
+          <th style="padding:8px 10px;border:1px solid #cbd5e1">ρ cur (%)</th>
+          <th style="padding:8px 10px;border:1px solid #cbd5e1">DCR cur</th>
+          <th style="padding:8px 10px;border:1px solid #cbd5e1">⚡ Opt. Bar</th>
+          <th style="padding:8px 10px;border:1px solid #cbd5e1">ρ opt (%)</th>
+          <th style="padding:8px 10px;border:1px solid #cbd5e1">DCR opt</th>
+          <th style="padding:8px 10px;border:1px solid #cbd5e1">Δρ</th>
+          <th style="padding:8px 10px;border:1px solid #cbd5e1">Status</th>
+          <th style="padding:8px 10px;border:1px solid #cbd5e1">Note</th>
+        </tr>
+      </thead><tbody>`;
+
+  for (const r of rows) {
+    const st = r.status || 'NO DATA';
+    const ss = statusStyle[st] || '';
+    const si = statusIcon[st]  || '–';
+    const dRho = (r.optimized_rho_pct != null && r.current_rho_pct != null)
+      ? (r.optimized_rho_pct - r.current_rho_pct).toFixed(2)
+      : '–';
+    const dRhoStyle = parseFloat(dRho) < 0 ? 'color:#166534;font-weight:700'
+                    : parseFloat(dRho) > 0 ? 'color:#991b1b;font-weight:700' : '';
+    const barChanged = r.optimized_bar !== r.current_bar;
+
+    html += `<tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:7px 10px;font-weight:600;border:1px solid #e2e8f0">${r.section}</td>
+      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0">${r.b_mm}×${r.h_mm}</td>
+      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0">${r.n_bars ?? '–'}</td>
+      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0">${r.current_bar}</td>
+      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0">${r.current_rho_pct ?? '–'}</td>
+      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0">${r.current_dcr ?? '–'}</td>
+      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0;font-weight:${barChanged?'700':'400'};color:${barChanged?(st==='DOWNSIZE'?'#166534':st==='UPSIZE'?'#854d0e':'inherit'):'inherit'}">${r.optimized_bar}</td>
+      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0">${r.optimized_rho_pct ?? '–'}</td>
+      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0">${r.optimized_dcr ?? '–'}</td>
+      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0;${dRhoStyle}">${dRho !== '–' ? (parseFloat(dRho)>0?'+':'')+dRho : '–'}</td>
+      <td style="padding:7px 6px;text-align:center;border:1px solid #e2e8f0;${ss};border-radius:4px;white-space:nowrap">${si} ${st}</td>
+      <td style="padding:7px 10px;color:var(--t2);font-size:11px;border:1px solid #e2e8f0">${r.note ?? ''}</td>
+    </tr>`;
+  }
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
 }
 
 function pmmBrSort(col) {

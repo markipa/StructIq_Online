@@ -69,6 +69,10 @@ _pmm_cache: dict = {'alpha_data': None, 'Pmax': None, 'Pmin': None, 'si': True}
 # Avoids recomputing the same interaction surface when the user re-runs with the same model.
 _PMM_SURFACE_CACHE: dict = {}
 
+# Cached forces + section metadata from the last batch run — used by the rebar optimizer
+# so it can work entirely offline (no ETABS calls needed after the batch check).
+_last_batch_forces: dict = {}  # {"by_section": {...}, "sections": [...], "combo_names": [...]}
+
 # Unit conversion constants (engine works in kips / kip·in)
 _KN_TO_KIPS  = 1.0 / 4.44822
 _KNM_TO_KININ = 1.0 / 0.112985
@@ -2480,6 +2484,13 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
         raise HTTPException(503, forces_result["error"])
     by_section: dict = forces_result.get("sections", {})
 
+    # Cache forces + section metadata for the rebar optimizer (no ETABS calls needed there)
+    _last_batch_forces.update({
+        "by_section": by_section,
+        "sections": sections,
+        "combo_names": body.combo_names,
+    })
+
     _t_forces = _time.perf_counter()
     try:
         with open(_LOG_PATH, 'a', encoding='utf-8') as _lf:
@@ -2824,6 +2835,230 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
             "frame_dcr": frame_dcr, "frame_dims": frame_dims,
             "frame_axial": frame_axial,
             "frame_axial_by_combo": frame_axial_by_combo}
+
+
+# ── Rebar Optimization endpoint ───────────────────────────────────────────────
+
+class BatchOptimizeRequest(BaseModel):
+    target_dcr:  float = 0.90   # max allowed DCR (e.g. 0.90 = 90 %)
+    min_rho_pct: float = 1.0    # minimum steel ratio in %
+
+
+@app.post("/api/pmm/batch-optimize")
+def pmm_batch_optimize(body: BatchOptimizeRequest,
+                        current_user: dict = Depends(get_current_user)):
+    """
+    Rebar optimizer — runs entirely offline (no ETABS calls).
+    Uses forces cached from the last batch check and the PMM surface cache.
+    For each section it tries standard bar diameters Ø12→Ø40, finds the
+    SMALLEST bar where:
+      • max DCR across all demand points ≤ target_dcr
+      • steel ratio ρ ≥ min_rho_pct
+    Returns per-section: current bar, optimized bar, ρ comparison, DCR, status.
+    """
+    if not _HAS_PMM:
+        raise HTTPException(503, "PMM engine not available.")
+    if not _last_batch_forces.get("sections"):
+        raise HTTPException(400, "No batch data cached. Run the Batch Check first.")
+
+    sections   = _last_batch_forces["sections"]
+    by_section = _last_batch_forces["by_section"]
+
+    STANDARD_BARS = ["Ø12", "Ø16", "Ø20", "Ø25", "Ø28", "Ø32", "Ø36", "Ø40"]
+    _REBAR_DIA_MM_OPT = {
+        "Ø8": 8.0, "Ø10": 10.0, "Ø12": 12.0, "Ø16": 16.0, "Ø20": 20.0,
+        "Ø25": 25.0, "Ø28": 28.0, "Ø32": 32.0, "Ø36": 36.0, "Ø40": 40.0,
+    }
+    _t0_opt = _time.perf_counter()
+
+    # ── Helper: build PMM surface for a given bar key (uses shared cache) ───
+    def _surface_for_bar(sec, bar_key):
+        b_mm    = float(sec.get("width")    or sec.get("b_mm")   or 400)
+        h_mm    = float(sec.get("depth")    or sec.get("h_mm")   or 400)
+        fc      = float(sec.get("fc_mpa")   or 28.0)
+        fy      = float(sec.get("fy_mpa")   or 420.0)
+        Es      = float(sec.get("Es_mpa")   or 200000.0)
+        cover   = float(sec.get("cover_mm") or sec.get("cover")  or 40.0)
+        stirrup = 10.0
+        nbars_b = max(2, int(sec.get("nbars_b") or sec.get("nbars_2") or 3))
+        _nb3    = int(sec.get("nbars_3") or 3)
+        nbars_h = max(0, int(sec["nbars_h"]) if sec.get("nbars_h") is not None
+                       else _nb3 - 2)
+        sec_name = sec.get("prop_name") or sec.get("name", "?")
+
+        _ck = (sec_name, b_mm, h_mm, fc, fy, nbars_b, nbars_h, bar_key)
+        if _ck in _PMM_SURFACE_CACHE:
+            return _PMM_SURFACE_CACHE[_ck]
+
+        bar_area_mm2 = REBAR_TABLE_SI.get(bar_key, 314.2)
+        bar_dia_mm   = _REBAR_DIA_MM_OPT.get(bar_key, 20.0)
+        eff_cover    = cover + stirrup + bar_dia_mm / 2.0
+        b_in  = b_mm * _MM_TO_IN;  h_in  = h_mm * _MM_TO_IN
+        fc_k  = fc   * _MPA_TO_KSI; fy_k = fy   * _MPA_TO_KSI
+        Es_k  = Es   * _MPA_TO_KSI; cov  = eff_cover * _MM_TO_IN
+        ba    = bar_area_mm2 * (_MM_TO_IN ** 2)
+        corners = rect_coords(b_in, h_in)
+        areas, positions = rect_bars_grid(b_in, h_in, cov, nbars_b, nbars_h, ba)
+        sec_obj = PMMSection(
+            corner_coords=corners, fc=fc_k, fy=fy_k, Es=Es_k,
+            alpha_steps=30, num_points=30, include_phi=True,
+            bar_areas=areas, bar_positions=positions,
+        )
+        pmm_raw = compute_pmm(sec_obj)
+        alpha   = pmm_raw.get("alpha_data", {})
+        for curve in alpha.values():
+            curve["P"]  = [v * _KIPS_TO_KN  for v in curve["P"]]
+            curve["Mx"] = [v * _KIN_TO_KNM for v in curve["Mx"]]
+            curve["My"] = [v * _KIN_TO_KNM for v in curve["My"]]
+        result = {
+            "alpha_data": alpha,
+            "Pmax_kN": pmm_raw["Pmax"] * _KIPS_TO_KN,
+            "Pmin_kN": pmm_raw["Pmin"] * _KIPS_TO_KN,
+            "Ag_mm2":  pmm_raw["Ag"]   * _IN2_TO_MM2,
+            "Ast_mm2": pmm_raw["Ast"]  * _IN2_TO_MM2,
+        }
+        _PMM_SURFACE_CACHE[_ck] = result
+        return result
+
+    # ── Pre-warm cache in parallel: all (section × bar) combos ──────────────
+    def _warm(args):
+        sec, bk = args
+        try: _surface_for_bar(sec, bk)
+        except Exception: pass
+
+    tasks = [(sec, bk) for sec in sections for bk in STANDARD_BARS]
+    try:
+        with _TPE(max_workers=8) as pool:
+            list(pool.map(_warm, tasks))
+    except Exception:
+        for t in tasks:
+            _warm(t)
+
+    # ── Per-section optimization ─────────────────────────────────────────────
+    import math as _mth
+    results = []
+
+    for sec in sections:
+        sec_name    = sec.get("prop_name") or sec.get("name", "?")
+        rows        = by_section.get(sec_name, [])
+        b_mm        = float(sec.get("width") or sec.get("b_mm") or 400)
+        h_mm        = float(sec.get("depth") or sec.get("h_mm") or 400)
+        Ag_mm2      = b_mm * h_mm
+        nbars_b     = max(2, int(sec.get("nbars_b") or sec.get("nbars_2") or 3))
+        _nb3        = int(sec.get("nbars_3") or 3)
+        nbars_h     = max(0, int(sec["nbars_h"]) if sec.get("nbars_h") is not None
+                          else _nb3 - 2)
+        n_bars_total = 2 * nbars_b + 2 * nbars_h
+        current_bar  = _normalize_bar_size(str(sec.get("rebar_size") or "Ø20"))
+
+        # Current ρ
+        cur_area_mm2  = REBAR_TABLE_SI.get(current_bar, 314.2)
+        cur_Ast_mm2   = n_bars_total * cur_area_mm2
+        cur_rho_pct   = round(cur_Ast_mm2 / Ag_mm2 * 100.0, 2)
+
+        if not rows:
+            results.append({
+                "section": sec_name, "b_mm": b_mm, "h_mm": h_mm,
+                "n_bars": n_bars_total,
+                "current_bar": current_bar, "current_rho_pct": cur_rho_pct,
+                "optimized_bar": current_bar, "optimized_rho_pct": cur_rho_pct,
+                "optimized_dcr": None, "current_dcr": None,
+                "status": "NO DATA", "note": "No force data from batch check.",
+            })
+            continue
+
+        # Build enveloped demands
+        rows_env = _perframe_envelope(rows)
+        demands  = [
+            {"label": f"{r['frame']}/{r['combo']}[{r.get('location','?')}]",
+             "P": -r["P_kN"], "Mx": r["M3_kNm"], "My": r["M2_kNm"]}
+            for r in rows_env
+        ]
+
+        def _max_dcr_for_bar(bk):
+            try:
+                surf = _surface_for_bar(sec, bk)
+                dcrs = _alpha_data_boundary_dcr(
+                    surf["alpha_data"], surf["Pmax_kN"], surf["Pmin_kN"], demands)
+                vals = [float(d["DCR"]) for d in dcrs
+                        if d.get("DCR") is not None
+                        and not _mth.isnan(float(d["DCR"]))
+                        and not _mth.isinf(float(d["DCR"]))]
+                return max(vals) if vals else None
+            except Exception:
+                return None
+
+        # Current DCR
+        cur_dcr = _max_dcr_for_bar(current_bar)
+
+        # Find minimum adequate bar
+        opt_bar = None; opt_rho = None; opt_dcr = None
+        for bk in STANDARD_BARS:
+            Ast = n_bars_total * REBAR_TABLE_SI.get(bk, 314.2)
+            rho = Ast / Ag_mm2 * 100.0
+            if rho < body.min_rho_pct:
+                continue
+            dcr = _max_dcr_for_bar(bk)
+            if dcr is None:
+                continue
+            if dcr <= body.target_dcr:
+                opt_bar = bk
+                opt_rho = round(rho, 2)
+                opt_dcr = round(dcr, 3)
+                break
+
+        if opt_bar is None:
+            # Even Ø40 doesn't satisfy target → flag overstressed
+            bk  = STANDARD_BARS[-1]
+            Ast = n_bars_total * REBAR_TABLE_SI.get(bk, 314.2)
+            opt_bar = bk
+            opt_rho = round(Ast / Ag_mm2 * 100.0, 2)
+            opt_dcr = _max_dcr_for_bar(bk)
+            if opt_dcr: opt_dcr = round(opt_dcr, 3)
+            status = "OVERSTRESSED"
+            note   = f"Even {bk} exceeds target DCR {body.target_dcr:.0%}"
+        elif opt_bar == current_bar:
+            status = "OPTIMAL"
+            note   = "Current bar is already the minimum adequate size."
+        elif STANDARD_BARS.index(opt_bar) < STANDARD_BARS.index(current_bar):
+            status = "DOWNSIZE"
+            note   = f"Can reduce from {current_bar} → {opt_bar}"
+        else:
+            status = "UPSIZE"
+            note   = f"Must increase from {current_bar} → {opt_bar}"
+
+        results.append({
+            "section":          sec_name,
+            "b_mm":             b_mm,
+            "h_mm":             h_mm,
+            "n_bars":           n_bars_total,
+            "current_bar":      current_bar,
+            "current_rho_pct":  cur_rho_pct,
+            "current_dcr":      round(cur_dcr, 3) if cur_dcr is not None else None,
+            "optimized_bar":    opt_bar,
+            "optimized_rho_pct": opt_rho,
+            "optimized_dcr":    opt_dcr,
+            "status":           status,
+            "note":             note,
+        })
+
+    _t1_opt = _time.perf_counter()
+    try:
+        with open(_LOG_PATH, 'a', encoding='utf-8') as _lf:
+            _lf.write(f"[optimize] {len(sections)} sections in {_t1_opt - _t0_opt:.2f}s\n")
+    except Exception:
+        pass
+
+    # Sort: OVERSTRESSED first, then UPSIZE, then DOWNSIZE, then OPTIMAL
+    _order = {"OVERSTRESSED": 0, "UPSIZE": 1, "DOWNSIZE": 2, "OPTIMAL": 3, "NO DATA": 4}
+    results.sort(key=lambda r: _order.get(r.get("status", "NO DATA"), 5))
+
+    return {
+        "results": results,
+        "target_dcr":  body.target_dcr,
+        "min_rho_pct": body.min_rho_pct,
+        "elapsed_s":   round(_t1_opt - _t0_opt, 2),
+    }
 
 
 # ── Column Axial Force endpoint ───────────────────────────────────────────────
