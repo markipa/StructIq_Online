@@ -7460,81 +7460,129 @@ async function pmmBatchOptimize() {
 function pmmBatchRenderOptResults(data) {
   const wrap = document.getElementById('pmm-batch-opt-wrap');
   if (!wrap) return;
-  const rows = data.results || [];
-  const targetDcr  = data.target_dcr  ?? 0.90;
-  const minRho     = data.min_rho_pct ?? 1.0;
-  const elapsed    = data.elapsed_s   ?? 0;
+  const rows     = data.results    || [];
+  const targetDcr = data.target_dcr  ?? 0.90;
+  const minRho    = data.min_rho_pct ?? 1.0;
+  const elapsed   = data.elapsed_s   ?? 0;
 
-  const statusStyle = {
-    DOWNSIZE:     'background:#dcfce7;color:#166534;font-weight:700',
-    OPTIMAL:      'background:#dbeafe;color:#1e40af;font-weight:700',
-    UPSIZE:       'background:#fef9c3;color:#854d0e;font-weight:700',
-    OVERSTRESSED: 'background:#fee2e2;color:#991b1b;font-weight:700',
-    'NO DATA':    'background:#f1f5f9;color:#64748b',
-  };
-  const statusIcon = { DOWNSIZE:'↓', OPTIMAL:'✓', UPSIZE:'↑', OVERSTRESSED:'✗', 'NO DATA':'–' };
+  // Status → row bg, badge color, icon  (mirrors Section Results PASS/FAIL palette)
+  const _stBg    = { DOWNSIZE:'', OPTIMAL:'', UPSIZE:'background:#fffbeb', OVERSTRESSED:'background:#fff1f2', 'NO DATA':'' };
+  const _stColor = { DOWNSIZE:'#16a34a', OPTIMAL:'#2563eb', UPSIZE:'#d97706', OVERSTRESSED:'#ef4444', 'NO DATA':'#94a3b8' };
+  const _stIcon  = { DOWNSIZE:'↓', OPTIMAL:'✓', UPSIZE:'↑', OVERSTRESSED:'✗', 'NO DATA':'–' };
+  const _stLabel = { DOWNSIZE:'DOWNSIZE', OPTIMAL:'OPTIMAL', UPSIZE:'UPSIZE', OVERSTRESSED:'OVERSTRESSED', 'NO DATA':'NO DATA' };
 
-  // Summary bar
   const nDown = rows.filter(r => r.status === 'DOWNSIZE').length;
   const nUp   = rows.filter(r => r.status === 'UPSIZE').length;
   const nOk   = rows.filter(r => r.status === 'OPTIMAL').length;
   const nOver = rows.filter(r => r.status === 'OVERSTRESSED').length;
 
+  // DCR colour helper (same thresholds as Section Results)
+  const dcrColor = v => v == null ? '#94a3b8' : v > 1.0 ? '#ef4444' : v > 0.9 ? '#f59e0b' : '#16a34a';
+
   let html = `
-    <div style="padding:10px 14px;background:#f8fafc;border-bottom:1px solid var(--bdr);font-size:12px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
-      <span style="font-weight:700">Target DCR ≤ ${(targetDcr*100).toFixed(0)}% &nbsp;·&nbsp; Min ρ ≥ ${minRho}% &nbsp;·&nbsp; Computed in ${elapsed}s</span>
-      ${nDown ? `<span style="color:#166534;font-weight:600">↓ ${nDown} can downsize</span>` : ''}
-      ${nOk   ? `<span style="color:#1e40af;font-weight:600">✓ ${nOk} already optimal</span>` : ''}
-      ${nUp   ? `<span style="color:#854d0e;font-weight:600">↑ ${nUp} need upsize</span>` : ''}
-      ${nOver ? `<span style="color:#991b1b;font-weight:600">✗ ${nOver} overstressed</span>` : ''}
+    <div style="padding:8px 14px;background:#f8fafc;border-bottom:1px solid var(--bdr);font-size:12px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <span style="font-weight:700;color:var(--t1)">Target DCR ≤ ${(targetDcr*100).toFixed(0)}%&nbsp;&nbsp;Min ρ ≥ ${minRho}%&nbsp;&nbsp;⏱ ${elapsed}s</span>
+      ${nDown ? `<span style="color:#16a34a;font-weight:600">↓ ${nDown} downsize</span>` : ''}
+      ${nOk   ? `<span style="color:#2563eb;font-weight:600">✓ ${nOk} optimal</span>`  : ''}
+      ${nUp   ? `<span style="color:#d97706;font-weight:600">↑ ${nUp} upsize</span>`   : ''}
+      ${nOver ? `<span style="color:#ef4444;font-weight:600">✗ ${nOver} overstressed</span>` : ''}
     </div>
-    <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff">
       <thead>
-        <tr style="background:#f1f5f9;position:sticky;top:0;z-index:2">
-          <th style="text-align:left;padding:8px 10px;border:1px solid #cbd5e1">Section</th>
-          <th style="padding:8px 10px;border:1px solid #cbd5e1">b×h (mm)</th>
-          <th style="padding:8px 10px;border:1px solid #cbd5e1">n Bars</th>
-          <th style="padding:8px 10px;border:1px solid #cbd5e1">Current Bar</th>
-          <th style="padding:8px 10px;border:1px solid #cbd5e1">ρ cur (%)</th>
-          <th style="padding:8px 10px;border:1px solid #cbd5e1">DCR cur</th>
-          <th style="padding:8px 10px;border:1px solid #cbd5e1">⚡ Opt. Bar</th>
-          <th style="padding:8px 10px;border:1px solid #cbd5e1">ρ opt (%)</th>
-          <th style="padding:8px 10px;border:1px solid #cbd5e1">DCR opt</th>
-          <th style="padding:8px 10px;border:1px solid #cbd5e1">Δρ</th>
-          <th style="padding:8px 10px;border:1px solid #cbd5e1">Status</th>
-          <th style="padding:8px 10px;border:1px solid #cbd5e1">Note</th>
+        <tr class="pmm-br-header-row" style="position:sticky;top:0;z-index:2">
+          <th class="pmm-batch-th" style="text-align:left;padding:8px 10px;background:#f1f5f9;border:1px solid #cbd5e1">Section</th>
+          <th class="pmm-batch-th" style="background:#f1f5f9;border:1px solid #cbd5e1">b×h (mm)</th>
+          <th class="pmm-batch-th" style="background:#f1f5f9;border:1px solid #cbd5e1">n Bars</th>
+          <th class="pmm-batch-th" style="background:#f1f5f9;border:1px solid #cbd5e1;border-right:2px solid #94a3b8">Current Bar</th>
+          <th class="pmm-batch-th" style="background:#f1f5f9;border:1px solid #cbd5e1">ρ cur (%)</th>
+          <th class="pmm-batch-th" style="background:#f1f5f9;border:1px solid #cbd5e1;border-right:2px solid #94a3b8">DCR cur</th>
+          <th class="pmm-batch-th" style="background:#fff7ed;border:1px solid #cbd5e1;color:#ea6c00">⚡ Opt. Bar</th>
+          <th class="pmm-batch-th" style="background:#fff7ed;border:1px solid #cbd5e1">ρ opt (%)</th>
+          <th class="pmm-batch-th" style="background:#fff7ed;border:1px solid #cbd5e1">DCR opt</th>
+          <th class="pmm-batch-th" style="background:#fff7ed;border:1px solid #cbd5e1;border-right:2px solid #94a3b8">Δρ (%)</th>
+          <th class="pmm-batch-th" style="background:#f1f5f9;border:1px solid #cbd5e1">Status</th>
+          <th class="pmm-batch-th" style="background:#f1f5f9;border:1px solid #cbd5e1"></th>
         </tr>
       </thead><tbody>`;
 
   for (const r of rows) {
-    const st = r.status || 'NO DATA';
-    const ss = statusStyle[st] || '';
-    const si = statusIcon[st]  || '–';
-    const dRho = (r.optimized_rho_pct != null && r.current_rho_pct != null)
-      ? (r.optimized_rho_pct - r.current_rho_pct).toFixed(2)
-      : '–';
-    const dRhoStyle = parseFloat(dRho) < 0 ? 'color:#166534;font-weight:700'
-                    : parseFloat(dRho) > 0 ? 'color:#991b1b;font-weight:700' : '';
-    const barChanged = r.optimized_bar !== r.current_bar;
+    const st  = r.status || 'NO DATA';
+    const stC = _stColor[st] || '#94a3b8';
+    const rowBg = _stBg[st] || '';
+    const icon  = _stIcon[st] || '–';
 
-    html += `<tr style="border-bottom:1px solid #e2e8f0">
-      <td style="padding:7px 10px;font-weight:600;border:1px solid #e2e8f0">${r.section}</td>
-      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0">${r.b_mm}×${r.h_mm}</td>
-      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0">${r.n_bars ?? '–'}</td>
-      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0">${r.current_bar}</td>
-      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0">${r.current_rho_pct ?? '–'}</td>
-      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0">${r.current_dcr ?? '–'}</td>
-      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0;font-weight:${barChanged?'700':'400'};color:${barChanged?(st==='DOWNSIZE'?'#166534':st==='UPSIZE'?'#854d0e':'inherit'):'inherit'}">${r.optimized_bar}</td>
-      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0">${r.optimized_rho_pct ?? '–'}</td>
-      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0">${r.optimized_dcr ?? '–'}</td>
-      <td style="padding:7px 10px;text-align:center;border:1px solid #e2e8f0;${dRhoStyle}">${dRho !== '–' ? (parseFloat(dRho)>0?'+':'')+dRho : '–'}</td>
-      <td style="padding:7px 6px;text-align:center;border:1px solid #e2e8f0;${ss};border-radius:4px;white-space:nowrap">${si} ${st}</td>
-      <td style="padding:7px 10px;color:var(--t2);font-size:11px;border:1px solid #e2e8f0">${r.note ?? ''}</td>
+    const dRhoNum = (r.optimized_rho_pct != null && r.current_rho_pct != null)
+      ? +(r.optimized_rho_pct - r.current_rho_pct).toFixed(2) : null;
+    const dRhoTxt = dRhoNum != null ? (dRhoNum > 0 ? '+' : '') + dRhoNum : '–';
+    const dRhoC   = dRhoNum == null ? '' : dRhoNum < 0 ? 'color:#16a34a;font-weight:700' : dRhoNum > 0 ? 'color:#ef4444;font-weight:700' : '';
+
+    const barChanged = r.optimized_bar !== r.current_bar;
+    const optBarC    = barChanged ? (st === 'DOWNSIZE' ? '#16a34a' : st === 'UPSIZE' ? '#d97706' : 'inherit') : 'inherit';
+
+    const curDcrTxt = r.current_dcr   != null ? r.current_dcr.toFixed(3)   : '—';
+    const optDcrTxt = r.optimized_dcr != null ? r.optimized_dcr.toFixed(3) : '—';
+    const secEsc    = (r.section || '').replace(/'/g, "\\'");
+    const optBarEsc = (r.optimized_bar || '').replace(/'/g, "\\'");
+
+    html += `<tr style="${rowBg}">
+      <td class="pmm-batch-td" style="text-align:left;font-weight:600">${r.section}</td>
+      <td class="pmm-batch-td">${r.b_mm}×${r.h_mm}</td>
+      <td class="pmm-batch-td">${r.n_bars ?? '—'}</td>
+      <td class="pmm-batch-td" style="border-right:2px solid #e2e8f0">${r.current_bar}</td>
+      <td class="pmm-batch-td">${r.current_rho_pct ?? '—'}</td>
+      <td class="pmm-batch-td" style="font-weight:700;color:${dcrColor(r.current_dcr)};border-right:2px solid #e2e8f0">${curDcrTxt}</td>
+      <td class="pmm-batch-td" style="font-weight:${barChanged?'700':'400'};color:${optBarC};background:#fffdf9">${r.optimized_bar}</td>
+      <td class="pmm-batch-td" style="background:#fffdf9">${r.optimized_rho_pct ?? '—'}</td>
+      <td class="pmm-batch-td" style="font-weight:700;color:${dcrColor(r.optimized_dcr)};background:#fffdf9">${optDcrTxt}</td>
+      <td class="pmm-batch-td" style="${dRhoC};border-right:2px solid #e2e8f0;background:#fffdf9">${dRhoTxt}</td>
+      <td class="pmm-batch-td">
+        <span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;
+                     background:${stC}1a;color:${stC};border:1px solid ${stC}44;white-space:nowrap">
+          ${icon} ${_stLabel[st]}
+        </span>
+      </td>
+      <td class="pmm-batch-td">
+        <button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 8px;white-space:nowrap"
+                onclick="pmmBatchOptCheck('${secEsc}','${optBarEsc}')">→ Check</button>
+      </td>
     </tr>`;
   }
 
   html += '</tbody></table>';
   wrap.innerHTML = html;
+}
+
+// ── Open PMM diagram with the optimized bar substituted ────────────────────
+async function pmmBatchOptCheck(sectionName, optBar) {
+  // Navigate to PMM panel
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const navBtn = document.querySelector('.nav-item[data-target="pmm-panel"]');
+  if (navBtn) navBtn.classList.add('active');
+  document.getElementById('pmm-panel')?.classList.add('active');
+  pmmShowTab('diagram');
+
+  try {
+    const res = await authFetch('/api/pmm/etabs-sections');
+    if (!res.ok) throw new Error('Failed to fetch sections');
+    const data = await res.json();
+    const sec = (data.sections || []).find(s =>
+      (s.name || s.prop_name || '').toLowerCase() === sectionName.toLowerCase()
+    );
+    if (!sec) { pmmSetStatus(`Section "${sectionName}" not found in ETABS.`, 'error'); return; }
+
+    // Substitute optimized bar — override rebar_size with the optimized value
+    const optSec = { ...sec, rebar_size: optBar };
+    await pmmFillFromSection(optSec, _pmmBatchUsedCombos.length ? _pmmBatchUsedCombos : null);
+    pmmSetStatus(`Loaded: ${sectionName} with optimized rebar ${optBar}`, '');
+
+    // Auto-generate diagram with fine resolution
+    const resEl = document.getElementById('pmm-resolution');
+    if (resEl) resEl.value = '5:120';
+    setTimeout(() => document.getElementById('btn-pmm-generate')?.click(), 300);
+  } catch (err) {
+    pmmSetStatus(`Error: ${err.message}`, 'error');
+  }
 }
 
 function pmmBrSort(col) {
