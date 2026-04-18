@@ -2523,8 +2523,8 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
         raw_bar = str(sec.get("rebar_size") or "Ø20")
         bar_key = _normalize_bar_size(raw_bar)
 
-        # Cache hit — skip recomputation
-        _cache_key = (sec_name, b_mm, h_mm, fc, fy, nbars_b, nbars_h, bar_key)
+        # Cache hit — skip recomputation (key includes resolution to avoid stale hits)
+        _cache_key = (sec_name, b_mm, h_mm, fc, fy, nbars_b, nbars_h, bar_key, 10, 70)
         if _cache_key in _PMM_SURFACE_CACHE:
             return sec_name, _PMM_SURFACE_CACHE[_cache_key]
 
@@ -2540,7 +2540,7 @@ def pmm_etabs_batch_check(body: ETABSBatchCheckRequest,
             areas, positions = rect_bars_grid(b_in, h_in, cov_in, nbars_b, nbars_h, ba_in2)
             sec_obj = PMMSection(
                 corner_coords=corners, fc=fc_ksi, fy=fy_ksi, Es=Es_ksi,
-                alpha_steps=30, num_points=30, include_phi=True,
+                alpha_steps=10, num_points=70, include_phi=True,
                 bar_areas=areas, bar_positions=positions,
             )
             pmm_raw = compute_pmm(sec_obj)
@@ -2886,7 +2886,7 @@ def pmm_batch_optimize(body: BatchOptimizeRequest,
                        else _nb3 - 2)
         sec_name = sec.get("prop_name") or sec.get("name", "?")
 
-        _ck = (sec_name, b_mm, h_mm, fc, fy, nbars_b, nbars_h, bar_key)
+        _ck = (sec_name, b_mm, h_mm, fc, fy, nbars_b, nbars_h, bar_key, 10, 70)
         if _ck in _PMM_SURFACE_CACHE:
             return _PMM_SURFACE_CACHE[_ck]
 
@@ -2901,7 +2901,7 @@ def pmm_batch_optimize(body: BatchOptimizeRequest,
         areas, positions = rect_bars_grid(b_in, h_in, cov, nbars_b, nbars_h, ba)
         sec_obj = PMMSection(
             corner_coords=corners, fc=fc_k, fy=fy_k, Es=Es_k,
-            alpha_steps=30, num_points=30, include_phi=True,
+            alpha_steps=10, num_points=70, include_phi=True,
             bar_areas=areas, bar_positions=positions,
         )
         pmm_raw = compute_pmm(sec_obj)

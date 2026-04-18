@@ -7576,9 +7576,10 @@ async function pmmBatchOptCheck(sectionName, optBar) {
     await pmmFillFromSection(optSec, _pmmBatchUsedCombos.length ? _pmmBatchUsedCombos : null);
     pmmSetStatus(`Loaded: ${sectionName} with optimized rebar ${optBar}`, '');
 
-    // Auto-generate diagram with fine resolution
-    const resEl = document.getElementById('pmm-resolution');
-    if (resEl) resEl.value = '5:120';
+    // Auto-generate with Standard resolution — must match batch surface (alpha_steps=10, num_points=70)
+    // Using Fine (5:120) gives more alpha angles than the batch surface → DCR mismatch
+    const resEl = document.getElementById('pmm-res');
+    if (resEl) resEl.value = '10:70';
     setTimeout(() => document.getElementById('btn-pmm-generate')?.click(), 300);
   } catch (err) {
     pmmSetStatus(`Error: ${err.message}`, 'error');
