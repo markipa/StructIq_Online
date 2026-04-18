@@ -1500,21 +1500,29 @@
               <div style="font-size:12px">Run a Batch Column Check to see results here.</div>
               <button class="btn btn-primary btn-sm" onclick="pmmBatchOpen()">Run Batch Check</button>
             </div>
-            <div id="pmm-batch-results-toolbar" class="hidden" style="padding:10px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:nowrap;overflow-x:auto">
-              <div id="pmm-batch-results-summary" style="font-size:13px;font-weight:600;flex:1;min-width:120px"></div>
-              <!-- Rebar Optimization controls -->
-              <label style="font-size:11px;color:var(--t2);white-space:nowrap">Target DCR</label>
+            <!-- Toolbar row 1: summary + actions -->
+            <div id="pmm-batch-results-toolbar" class="hidden" style="padding:8px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px;flex-shrink:0">
+              <div id="pmm-batch-results-summary" style="font-size:13px;font-weight:600;flex:1"></div>
+              <button class="btn btn-ghost btn-sm" onclick="pmmBatchExportCSV()">⬇ Export CSV</button>
+              <button class="btn btn-ghost btn-sm" onclick="pmmBatchOpen()">↻ Re-run</button>
+            </div>
+            <!-- Toolbar row 2: rebar optimization controls -->
+            <div id="pmm-batch-opt-toolbar" class="hidden" style="padding:7px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:10px;flex-shrink:0;background:#fff7ed">
+              <svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="#ea6c00" stroke-width="2" stroke-linecap="round">
+                <path d="M10 2L4 10h5l-1 6 6-8h-5l1-6z" fill="#ea6c00" stroke="none"/>
+              </svg>
+              <span style="font-size:12px;font-weight:700;color:#ea6c00">Rebar Optimizer</span>
+              <span style="font-size:11px;color:#92400e">Target DCR</span>
               <input id="pmm-opt-target-dcr" type="number" value="0.90" min="0.5" max="1.0" step="0.05"
-                style="width:60px;font-size:12px;padding:3px 6px;border:1px solid #94a3b8;border-radius:5px;text-align:center"/>
-              <label style="font-size:11px;color:var(--t2);white-space:nowrap">Min ρ (%)</label>
+                style="width:64px;font-size:12px;padding:3px 6px;border:1px solid #f97316;border-radius:5px;text-align:center;background:#fff"/>
+              <span style="font-size:11px;color:#92400e">Min ρ (%)</span>
               <input id="pmm-opt-min-rho" type="number" value="1.0" min="0.5" max="8.0" step="0.5"
-                style="width:55px;font-size:12px;padding:3px 6px;border:1px solid #94a3b8;border-radius:5px;text-align:center"/>
-              <button class="btn btn-sm" onclick="pmmBatchOptimize()"
-                style="background:#ea6c00;color:#fff;border-color:#ea6c00;font-weight:700;white-space:nowrap;padding:4px 12px">
+                style="width:58px;font-size:12px;padding:3px 6px;border:1px solid #f97316;border-radius:5px;text-align:center;background:#fff"/>
+              <button onclick="pmmBatchOptimize()"
+                style="background:#ea6c00;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;padding:5px 16px;cursor:pointer;white-space:nowrap">
                 ⚡ Optimize Rebar
               </button>
-              <button class="btn btn-ghost btn-sm" onclick="pmmBatchExportCSV()" style="white-space:nowrap">⬇ Export CSV</button>
-              <button class="btn btn-ghost btn-sm" onclick="pmmBatchOpen()" style="white-space:nowrap">↻ Re-run</button>
+              <span style="font-size:11px;color:#92400e;flex:1">Finds minimum rebar per section · respects ρ_min</span>
             </div>
             <!-- Sub-tabs: Section Results | Story Summary | 3D View | Rebar Optimization -->
             <div id="pmm-batch-results-subtabs" class="hidden" style="display:flex;gap:0;border-bottom:1px solid var(--bdr);flex-shrink:0;padding:0 14px;background:#f8fafc">
@@ -3080,6 +3088,6 @@
   </div>
 </div>
 
-<script src="/app/app.js?v=153"></script>
+<script src="/app/app.js?v=154"></script>
 </body>
 </html>

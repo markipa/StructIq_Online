@@ -7342,9 +7342,10 @@ function pmmRenderBatchResultsTab() {
     </tr>`;
   }).join('');
 
-  // Hide placeholder, show toolbar + table
+  // Hide placeholder, show toolbars + table
   document.getElementById('pmm-batch-no-results')?.classList.add('hidden');
   document.getElementById('pmm-batch-results-toolbar')?.classList.remove('hidden');
+  document.getElementById('pmm-batch-opt-toolbar')?.classList.remove('hidden');
   document.getElementById('pmm-batch-results-table-wrap')?.classList.remove('hidden');
 
   // Show the sidebar "View Batch Results" button
