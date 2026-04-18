@@ -2871,8 +2871,16 @@ def pmm_batch_optimize(body: BatchOptimizeRequest,
     }
     _t0_opt = _time.perf_counter()
 
-    # ── Helper: build PMM surface for a given bar key (uses shared cache) ───
-    def _surface_for_bar(sec, bar_key):
+    # ── Helper: build PMM surface for a given bar key ────────────────────────
+    # Two resolution modes share the same logic; the cache key includes the
+    # resolution tuple so coarse and fine entries never collide.
+    #
+    # fine=False  →  coarse (30°×30 pts, 12 meridians)  — fast bar search
+    # fine=True   →  standard (10°×70 pts, 36 meridians) — accurate final DCR,
+    #                matches _build_surface used by the batch check; the batch
+    #                run already stored these surfaces in _PMM_SURFACE_CACHE so
+    #                the current-bar fine surface is always an instant cache hit.
+    def _surface_for_bar(sec, bar_key, fine=False):
         b_mm    = float(sec.get("width")    or sec.get("b_mm")   or 400)
         h_mm    = float(sec.get("depth")    or sec.get("h_mm")   or 400)
         fc      = float(sec.get("fc_mpa")   or 28.0)
@@ -2886,7 +2894,9 @@ def pmm_batch_optimize(body: BatchOptimizeRequest,
                        else _nb3 - 2)
         sec_name = sec.get("prop_name") or sec.get("name", "?")
 
-        _ck = (sec_name, b_mm, h_mm, fc, fy, nbars_b, nbars_h, bar_key, 10, 70)
+        _a_steps = 10 if fine else 30
+        _n_pts   = 70 if fine else 30
+        _ck = (sec_name, b_mm, h_mm, fc, fy, nbars_b, nbars_h, bar_key, _a_steps, _n_pts)
         if _ck in _PMM_SURFACE_CACHE:
             return _PMM_SURFACE_CACHE[_ck]
 
@@ -2901,7 +2911,7 @@ def pmm_batch_optimize(body: BatchOptimizeRequest,
         areas, positions = rect_bars_grid(b_in, h_in, cov, nbars_b, nbars_h, ba)
         sec_obj = PMMSection(
             corner_coords=corners, fc=fc_k, fy=fy_k, Es=Es_k,
-            alpha_steps=10, num_points=70, include_phi=True,
+            alpha_steps=_a_steps, num_points=_n_pts, include_phi=True,
             bar_areas=areas, bar_positions=positions,
         )
         pmm_raw = compute_pmm(sec_obj)
@@ -2920,23 +2930,27 @@ def pmm_batch_optimize(body: BatchOptimizeRequest,
         _PMM_SURFACE_CACHE[_ck] = result
         return result
 
-    # ── Pre-warm cache in parallel: all (section × bar) combos ──────────────
-    def _warm(args):
+    # ── Phase 1: coarse pre-warm — all (section × bar) in parallel ───────────
+    # Uses 30°×30pts (12 meridians) — same speed as before the accuracy fix.
+    # This populates the cache for the fast search loop below.
+    def _warm_coarse(args):
         sec, bk = args
-        try: _surface_for_bar(sec, bk)
+        try: _surface_for_bar(sec, bk, fine=False)
         except Exception: pass
 
-    tasks = [(sec, bk) for sec in sections for bk in STANDARD_BARS]
+    tasks_coarse = [(sec, bk) for sec in sections for bk in STANDARD_BARS]
     try:
         with _TPE(max_workers=8) as pool:
-            list(pool.map(_warm, tasks))
+            list(pool.map(_warm_coarse, tasks_coarse))
     except Exception:
-        for t in tasks:
-            _warm(t)
+        for t in tasks_coarse:
+            _warm_coarse(t)
 
-    # ── Per-section optimization ─────────────────────────────────────────────
+    # ── Phase 2: per-section coarse search (all surfaces already in cache) ────
     import math as _mth
-    results = []
+    # Intermediate results hold bar candidates from coarse search;
+    # fine DCR is filled in Phase 3 after a parallel fine pre-warm.
+    _search_results = []  # list of dicts with 'sec', demands, opt_bar, cur_bar, etc.
 
     for sec in sections:
         sec_name    = sec.get("prop_name") or sec.get("name", "?")
@@ -2951,23 +2965,19 @@ def pmm_batch_optimize(body: BatchOptimizeRequest,
         n_bars_total = 2 * nbars_b + 2 * nbars_h
         current_bar  = _normalize_bar_size(str(sec.get("rebar_size") or "Ø20"))
 
-        # Current ρ
-        cur_area_mm2  = REBAR_TABLE_SI.get(current_bar, 314.2)
-        cur_Ast_mm2   = n_bars_total * cur_area_mm2
-        cur_rho_pct   = round(cur_Ast_mm2 / Ag_mm2 * 100.0, 2)
+        cur_area_mm2 = REBAR_TABLE_SI.get(current_bar, 314.2)
+        cur_rho_pct  = round(n_bars_total * cur_area_mm2 / Ag_mm2 * 100.0, 2)
 
         if not rows:
-            results.append({
-                "section": sec_name, "b_mm": b_mm, "h_mm": h_mm,
-                "n_bars": n_bars_total,
-                "current_bar": current_bar, "current_rho_pct": cur_rho_pct,
-                "optimized_bar": current_bar, "optimized_rho_pct": cur_rho_pct,
-                "optimized_dcr": None, "current_dcr": None,
+            _search_results.append({
+                "sec": sec, "sec_name": sec_name, "b_mm": b_mm, "h_mm": h_mm,
+                "Ag_mm2": Ag_mm2, "n_bars": n_bars_total,
+                "current_bar": current_bar, "cur_rho_pct": cur_rho_pct,
+                "demands": [], "opt_bar": current_bar, "opt_rho": cur_rho_pct,
                 "status": "NO DATA", "note": "No force data from batch check.",
             })
             continue
 
-        # Build enveloped demands
         rows_env = _perframe_envelope(rows)
         demands  = [
             {"label": f"{r['frame']}/{r['combo']}[{r.get('location','?')}]",
@@ -2975,11 +2985,12 @@ def pmm_batch_optimize(body: BatchOptimizeRequest,
             for r in rows_env
         ]
 
-        def _max_dcr_for_bar(bk):
+        def _dcr_coarse(bk, _sec=sec, _demands=demands):
+            """DCR using coarse surface — fast, for bar search only."""
             try:
-                surf = _surface_for_bar(sec, bk)
+                surf = _surface_for_bar(_sec, bk, fine=False)
                 dcrs = _alpha_data_boundary_dcr(
-                    surf["alpha_data"], surf["Pmax_kN"], surf["Pmin_kN"], demands)
+                    surf["alpha_data"], surf["Pmax_kN"], surf["Pmin_kN"], _demands)
                 vals = [float(d["DCR"]) for d in dcrs
                         if d.get("DCR") is not None
                         and not _mth.isnan(float(d["DCR"]))
@@ -2988,33 +2999,23 @@ def pmm_batch_optimize(body: BatchOptimizeRequest,
             except Exception:
                 return None
 
-        # Current DCR
-        cur_dcr = _max_dcr_for_bar(current_bar)
-
-        # Find minimum adequate bar
-        opt_bar = None; opt_rho = None; opt_dcr = None
+        # Coarse bar search — finds the minimum adequate bar quickly
+        opt_bar = None; opt_rho = None
         for bk in STANDARD_BARS:
             Ast = n_bars_total * REBAR_TABLE_SI.get(bk, 314.2)
             rho = Ast / Ag_mm2 * 100.0
             if rho < body.min_rho_pct:
                 continue
-            dcr = _max_dcr_for_bar(bk)
-            if dcr is None:
-                continue
-            if dcr <= body.target_dcr:
+            _cd = _dcr_coarse(bk)
+            if _cd is not None and _cd <= body.target_dcr:
                 opt_bar = bk
                 opt_rho = round(rho, 2)
-                opt_dcr = round(dcr, 3)
                 break
 
         if opt_bar is None:
-            # Even Ø40 doesn't satisfy target → flag overstressed
-            bk  = STANDARD_BARS[-1]
-            Ast = n_bars_total * REBAR_TABLE_SI.get(bk, 314.2)
+            bk = STANDARD_BARS[-1]
             opt_bar = bk
-            opt_rho = round(Ast / Ag_mm2 * 100.0, 2)
-            opt_dcr = _max_dcr_for_bar(bk)
-            if opt_dcr: opt_dcr = round(opt_dcr, 3)
+            opt_rho = round(n_bars_total * REBAR_TABLE_SI.get(bk, 314.2) / Ag_mm2 * 100.0, 2)
             status = "OVERSTRESSED"
             note   = f"Even {bk} exceeds target DCR {body.target_dcr:.0%}"
         elif opt_bar == current_bar:
@@ -3027,19 +3028,79 @@ def pmm_batch_optimize(body: BatchOptimizeRequest,
             status = "UPSIZE"
             note   = f"Must increase from {current_bar} → {opt_bar}"
 
+        _search_results.append({
+            "sec": sec, "sec_name": sec_name, "b_mm": b_mm, "h_mm": h_mm,
+            "Ag_mm2": Ag_mm2, "n_bars": n_bars_total,
+            "current_bar": current_bar, "cur_rho_pct": cur_rho_pct,
+            "demands": demands, "opt_bar": opt_bar, "opt_rho": opt_rho,
+            "status": status, "note": note,
+        })
+
+    # ── Phase 3: fine pre-warm for unique (sec, opt_bar) that differ from ─────
+    # current_bar.  current_bar fine surfaces are already in _PMM_SURFACE_CACHE
+    # from the batch check run → zero extra computation for those.
+    _fine_needed = [
+        (sr["sec"], sr["opt_bar"])
+        for sr in _search_results
+        if sr["demands"] and sr["opt_bar"] != sr["current_bar"]
+    ]
+    def _warm_fine(args):
+        sec, bk = args
+        try: _surface_for_bar(sec, bk, fine=True)
+        except Exception: pass
+    try:
+        with _TPE(max_workers=8) as pool:
+            list(pool.map(_warm_fine, _fine_needed))
+    except Exception:
+        for t in _fine_needed:
+            _warm_fine(t)
+
+    # ── Phase 4: assemble results with accurate fine DCR ─────────────────────
+    results = []
+    for sr in _search_results:
+        if not sr["demands"]:
+            results.append({
+                "section": sr["sec_name"], "b_mm": sr["b_mm"], "h_mm": sr["h_mm"],
+                "n_bars": sr["n_bars"],
+                "current_bar": sr["current_bar"], "current_rho_pct": sr["cur_rho_pct"],
+                "optimized_bar": sr["current_bar"], "optimized_rho_pct": sr["cur_rho_pct"],
+                "optimized_dcr": None, "current_dcr": None,
+                "status": sr["status"], "note": sr["note"],
+            })
+            continue
+
+        def _dcr_fine(bk, _sec=sr["sec"], _demands=sr["demands"]):
+            """DCR using fine (batch-resolution) surface — accurate final report."""
+            try:
+                surf = _surface_for_bar(_sec, bk, fine=True)
+                dcrs = _alpha_data_boundary_dcr(
+                    surf["alpha_data"], surf["Pmax_kN"], surf["Pmin_kN"], _demands)
+                vals = [float(d["DCR"]) for d in dcrs
+                        if d.get("DCR") is not None
+                        and not _mth.isnan(float(d["DCR"]))
+                        and not _mth.isinf(float(d["DCR"]))]
+                return max(vals) if vals else None
+            except Exception:
+                return None
+
+        cur_dcr = _dcr_fine(sr["current_bar"])
+        opt_dcr_val = _dcr_fine(sr["opt_bar"])
+        if opt_dcr_val is not None:
+            opt_dcr_val = round(opt_dcr_val, 3)
+
         results.append({
-            "section":          sec_name,
-            "b_mm":             b_mm,
-            "h_mm":             h_mm,
-            "n_bars":           n_bars_total,
-            "current_bar":      current_bar,
-            "current_rho_pct":  cur_rho_pct,
-            "current_dcr":      round(cur_dcr, 3) if cur_dcr is not None else None,
-            "optimized_bar":    opt_bar,
-            "optimized_rho_pct": opt_rho,
-            "optimized_dcr":    opt_dcr,
-            "status":           status,
-            "note":             note,
+            "section":           sr["sec_name"],
+            "b_mm":              sr["b_mm"],
+            "h_mm":              sr["h_mm"],
+            "n_bars":            sr["n_bars"],
+            "current_bar":       sr["current_bar"],
+            "current_rho_pct":   sr["cur_rho_pct"],
+            "current_dcr":       round(cur_dcr, 3) if cur_dcr is not None else None,
+            "optimized_bar":     sr["opt_bar"],
+            "optimized_rho_pct": sr["opt_rho"],
+            "optimized_dcr":     opt_dcr_val,
+            "status":            sr["status"],
+            "note":              sr["note"],
         })
 
     _t1_opt = _time.perf_counter()
