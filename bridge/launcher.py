@@ -17,8 +17,8 @@ _CONFIG_DIR  = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), 
 _CONFIG_FILE = os.path.join(_CONFIG_DIR, "bridge_config.json")
 _LOG_FILE    = os.path.join(_CONFIG_DIR, "bridge.log")
 
-BRIDGE_WS_URL   = os.environ.get("BRIDGE_WS_URL", "wss://structiq-production.up.railway.app/ws/bridge")
-AUTH_API_URL    = os.environ.get("AUTH_API_URL",  "https://structiq-production.up.railway.app/api/auth/login")
+BRIDGE_WS_URL   = os.environ.get("BRIDGE_WS_URL", "wss://structiq-online.up.railway.app/ws/bridge")
+AUTH_API_URL    = os.environ.get("AUTH_API_URL",  "https://structiq-online.up.railway.app/api/auth/login")
 LOCAL_PORT      = int(os.environ.get("BRIDGE_LOCAL_PORT", "19999"))
 
 os.makedirs(_CONFIG_DIR, exist_ok=True)
