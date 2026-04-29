@@ -162,6 +162,77 @@ function bootApp() {
   checkStatus();
   populateReactionCombos();
   pmmInitRebarTable();  // fetch SI rebar table now that token is available
+  initBridgeStatus();   // show bridge status badge when running online
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  BRIDGE STATUS  (online mode only — Railway serves /api/bridge/status)
+// ─────────────────────────────────────────────────────────────────
+
+let _bridgeConnected = false;
+let _bridgePollTimer = null;
+
+function _isBridgeModeAvailable() {
+  // /api/bridge/status only exists on Railway, not on the local desktop backend.
+  // We detect online mode by checking if the current host is NOT localhost.
+  const host = location.hostname;
+  return host !== 'localhost' && host !== '127.0.0.1';
+}
+
+async function _checkBridgeStatus() {
+  try {
+    const res = await authFetch('/api/bridge/status');
+    if (!res.ok) return;
+    const data = await res.json();
+    _setBridgeUI(data.connected === true);
+  } catch {
+    _setBridgeUI(false);
+  }
+}
+
+function _setBridgeUI(connected) {
+  _bridgeConnected = connected;
+  const bar   = document.getElementById('bridge-status-bar');
+  const dot   = document.getElementById('bridge-dot');
+  const label = document.getElementById('bridge-label');
+  const link  = document.getElementById('bridge-install-link');
+  if (!bar) return;
+  bar.classList.remove('hidden');
+  dot.classList.remove('bridge-dot--on', 'bridge-dot--off', 'bridge-dot--spin');
+  if (connected) {
+    dot.classList.add('bridge-dot--on');
+    label.textContent = 'ETABS bridge connected';
+    link.classList.add('hidden');
+  } else {
+    dot.classList.add('bridge-dot--off');
+    label.textContent = 'Bridge offline';
+    link.classList.remove('hidden');
+  }
+}
+
+function initBridgeStatus() {
+  if (!_isBridgeModeAvailable()) return;
+  _setBridgeUI(false);  // show bar immediately, dot=off
+  document.getElementById('bridge-dot').classList.remove('bridge-dot--off');
+  document.getElementById('bridge-dot').classList.add('bridge-dot--spin');
+  document.getElementById('bridge-label').textContent = 'Checking bridge…';
+  _checkBridgeStatus();
+  // Poll every 15 s so badge updates automatically when user starts/stops bridge
+  _bridgePollTimer = setInterval(_checkBridgeStatus, 15000);
+}
+
+/**
+ * Call before any ETABS-dependent fetch. If bridge is offline (online mode),
+ * shows a toast and returns false — caller should abort the API call.
+ */
+function requireBridge(featureName = 'This feature') {
+  if (!_isBridgeModeAvailable()) return true;   // desktop mode — always ok
+  if (_bridgeConnected) return true;
+  showToast(
+    `${featureName} requires the StructIQ Bridge. ` +
+    'Download and run StructIQ-Bridge.exe on the machine where ETABS is installed.'
+  );
+  return false;
 }
 
 // ── State ──
