@@ -50,7 +50,10 @@ function showAuthOverlay() {
 
 function hideAuthOverlay(user) {
   document.getElementById('auth-overlay').classList.add('hidden');
-  if (user) renderUserPill(user);
+  if (user) {
+    renderUserPill(user);
+    localStorage.setItem('siq_name', user.name || user.email || '');
+  }
   bootApp();
   // Fire-and-forget cloud plan sync (updates plan badge if Pro/Enterprise)
   syncCloudPlan();
@@ -187,13 +190,39 @@ async function _checkBridgeStatus() {
     const localRes = await fetch(`${BRIDGE_LOCAL}/api/status`, { signal: AbortSignal.timeout(1500) });
     if (!localRes.ok) { _setBridgeUI('offline'); return; }
 
-    // 2. Check if bridge is authenticated + connected to Railway
+    // 2. Check Railway bridge connection
     const railRes = await authFetch('/api/bridge/status');
-    if (!railRes.ok) { _setBridgeUI('needs_login'); return; }
+    if (!railRes.ok) { _setBridgeUI('needs_token'); return; }
     const data = await railRes.json();
-    _setBridgeUI(data.connected ? 'connected' : 'needs_login');
+    if (data.connected) {
+      _setBridgeUI('connected');
+    } else {
+      // Bridge running but not connected — push our session token to it
+      await _pushTokenToBridge();
+    }
   } catch {
     _setBridgeUI('offline');
+  }
+}
+
+async function _pushTokenToBridge() {
+  const token = authToken();
+  const name  = localStorage.getItem('siq_name') || '';
+  if (!token) { _setBridgeUI('needs_token'); return; }
+  try {
+    const res = await fetch(`${BRIDGE_LOCAL}/bridge-connect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, name })
+    });
+    if (res.ok) {
+      _setBridgeUI('connecting');
+      setTimeout(_checkBridgeStatus, 3000);
+    } else {
+      _setBridgeUI('needs_token');
+    }
+  } catch {
+    _setBridgeUI('needs_token');
   }
 }
 
@@ -211,28 +240,41 @@ function _setBridgeUI(state) {
   dot.classList.remove('bridge-dot--on', 'bridge-dot--off', 'bridge-dot--spin');
 
   const disconnectBtn = document.getElementById('bridge-disconnect-btn');
+  const pathBox = document.getElementById('bridge-path-box');
+
   if (state === 'connected') {
     dot.classList.add('bridge-dot--on');
     label.textContent = 'ETABS bridge connected';
     link          && link.classList.add('hidden');
     launchBtn     && launchBtn.classList.add('hidden');
     loginBox      && loginBox.classList.add('hidden');
+    pathBox       && pathBox.classList.add('hidden');
     disconnectBtn && disconnectBtn.classList.remove('hidden');
-  } else if (state === 'needs_login') {
-    dot.classList.add('bridge-dot--off');
-    label.textContent = 'Bridge: sign in';
+  } else if (state === 'connecting') {
+    dot.classList.add('bridge-dot--spin');
+    label.textContent = 'Bridge connecting…';
     link          && link.classList.add('hidden');
     launchBtn     && launchBtn.classList.add('hidden');
-    loginBox      && loginBox.classList.remove('hidden');
+    loginBox      && loginBox.classList.add('hidden');
+    pathBox       && pathBox.classList.add('hidden');
+    disconnectBtn && disconnectBtn.classList.add('hidden');
+  } else if (state === 'needs_token') {
+    dot.classList.add('bridge-dot--off');
+    label.textContent = 'Bridge: not signed in';
+    link          && link.classList.add('hidden');
+    launchBtn     && launchBtn.classList.add('hidden');
+    loginBox      && loginBox.classList.add('hidden');
+    pathBox       && pathBox.classList.add('hidden');
     disconnectBtn && disconnectBtn.classList.add('hidden');
     _clearEtabsConnection();
-  } else {
-    // offline — bridge not running
+  } else if (state === 'offline') {
+    // bridge not running — show path input + launch button
     dot.classList.add('bridge-dot--off');
     label.textContent = 'Bridge offline';
     link          && link.classList.remove('hidden');
     launchBtn     && launchBtn.classList.remove('hidden');
     loginBox      && loginBox.classList.add('hidden');
+    pathBox       && pathBox.classList.remove('hidden');
     disconnectBtn && disconnectBtn.classList.add('hidden');
     _clearEtabsConnection();
   }
@@ -263,6 +305,12 @@ async function bridgeSignIn() {
 }
 
 function launchBridge() {
+  // Save the path if the user typed one
+  const pathInput = document.getElementById('bridge-path-input');
+  if (pathInput && pathInput.value.trim()) {
+    localStorage.setItem('bridge_exe_path', pathInput.value.trim());
+  }
+  // Launch via registered URI scheme
   window.location.href = 'structiq://connect';
 }
 
@@ -285,6 +333,10 @@ async function bridgeDisconnect() {
 
 function initBridgeStatus() {
   if (!_isBridgeModeAvailable()) return;
+  // Pre-fill saved bridge path
+  const saved = localStorage.getItem('bridge_exe_path');
+  const inp = document.getElementById('bridge-path-input');
+  if (saved && inp) inp.value = saved;
   _setBridgeUI(false);  // show bar immediately, dot=off
   document.getElementById('bridge-dot').classList.remove('bridge-dot--off');
   document.getElementById('bridge-dot').classList.add('bridge-dot--spin');

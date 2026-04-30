@@ -416,6 +416,18 @@ def _add_setup_to_server(app, token_holder: list):
             from fastapi import HTTPException
             raise HTTPException(401, f"Login failed: {e}")
 
+    class _ConnectBody(BaseModel):
+        token: str
+        name: str = ""
+
+    @app.post("/bridge-connect")
+    def bridge_connect(body: _ConnectBody):
+        """Accept token passed directly from the web app — no separate credentials needed."""
+        _save_token(body.token, body.name)
+        token_holder.append(body.token)
+        _log(f"Token received from web app for {body.name or '(unknown)'}")
+        return {"ok": True}
+
     @app.post("/bridge-disconnect")
     def bridge_disconnect():
         global _disconnect_requested
