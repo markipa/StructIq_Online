@@ -17,8 +17,8 @@ _CONFIG_DIR  = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), 
 _CONFIG_FILE = os.path.join(_CONFIG_DIR, "bridge_config.json")
 _LOG_FILE    = os.path.join(_CONFIG_DIR, "bridge.log")
 
-BRIDGE_WS_URL   = os.environ.get("BRIDGE_WS_URL", "wss://structiq-online.up.railway.app/ws/bridge")
-AUTH_API_URL    = os.environ.get("AUTH_API_URL",  "https://structiq-online.up.railway.app/api/auth/login")
+BRIDGE_WS_URL   = os.environ.get("BRIDGE_WS_URL", "wss://structiqonline-production.up.railway.app/ws/bridge")
+AUTH_API_URL    = os.environ.get("AUTH_API_URL",  "https://structiqonline-production.up.railway.app/api/auth/login")
 LOCAL_PORT      = int(os.environ.get("BRIDGE_LOCAL_PORT", "19999"))
 
 os.makedirs(_CONFIG_DIR, exist_ok=True)
@@ -161,6 +161,8 @@ def _start_local_server():
             host="127.0.0.1",
             port=LOCAL_PORT,
             log_level="error",
+            log_config=None,     # prevents "Unable to configure formatter" in frozen .exe
+            access_log=False,
         )
     except Exception as e:
         _log(f"Local server error: {e}")

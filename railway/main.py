@@ -25,7 +25,7 @@ LS_WEBHOOK_SECRET  = os.environ.get("LS_WEBHOOK_SECRET", "")
 LS_STORE_ID        = os.environ.get("LS_STORE_ID", "")
 LS_VARIANT_MONTHLY = os.environ.get("LS_VARIANT_MONTHLY", "")
 LS_VARIANT_YEARLY  = os.environ.get("LS_VARIANT_YEARLY", "")
-BASE_URL           = os.environ.get("BASE_URL", "https://structiq-online.up.railway.app")
+BASE_URL           = os.environ.get("BASE_URL", "https://structiqonline-production.up.railway.app")
 
 app = FastAPI(title="StructIQ — Auth Server")
 
