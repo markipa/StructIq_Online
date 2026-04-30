@@ -1906,6 +1906,18 @@ body {
   padding: 3px 8px; cursor: pointer; white-space: nowrap;
 }
 .bridge-launch-btn:hover { background: #2563eb; }
+.bridge-login-box {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 12px; background: #07192e;
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+.bridge-login-input {
+  background: #05101e; border: 1px solid rgba(255,255,255,.12);
+  border-radius: 6px; color: #f1f5f9; padding: 6px 10px;
+  font-size: 12px; outline: none; width: 100%;
+}
+.bridge-login-input:focus { border-color: #3b82f6; }
+.bridge-login-msg { font-size: 11px; color: #ef4444; min-height: 14px; }
 
 /* ── User pill ─────────────────────────────────────────────── */
 .user-pill {

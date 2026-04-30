@@ -192,6 +192,13 @@
            id="bridge-install-link" class="bridge-install-link hidden"
            target="_blank">Install</a>
       </div>
+      <!-- Bridge inline login (shown when bridge running but not signed in) -->
+      <div id="bridge-login-box" class="bridge-login-box hidden">
+        <input id="bridge-email" type="email" placeholder="Email" class="bridge-login-input" autocomplete="email">
+        <input id="bridge-pass"  type="password" placeholder="Password" class="bridge-login-input" autocomplete="current-password">
+        <button class="bridge-launch-btn" onclick="bridgeSignIn()">Connect</button>
+        <span id="bridge-login-msg" class="bridge-login-msg"></span>
+      </div>
 
       <!-- User pill (shown after login) -->
       <div id="user-pill" class="user-pill hidden">

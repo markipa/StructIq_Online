@@ -262,8 +262,6 @@ async def _bridge_client(token: str):
                 _log(f"Bridge connected as {user_name}")
                 _update_tray("connected")
                 reconnect_delay = 5
-                import webbrowser
-                webbrowser.open("https://structiqonline-production.up.railway.app")
 
                 async with httpx.AsyncClient(timeout=90.0) as http:
                     async for raw in ws:
@@ -453,15 +451,11 @@ def main():
                 if token_holder:
                     token = token_holder[-1]
                 else:
-                    _log("No token found — open http://localhost:{}/bridge-setup to sign in".format(LOCAL_PORT))
+                    _log("No token — waiting for login via web app (localhost:{}/bridge-login)".format(LOCAL_PORT))
                     _update_tray("no_token")
-                    import webbrowser
-                    webbrowser.open(f"http://localhost:{LOCAL_PORT}/bridge-setup")
-                    # Wait for login
-                    for _ in range(300):   # up to 5 min
-                        await asyncio.sleep(1)
-                        if _load_token() or token_holder:
-                            break
+                    # Wait silently — web app will POST to /bridge-login when user signs in
+                    while not _load_token() and not token_holder:
+                        await asyncio.sleep(2)
                     continue
 
             await _bridge_client(token)

@@ -179,43 +179,84 @@ function _isBridgeModeAvailable() {
   return host !== 'localhost' && host !== '127.0.0.1';
 }
 
+const BRIDGE_LOCAL = 'http://localhost:19999';
+
 async function _checkBridgeStatus() {
   try {
-    const res = await authFetch('/api/bridge/status');
-    if (!res.ok) return;
-    const data = await res.json();
-    _setBridgeUI(data.connected === true);
+    // 1. Check if bridge process is running locally
+    const localRes = await fetch(`${BRIDGE_LOCAL}/api/status`, { signal: AbortSignal.timeout(1500) });
+    if (!localRes.ok) { _setBridgeUI('offline'); return; }
+
+    // 2. Check if bridge is authenticated + connected to Railway
+    const railRes = await authFetch('/api/bridge/status');
+    if (!railRes.ok) { _setBridgeUI('needs_login'); return; }
+    const data = await railRes.json();
+    _setBridgeUI(data.connected ? 'connected' : 'needs_login');
   } catch {
-    _setBridgeUI(false);
+    _setBridgeUI('offline');
   }
 }
 
-function _setBridgeUI(connected) {
-  _bridgeConnected = connected;
-  const bar   = document.getElementById('bridge-status-bar');
-  const dot   = document.getElementById('bridge-dot');
-  const label = document.getElementById('bridge-label');
-  const link  = document.getElementById('bridge-install-link');
+// state: 'connected' | 'needs_login' | 'offline'
+function _setBridgeUI(state) {
+  _bridgeConnected = (state === 'connected');
+  const bar       = document.getElementById('bridge-status-bar');
+  const dot       = document.getElementById('bridge-dot');
+  const label     = document.getElementById('bridge-label');
+  const link      = document.getElementById('bridge-install-link');
   const launchBtn = document.getElementById('bridge-launch-btn');
+  const loginBox  = document.getElementById('bridge-login-box');
   if (!bar) return;
   bar.classList.remove('hidden');
   dot.classList.remove('bridge-dot--on', 'bridge-dot--off', 'bridge-dot--spin');
-  if (connected) {
+
+  if (state === 'connected') {
     dot.classList.add('bridge-dot--on');
     label.textContent = 'ETABS bridge connected';
-    link && link.classList.add('hidden');
+    link      && link.classList.add('hidden');
     launchBtn && launchBtn.classList.add('hidden');
+    loginBox  && loginBox.classList.add('hidden');
+  } else if (state === 'needs_login') {
+    dot.classList.add('bridge-dot--off');
+    label.textContent = 'Bridge: sign in';
+    link      && link.classList.add('hidden');
+    launchBtn && launchBtn.classList.add('hidden');
+    loginBox  && loginBox.classList.remove('hidden');
   } else {
+    // offline — bridge not running
     dot.classList.add('bridge-dot--off');
     label.textContent = 'Bridge offline';
-    link && link.classList.remove('hidden');
+    link      && link.classList.remove('hidden');
     launchBtn && launchBtn.classList.remove('hidden');
+    loginBox  && loginBox.classList.add('hidden');
+  }
+}
+
+async function bridgeSignIn() {
+  const email = document.getElementById('bridge-email').value.trim();
+  const pass  = document.getElementById('bridge-pass').value;
+  const msg   = document.getElementById('bridge-login-msg');
+  if (!email || !pass) { msg.textContent = 'Enter email and password.'; return; }
+  msg.textContent = 'Connecting…';
+  try {
+    const res = await fetch(`${BRIDGE_LOCAL}/bridge-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      msg.textContent = '';
+      _checkBridgeStatus();
+    } else {
+      msg.textContent = data.detail || 'Login failed.';
+    }
+  } catch {
+    msg.textContent = 'Cannot reach bridge. Is it running?';
   }
 }
 
 function launchBridge() {
-  // Opens the bridge .exe via the structiq:// URI scheme registered on install.
-  // If not installed, falls through to the install link.
   window.location.href = 'structiq://connect';
 }
 
