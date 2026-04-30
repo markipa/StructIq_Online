@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+websockets
+httpx
+pystray
+pillow
+comtypes
+pydantic
+requests
+pyinstaller

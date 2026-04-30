@@ -3,16 +3,21 @@ Railway Cloud Server — StructIQ Auth & Billing
 Handles: user accounts, sessions, subscription plans
 Deployed to Railway.app — no ETABS code here
 """
-from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi import FastAPI, HTTPException, Request, Depends, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 import database
 import httpx
 import hmac
 import hashlib
 import os
+import asyncio
+import importlib.util as _ilu
+
+from bridge_registry import bridge_registry
 
 # ─── Lemon Squeezy config ─────────────────────────────────────────
 LS_API_KEY         = os.environ.get("LS_API_KEY", "")
@@ -20,7 +25,7 @@ LS_WEBHOOK_SECRET  = os.environ.get("LS_WEBHOOK_SECRET", "")
 LS_STORE_ID        = os.environ.get("LS_STORE_ID", "")
 LS_VARIANT_MONTHLY = os.environ.get("LS_VARIANT_MONTHLY", "")
 LS_VARIANT_YEARLY  = os.environ.get("LS_VARIANT_YEARLY", "")
-BASE_URL           = os.environ.get("BASE_URL", "https://structiq-production.up.railway.app")
+BASE_URL           = os.environ.get("BASE_URL", "https://structiqonline-production.up.railway.app")
 
 app = FastAPI(title="StructIQ — Auth Server")
 
@@ -945,4 +950,557 @@ loadUsers();
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "structiq-auth"}
+    return {"status": "ok", "service": "structiq-web"}
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  PMM ENGINE (pure math — no ETABS needed)
+# ═══════════════════════════════════════════════════════════════════
+
+_RAILWAY_DIR = os.path.dirname(os.path.abspath(__file__))
+_PMM_PATH = os.path.join(_RAILWAY_DIR, '..', 'backend', 'pmm_engine.py')
+
+_HAS_PMM = False
+try:
+    _spec = _ilu.spec_from_file_location('pmm_engine', _PMM_PATH)
+    _pme = _ilu.module_from_spec(_spec)
+    _spec.loader.exec_module(_pme)
+    PMMSection   = _pme.PMMSection
+    compute_pmm  = _pme.compute_pmm
+    check_demands= _pme.check_demands
+    rect_coords  = _pme.rect_coords
+    rect_bars_grid = _pme.rect_bars_grid
+    REBAR_TABLE  = _pme.REBAR_TABLE
+    _HAS_PMM = True
+except Exception:
+    pass
+
+# Unit conversion constants (engine works in kips/inches)
+_MM_TO_IN    = 1.0 / 25.4
+_MPA_TO_KSI  = 1.0 / 6.89476
+_KN_TO_KIPS  = 1.0 / 4.44822
+_KNM_TO_KIN  = 1.0 / 0.112985
+_IN_TO_MM    = 25.4
+_KSI_TO_MPA  = 6.89476
+_KIPS_TO_KN  = 4.44822
+_KIN_TO_KNM  = 0.112985
+_IN2_TO_MM2  = 645.16
+
+REBAR_TABLE_SI = {
+    "Ø8":  50.3,  "Ø10":  78.5,  "Ø12": 113.1,
+    "Ø16": 201.1, "Ø20": 314.2,  "Ø25": 490.9,
+    "Ø28": 615.8, "Ø32": 804.2,  "Ø36": 1017.9,
+    "Ø40": 1256.6,
+}
+
+# Per-user PMM cache  {user_id: {"alpha_data": ..., "Pmax": ..., "Pmin": ..., "si": bool}}
+_pmm_cache: dict = {}
+
+
+def _get_pmm_user(request: Request) -> dict:
+    """Extract user from Bearer token (Railway DB)."""
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        raise HTTPException(401, "Not authenticated")
+    user = database.get_user_by_token(auth[7:])
+    if not user:
+        raise HTTPException(401, "Invalid or expired session")
+    return user
+
+
+class PMMRequest(BaseModel):
+    b: float
+    h: float
+    fc: float
+    fy: float
+    Es: float = 200000.0
+    cover: float
+    stirrup_dia_mm: float = 10.0
+    nbars_b: int = 3
+    nbars_h: int = 1
+    bar_size: str = "Ø20"
+    include_phi: bool = True
+    alpha_steps: float = 5.0
+    num_points: int = 225
+    units: str = "SI"
+    demand_P: Optional[float] = None
+    demand_Mx: Optional[float] = None
+    demand_My: Optional[float] = None
+
+
+class PMMCheckRequest(BaseModel):
+    demands: list
+
+
+class PMMOptimizeRequest(BaseModel):
+    b_mm: float
+    h_mm: float
+    fc_mpa: float
+    fy_mpa: float
+    Es_mpa: float = 200000.0
+    cover_mm: float
+    stirrup_dia_mm: float = 10.0
+    include_phi: bool = True
+    bar_size: str = "Ø20"
+    target_dcr: float = 0.90
+    min_rho_pct: float = 1.0
+    max_rho_pct: float = 4.0
+    alpha_steps: float = 10.0
+    num_points: int = 70
+    demands: list = []
+    sweep_bar_sizes: bool = False
+    bar_size_candidates: List[str] = []
+
+
+@app.post("/api/pmm/calculate")
+def pmm_calculate(body: PMMRequest, request: Request):
+    if not _HAS_PMM:
+        raise HTTPException(503, "PMM engine not available.")
+    user = _get_pmm_user(request)
+    uid = user["id"]
+
+    _REBAR_DIA_MM = {
+        "Ø8": 8.0, "Ø10": 10.0, "Ø12": 12.0, "Ø16": 16.0, "Ø20": 20.0,
+        "Ø25": 25.0, "Ø28": 28.0, "Ø32": 32.0, "Ø36": 36.0, "Ø40": 40.0,
+    }
+    si = body.units.upper() == "SI"
+    if si:
+        bar_area_mm2 = REBAR_TABLE_SI.get(body.bar_size)
+        if bar_area_mm2 is None:
+            raise HTTPException(422, f"Unknown bar size '{body.bar_size}'.")
+        bar_dia_mm   = _REBAR_DIA_MM.get(body.bar_size, 20.0)
+        eff_cover_mm = body.cover + body.stirrup_dia_mm + bar_dia_mm / 2.0
+        b_in     = body.b  * _MM_TO_IN;  h_in  = body.h  * _MM_TO_IN
+        fc_ksi   = body.fc * _MPA_TO_KSI; fy_ksi = body.fy * _MPA_TO_KSI
+        Es_ksi   = body.Es * _MPA_TO_KSI
+        cover_in = eff_cover_mm * _MM_TO_IN
+        bar_area = bar_area_mm2 * (_MM_TO_IN ** 2)
+    else:
+        bar_area = REBAR_TABLE.get(body.bar_size)
+        if bar_area is None:
+            raise HTTPException(422, f"Unknown bar size '{body.bar_size}'.")
+        b_in = body.b; h_in = body.h
+        fc_ksi = body.fc; fy_ksi = body.fy; Es_ksi = body.Es
+        cover_in = body.cover
+
+    if b_in <= 0 or h_in <= 0:
+        raise HTTPException(422, "b and h must be positive.")
+    nbars_b = max(2, body.nbars_b)
+    nbars_h = max(0, body.nbars_h)
+    corners = rect_coords(b_in, h_in)
+    areas, positions = rect_bars_grid(b_in, h_in, cover_in, nbars_b, nbars_h, bar_area)
+    sec = PMMSection(
+        corner_coords=corners, fc=fc_ksi, fy=fy_ksi, Es=Es_ksi,
+        alpha_steps=body.alpha_steps, num_points=body.num_points,
+        include_phi=body.include_phi, bar_areas=areas, bar_positions=positions,
+    )
+    try:
+        result = compute_pmm(sec)
+    except Exception as exc:
+        raise HTTPException(500, f"PMM computation failed: {exc}")
+
+    if si:
+        def _cvt(r):
+            r['surface']['P']  = [round(v * _KIPS_TO_KN, 2) for v in r['surface']['P']]
+            r['surface']['Mx'] = [round(v * _KIN_TO_KNM, 3) for v in r['surface']['Mx']]
+            r['surface']['My'] = [round(v * _KIN_TO_KNM, 3) for v in r['surface']['My']]
+            for curve in r.get('alpha_data', {}).values():
+                curve['P']  = [round(v * _KIPS_TO_KN, 2)  for v in curve['P']]
+                curve['Mx'] = [round(v * _KIN_TO_KNM, 3) for v in curve['Mx']]
+                curve['My'] = [round(v * _KIN_TO_KNM, 3) for v in curve['My']]
+            for curve in r.get('curves_2d', {}).values():
+                curve['P']  = [round(v * _KIPS_TO_KN, 2)  for v in curve['P']]
+                curve['Mx'] = [round(v * _KIN_TO_KNM, 3) for v in curve['Mx']]
+                curve['My'] = [round(v * _KIN_TO_KNM, 3) for v in curve['My']]
+            r['Pmax']     = round(r['Pmax']     * _KIPS_TO_KN, 2)
+            r['Pmin']     = round(r['Pmin']     * _KIPS_TO_KN, 2)
+            r['Ag']       = round(r['Ag']       * _IN2_TO_MM2, 0)
+            r['Ast']      = round(r['Ast']      * _IN2_TO_MM2, 1)
+            r['centroid'] = [round(v * _IN_TO_MM, 1) for v in r['centroid']]
+            return r
+        result = _cvt(result)
+
+    _pmm_cache[uid] = {
+        'alpha_data': result.get('alpha_data', {}),
+        'Pmax': result.get('Pmax', 0),
+        'Pmin': result.get('Pmin', 0),
+        'si': si,
+    }
+    result['units'] = 'SI' if si else 'US'
+    result['demand'] = None
+    if body.demand_P is not None:
+        result['demand'] = {'P': body.demand_P, 'Mx': body.demand_Mx or 0.0, 'My': body.demand_My or 0.0}
+    return result
+
+
+@app.post("/api/pmm/check")
+def pmm_check(body: PMMCheckRequest, request: Request):
+    if not _HAS_PMM:
+        raise HTTPException(503, "PMM engine not available.")
+    user = _get_pmm_user(request)
+    cache = _pmm_cache.get(user["id"])
+    if not cache or cache['alpha_data'] is None:
+        raise HTTPException(400, "No PMM surface computed yet. Run Calculate first.")
+    demands = [{'label': d.get('label', ''), 'P': float(d.get('P', 0)),
+                'Mx': float(d.get('Mx', 0)), 'My': float(d.get('My', 0))}
+               for d in body.demands]
+    raw = check_demands(cache['alpha_data'], cache['Pmax'], cache['Pmin'], demands)
+    return {'results': raw}
+
+
+@app.post("/api/pmm/optimize")
+def pmm_optimize(body: PMMOptimizeRequest, request: Request):
+    if not _HAS_PMM:
+        raise HTTPException(503, "PMM engine not available.")
+    _get_pmm_user(request)  # auth check
+
+    import math as _math
+    _REBAR_DIA_MM = {
+        "Ø8": 8.0, "Ø10": 10.0, "Ø12": 12.0, "Ø16": 16.0, "Ø20": 20.0,
+        "Ø25": 25.0, "Ø28": 28.0, "Ø32": 32.0, "Ø36": 36.0, "Ø40": 40.0,
+    }
+    candidates = body.bar_size_candidates if (body.sweep_bar_sizes and body.bar_size_candidates) \
+        else list(REBAR_TABLE_SI.keys())
+
+    bar_dia_mm   = _REBAR_DIA_MM.get(body.bar_size, 20.0)
+    eff_cover_mm = body.cover_mm + body.stirrup_dia_mm + bar_dia_mm / 2.0
+
+    nbars_b = 3; nbars_h = 1  # defaults — override from PMMRequest context if available
+    demands = [{'label': d.get('label', ''), 'P': float(d.get('P', 0)),
+                'Mx': float(d.get('Mx', 0)), 'My': float(d.get('My', 0))}
+               for d in body.demands]
+
+    best_bar = None; best_dcr = None; best_rho = None
+
+    for bar_key in candidates:
+        bar_area_mm2 = REBAR_TABLE_SI.get(bar_key)
+        if not bar_area_mm2:
+            continue
+        bdia = _REBAR_DIA_MM.get(bar_key, 20.0)
+        eff_cov = body.cover_mm + body.stirrup_dia_mm + bdia / 2.0
+        b_in = body.b_mm * _MM_TO_IN; h_in = body.h_mm * _MM_TO_IN
+        fc_k = body.fc_mpa * _MPA_TO_KSI; fy_k = body.fy_mpa * _MPA_TO_KSI
+        Es_k = body.Es_mpa * _MPA_TO_KSI
+        cov  = eff_cov * _MM_TO_IN
+        ba   = bar_area_mm2 * (_MM_TO_IN ** 2)
+        corners = rect_coords(b_in, h_in)
+        areas, positions = rect_bars_grid(b_in, h_in, cov, nbars_b, nbars_h, ba)
+        Ag_mm2 = body.b_mm * body.h_mm
+        n_bars = 2 * nbars_b + 2 * nbars_h
+        Ast_mm2 = n_bars * bar_area_mm2
+        rho = Ast_mm2 / Ag_mm2 * 100
+        if rho < body.min_rho_pct or rho > body.max_rho_pct:
+            continue
+        sec = PMMSection(corner_coords=corners, fc=fc_k, fy=fy_k, Es=Es_k,
+                         alpha_steps=body.alpha_steps, num_points=body.num_points,
+                         include_phi=body.include_phi, bar_areas=areas, bar_positions=positions)
+        pmm_raw = compute_pmm(sec)
+        ad = pmm_raw.get('alpha_data', {})
+        for curve in ad.values():
+            curve['P']  = [v * _KIPS_TO_KN  for v in curve['P']]
+            curve['Mx'] = [v * _KIN_TO_KNM for v in curve['Mx']]
+            curve['My'] = [v * _KIN_TO_KNM for v in curve['My']]
+        Pmax = pmm_raw['Pmax'] * _KIPS_TO_KN
+        Pmin = pmm_raw['Pmin'] * _KIPS_TO_KN
+        if not demands:
+            best_bar = bar_key; best_rho = rho; best_dcr = 0.0
+            break
+        chk = check_demands(ad, Pmax, Pmin, demands)
+        max_dcr = max((r.get('dcr', 0) for r in chk), default=0)
+        if max_dcr <= body.target_dcr:
+            best_bar = bar_key; best_rho = rho; best_dcr = max_dcr
+            break
+
+    return {
+        "optimized_bar": best_bar,
+        "optimized_rho_pct": round(best_rho, 2) if best_rho else None,
+        "optimized_dcr": round(best_dcr, 3) if best_dcr is not None else None,
+        "status": "OPTIMAL" if best_bar else "NO_SOLUTION",
+    }
+
+
+@app.get("/api/pmm/rebar-table")
+def pmm_rebar_table(units: str = "SI"):
+    if units.upper() == "SI":
+        return {"bars": [{"size": k, "area_mm2": v} for k, v in REBAR_TABLE_SI.items()]}
+    if _HAS_PMM:
+        return {"bars": [{"size": k, "area_in2": v} for k, v in REBAR_TABLE.items()]}
+    return {"bars": []}
+
+
+@app.get("/api/ping")
+def ping():
+    return {"source": "railway-web", "bridge_enabled": True}
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  WEBSOCKET BRIDGE — engineers register their local ETABS here
+# ═══════════════════════════════════════════════════════════════════
+
+@app.websocket("/ws/bridge")
+async def bridge_ws(ws: WebSocket):
+    await ws.accept()
+    user_id: Optional[int] = None
+    try:
+        # Step 1 — authenticate
+        msg = await asyncio.wait_for(ws.receive_json(), timeout=15)
+        if msg.get("type") != "auth":
+            await ws.send_json({"type": "auth_fail", "reason": "first message must be auth"})
+            return
+        token = msg.get("token", "")
+        user = database.get_user_by_token(token)
+        if not user:
+            await ws.send_json({"type": "auth_fail", "reason": "invalid token"})
+            return
+        user_id = user["id"]
+        bridge_registry.register(user_id, ws)
+        await ws.send_json({"type": "auth_ok", "user_id": user_id, "name": user.get("name", "")})
+
+        # Step 2 — relay responses from bridge back to waiting HTTP handlers
+        async for message in ws.iter_json():
+            if message.get("type") == "response":
+                bridge_registry.resolve(message["request_id"], message)
+            elif message.get("type") == "ping":
+                await ws.send_json({"type": "pong"})
+
+    except WebSocketDisconnect:
+        pass
+    except asyncio.TimeoutError:
+        pass
+    except Exception:
+        pass
+    finally:
+        if user_id is not None:
+            bridge_registry.unregister(user_id)
+
+
+# ─── Bridge status ────────────────────────────────────────────────
+
+@app.get("/api/bridge/status")
+def bridge_status(request: Request):
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return {"connected": False}
+    user = database.get_user_by_token(auth[7:])
+    if not user:
+        return {"connected": False}
+    return {"connected": bridge_registry.is_connected(user["id"])}
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  ETABS PROXY — all routes that require local ETABS forward here
+# ═══════════════════════════════════════════════════════════════════
+
+_BRIDGE_OFFLINE_DETAIL = {
+    "bridge_required": True,
+    "message": (
+        "ETABS bridge not connected. "
+        "Please run StructIQ Bridge on your local machine."
+    ),
+}
+
+
+async def _proxy(request: Request, method: str, path: str,
+                 body=None, params: Optional[dict] = None,
+                 timeout: float = 60.0) -> dict:
+    """Forward an ETABS call to the user's registered bridge WebSocket."""
+    auth = request.headers.get("Authorization", "")
+    user = database.get_user_by_token(auth[7:] if auth.startswith("Bearer ") else "")
+    if not user:
+        raise HTTPException(401, "Not authenticated")
+
+    result = await bridge_registry.proxy(user["id"], method, path, body, params, timeout=timeout)
+
+    if result.get("__bridge_offline__"):
+        raise HTTPException(503, detail=_BRIDGE_OFFLINE_DETAIL)
+    if result.get("__bridge_timeout__"):
+        raise HTTPException(504, "Bridge request timed out after 60 s")
+    if result.get("__bridge_error__"):
+        raise HTTPException(502, f"Bridge error: {result['__bridge_error__']}")
+
+    status = result.get("status", 200)
+    body_data = result.get("body", result)
+    if status >= 400:
+        detail = body_data.get("detail", "Bridge returned an error") if isinstance(body_data, dict) else str(body_data)
+        raise HTTPException(status, detail=detail)
+    return body_data
+
+
+# ── ETABS status & load data ──────────────────────────────────────
+
+@app.get("/api/status")
+async def proxy_status(request: Request):
+    return await _proxy(request, "GET", "/api/status")
+
+@app.get("/api/load-combinations")
+async def proxy_load_combinations(request: Request):
+    return await _proxy(request, "GET", "/api/load-combinations")
+
+@app.get("/api/load-cases")
+async def proxy_load_cases(request: Request):
+    return await _proxy(request, "GET", "/api/load-cases")
+
+@app.post("/api/load-combinations/generate")
+async def proxy_gen_combos(request: Request):
+    params = dict(request.query_params)
+    return await _proxy(request, "POST", "/api/load-combinations/generate", params=params)
+
+@app.post("/api/load-combinations/generate-batch")
+async def proxy_gen_combos_batch(request: Request):
+    body = await request.json()
+    return await _proxy(request, "POST", "/api/load-combinations/generate-batch", body=body)
+
+# ── Drift / torsion / reactions ───────────────────────────────────
+
+@app.post("/api/results/drifts-selected")
+async def proxy_drifts_selected(request: Request):
+    body = await request.json()
+    return await _proxy(request, "POST", "/api/results/drifts-selected", body=body)
+
+@app.get("/api/results/drifts")
+async def proxy_drifts(request: Request):
+    return await _proxy(request, "GET", "/api/results/drifts")
+
+@app.get("/api/results/torsional-irregularity")
+async def proxy_torsion(request: Request):
+    return await _proxy(request, "GET", "/api/results/torsional-irregularity")
+
+@app.get("/api/results/joint-reactions")
+async def proxy_joint_reactions(request: Request):
+    params = dict(request.query_params)
+    return await _proxy(request, "GET", "/api/results/joint-reactions", params=params)
+
+@app.get("/api/results/reactions")
+async def proxy_reactions(request: Request):
+    params = dict(request.query_params)
+    return await _proxy(request, "GET", "/api/results/reactions", params=params)
+
+# ── Section read/write ────────────────────────────────────────────
+
+@app.get("/api/sections")
+async def proxy_sections(request: Request):
+    return await _proxy(request, "GET", "/api/sections")
+
+@app.post("/api/sections/modify")
+async def proxy_sections_modify(request: Request):
+    body = await request.json()
+    return await _proxy(request, "POST", "/api/sections/modify", body=body)
+
+@app.post("/api/sections/add")
+async def proxy_sections_add(request: Request):
+    body = await request.json()
+    return await _proxy(request, "POST", "/api/sections/add", body=body)
+
+# ── RC beam/column design ─────────────────────────────────────────
+
+@app.get("/api/rc-beam/materials")
+async def proxy_rc_beam_mat(request: Request):
+    return await _proxy(request, "GET", "/api/rc-beam/materials")
+
+@app.get("/api/rc-beam/sections")
+async def proxy_rc_beam_sec(request: Request):
+    return await _proxy(request, "GET", "/api/rc-beam/sections")
+
+@app.post("/api/rc-beam/write")
+async def proxy_rc_beam_write(request: Request):
+    body = await request.json()
+    return await _proxy(request, "POST", "/api/rc-beam/write", body=body)
+
+@app.get("/api/rc-column/materials")
+async def proxy_rc_col_mat(request: Request):
+    return await _proxy(request, "GET", "/api/rc-column/materials")
+
+@app.get("/api/rc-column/sections")
+async def proxy_rc_col_sec(request: Request):
+    return await _proxy(request, "GET", "/api/rc-column/sections")
+
+@app.post("/api/rc-column/write")
+async def proxy_rc_col_write(request: Request):
+    body = await request.json()
+    return await _proxy(request, "POST", "/api/rc-column/write", body=body)
+
+@app.get("/api/rc-column/debug/{section_name}")
+async def proxy_rc_col_debug(section_name: str, request: Request):
+    return await _proxy(request, "GET", f"/api/rc-column/debug/{section_name}")
+
+# ── File cleanup ──────────────────────────────────────────────────
+
+@app.get("/api/clean/browse-folder")
+async def proxy_browse(request: Request):
+    params = dict(request.query_params)
+    return await _proxy(request, "GET", "/api/clean/browse-folder", params=params)
+
+@app.post("/api/clean/run-files")
+async def proxy_clean(request: Request):
+    body = await request.json()
+    return await _proxy(request, "POST", "/api/clean/run-files", body=body)
+
+# ── PMM ETABS routes ──────────────────────────────────────────────
+
+@app.get("/api/pmm/etabs-sections")
+async def proxy_pmm_etabs_sections(request: Request):
+    return await _proxy(request, "GET", "/api/pmm/etabs-sections")
+
+@app.get("/api/pmm/etabs-combos")
+async def proxy_pmm_etabs_combos(request: Request):
+    return await _proxy(request, "GET", "/api/pmm/etabs-combos")
+
+@app.post("/api/pmm/etabs-import-forces")
+async def proxy_pmm_etabs_import(request: Request):
+    body = await request.json()
+    return await _proxy(request, "POST", "/api/pmm/etabs-import-forces", body=body)
+
+@app.post("/api/pmm/etabs-section-forces")
+async def proxy_pmm_etabs_sec_forces(request: Request):
+    body = await request.json()
+    return await _proxy(request, "POST", "/api/pmm/etabs-section-forces", body=body)
+
+@app.get("/api/pmm/etabs-batch-diag")
+async def proxy_pmm_batch_diag(request: Request):
+    return await _proxy(request, "GET", "/api/pmm/etabs-batch-diag")
+
+@app.post("/api/pmm/etabs-batch-check")
+async def proxy_pmm_batch_check(request: Request):
+    body = await request.json()
+    return await _proxy(request, "POST", "/api/pmm/etabs-batch-check", body=body, timeout=120.0)
+
+@app.post("/api/pmm/batch-optimize")
+async def proxy_pmm_batch_optimize(request: Request):
+    body = await request.json()
+    return await _proxy(request, "POST", "/api/pmm/batch-optimize", body=body, timeout=120.0)
+
+# ── ETABS geometry / column axial ────────────────────────────────
+
+@app.post("/api/etabs/column-axial")
+async def proxy_col_axial(request: Request):
+    body = await request.json()
+    return await _proxy(request, "POST", "/api/etabs/column-axial", body=body)
+
+@app.get("/api/etabs/geometry")
+async def proxy_geometry(request: Request):
+    return await _proxy(request, "GET", "/api/etabs/geometry")
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  SERVE FRONTEND  (mount last so API routes take priority)
+# ═══════════════════════════════════════════════════════════════════
+
+_FRONTEND_DIR = os.path.join(_RAILWAY_DIR, 'frontend')
+
+if os.path.isdir(_FRONTEND_DIR):
+    # Serve individual static assets
+    app.mount("/app", StaticFiles(directory=_FRONTEND_DIR), name="app")
+
+    @app.get("/")
+    def serve_root():
+        return FileResponse(os.path.join(_FRONTEND_DIR, "index.html"))
+
+    @app.get("/{full_path:path}")
+    def serve_spa(full_path: str):
+        # Never intercept API / WebSocket / admin / billing paths
+        skip = ("api/", "ws/", "admin/", "stripe/", "health")
+        if any(full_path.startswith(p) for p in skip):
+            raise HTTPException(404)
+        idx = os.path.join(_FRONTEND_DIR, "index.html")
+        return FileResponse(idx)
+

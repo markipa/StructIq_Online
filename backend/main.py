@@ -260,7 +260,11 @@ app.add_middleware(
 
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
-    """Protect all /api/* routes except /api/auth/*."""
+    """Protect all /api/* routes except /api/auth/*.
+    BRIDGE_MODE=1 skips auth — safe because bridge only listens on 127.0.0.1.
+    """
+    if _os.environ.get("BRIDGE_MODE") == "1":
+        return await call_next(request)
     path = request.url.path
     if path.startswith("/api/") and not path.startswith("/api/auth/"):
         auth = request.headers.get("Authorization", "")
