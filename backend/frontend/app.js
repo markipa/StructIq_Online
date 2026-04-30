@@ -162,7 +162,11 @@ function forceLogout() {
 
 function bootApp() {
   // Kick off background tasks that need auth
-  checkStatus();
+  // In online/bridge mode: only check ETABS status once bridge is confirmed connected
+  // In desktop mode (localhost): always check
+  if (!_isBridgeModeAvailable()) {
+    checkStatus();
+  }
   populateReactionCombos();
   pmmInitRebarTable();  // fetch SI rebar table now that token is available
   initBridgeStatus();   // show bridge status badge when running online
@@ -253,6 +257,8 @@ function _setBridgeUI(state) {
     label.textContent = 'ETABS bridge connected';
     pathBox      && pathBox.classList.add('hidden');
     disconnectBtn && disconnectBtn.classList.remove('hidden');
+    // Now that bridge is connected, check ETABS status for connection pill
+    checkStatus();
   } else if (state === 'connecting') {
     dot.classList.add('bridge-dot--spin');
     label.textContent = 'Bridge connecting…';
@@ -1113,6 +1119,7 @@ const DRIFT_COLORS = [
 ];
 
 async function driftGetSources() {
+  if (!requireBridge('Story Drifts')) return;
   const btn = document.getElementById('btn-get-drift-sources');
   btn.textContent = 'Loading…';
   btn.disabled = true;
@@ -1429,6 +1436,7 @@ function driftRenderChart(rawData, allowable, multiplier) {
 //  3 · TORSIONAL CHECK
 // ================================================================
 async function getTorsion() {
+  if (!requireBridge('Torsional Irregularity')) return;
   const btn = document.getElementById('btn-get-torsion');
   btn.textContent = 'Checking…';
   btn.disabled = true;
@@ -1611,6 +1619,7 @@ async function populateReactionCombos() {
 }
 
 async function getReactions() {
+  if (!requireBridge('Reactions')) return;
   const btn = document.getElementById('btn-get-reactions');
   btn.textContent = 'Loading…';
   btn.disabled = true;
@@ -1833,6 +1842,7 @@ function populateJointBubbleComboSelect(data) {
 // ── Fetch ──
 // ── Phase 1: load just the list of available combos/cases into the picker ──
 async function jointLoadSources() {
+  if (!requireBridge('Joint Reactions')) return;
   const list  = document.getElementById('joint-picker-list');
   const label = document.getElementById('joint-picker-label');
   list.innerHTML = `<div class="combo-picker-empty">Loading…</div>`;
@@ -2341,6 +2351,7 @@ function lcUpdateEmptyState() {
 
 // ── Actions ──
 async function lcFetchCases() {
+  if (!requireBridge('Load Combinations')) return;
   const btn = document.getElementById('btn-get-lc');
   btn.textContent = 'Loading…';
   try {
@@ -2415,6 +2426,7 @@ function lcSetSource(src) {
 }
 
 async function lcGenerateBatch(target = 'etabs') {
+  if (!requireBridge('Generate Load Combinations')) return;
   const isSafe   = target === 'safe';
   const btnId    = isSafe ? 'btn-generate-batch-safe' : 'btn-generate-batch';
   const statId   = isSafe ? 'lc-gen-status-safe'      : 'lc-gen-status';
@@ -2785,6 +2797,7 @@ function rcbBlankRow(overrides = {}) {
 // ── API calls ─────────────────────────────────────────────────────
 
 async function rcbImportMaterials() {
+  if (!requireBridge('RC Beam')) return;
   const btn = document.getElementById('rcb-btn-import-mat');
   btn.disabled = true;
   btn.textContent = 'Loading…';
@@ -3500,6 +3513,7 @@ function rccBlankRow(overrides = {}) {
 // ── API calls ─────────────────────────────────────────────────────
 
 async function rccImportMaterials() {
+  if (!requireBridge('RC Column')) return;
   const btn = document.getElementById('rcc-btn-import-mat');
   btn.disabled = true;
   btn.textContent = 'Loading…';
@@ -7160,6 +7174,7 @@ function pmmBatchReset() { pmmBatchShowStep(1); }
 
 // ── Fetch combos from ETABS ───────────────────────────────────────
 async function pmmBatchFetchCombos() {
+  if (!requireBridge('PMM Batch Check')) return;
   const wrap = document.getElementById('pmm-batch-combos-wrap');
   const note = document.getElementById('pmm-batch-note');
   wrap.innerHTML = '<div class="pmm-etabs-combo-hint">Loading from ETABS…</div>';
@@ -8537,6 +8552,7 @@ function lcSubTab(tab) {
 }
 
 async function lcEnvFetchCombos() {
+  if (!requireBridge('Load Envelope')) return;
   const btn    = document.getElementById('btn-env-fetch');
   const status = document.getElementById('env-fetch-status');
   if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
@@ -8662,6 +8678,7 @@ function _lcEnvInsertInOrder(selectEl, opt) {
 }
 
 async function lcEnvCreate() {
+  if (!requireBridge('Load Envelope')) return;
   const nameEl   = document.getElementById('env-name-input');
   const statusEl = document.getElementById('env-create-status');
   const resultsEl = document.getElementById('env-results');
@@ -8743,6 +8760,7 @@ let _lciPreviewName = null; // currently previewed combo name
 // ── Open / Close ──────────────────────────────────────────────────
 
 async function lcImportOpen() {
+  if (!requireBridge('Import Load Combinations')) return;
   const modal     = document.getElementById('lc-import-modal');
   const statusEl  = document.getElementById('lc-import-status');
   const listEl    = document.getElementById('lci-list');
