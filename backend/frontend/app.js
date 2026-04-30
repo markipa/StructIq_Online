@@ -196,18 +196,27 @@ function _setBridgeUI(connected) {
   const dot   = document.getElementById('bridge-dot');
   const label = document.getElementById('bridge-label');
   const link  = document.getElementById('bridge-install-link');
+  const launchBtn = document.getElementById('bridge-launch-btn');
   if (!bar) return;
   bar.classList.remove('hidden');
   dot.classList.remove('bridge-dot--on', 'bridge-dot--off', 'bridge-dot--spin');
   if (connected) {
     dot.classList.add('bridge-dot--on');
     label.textContent = 'ETABS bridge connected';
-    link.classList.add('hidden');
+    link && link.classList.add('hidden');
+    launchBtn && launchBtn.classList.add('hidden');
   } else {
     dot.classList.add('bridge-dot--off');
     label.textContent = 'Bridge offline';
-    link.classList.remove('hidden');
+    link && link.classList.remove('hidden');
+    launchBtn && launchBtn.classList.remove('hidden');
   }
+}
+
+function launchBridge() {
+  // Opens the bridge .exe via the structiq:// URI scheme registered on install.
+  // If not installed, falls through to the install link.
+  window.location.href = 'structiq://connect';
 }
 
 function initBridgeStatus() {
@@ -230,7 +239,7 @@ function requireBridge(featureName = 'This feature') {
   if (_bridgeConnected) return true;
   showToast(
     `${featureName} requires the StructIQ Bridge. ` +
-    'Download and run StructIQ-Bridge.exe on the machine where ETABS is installed.'
+    'Click "Launch Bridge" in the sidebar to start it, or install it if you haven\'t already.'
   );
   return false;
 }

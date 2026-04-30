@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>StructIQ â€” Structural Analysis</title>
+  <title>StructIQ — Structural Analysis</title>
   <link rel="icon" type="image/svg+xml"  href="/app/favicon.svg">
   <link rel="icon" type="image/x-icon"   href="/favicon.ico">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -14,7 +14,7 @@
 
 <div class="app-shell">
 
-  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• SIDEBAR â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+  <!-- ══════════════════ SIDEBAR ══════════════════ -->
   <aside class="sidebar">
 
     <div class="sidebar-brand">
@@ -152,7 +152,7 @@
              stroke="#ea6c00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M10 2L4 10h5l-1 6 6-8h-5l1-6z" fill="#ea6c00" stroke="none"/>
         </svg>
-        âš¡ Batch Check
+        ⚡ Batch Check
         <span class="nav-plan-badge" style="background:#ea6c00">PRO</span>
       </a>
 
@@ -184,16 +184,20 @@
       <div id="bridge-status-bar" class="bridge-status-bar hidden">
         <span id="bridge-dot" class="bridge-dot bridge-dot--off"></span>
         <span id="bridge-label" class="bridge-status-label">Bridge offline</span>
+        <button id="bridge-launch-btn" class="bridge-launch-btn hidden"
+                onclick="launchBridge()" title="Launch StructIQ Bridge on this machine">
+          ▶ Launch Bridge
+        </button>
         <a href="https://structiqonline-production.up.railway.app/bridge-download"
            id="bridge-install-link" class="bridge-install-link hidden"
-           target="_blank">Install Bridge</a>
+           target="_blank">Install</a>
       </div>
 
       <!-- User pill (shown after login) -->
       <div id="user-pill" class="user-pill hidden">
         <div class="user-avatar" id="user-avatar">?</div>
         <div class="user-pill-info">
-          <span class="user-pill-name" id="user-pill-name">â€”</span>
+          <span class="user-pill-name" id="user-pill-name">—</span>
           <span class="user-pill-plan" id="user-pill-plan">free</span>
         </div>
         <button id="btn-manage-sub" class="user-manage-sub-btn hidden" title="Manage subscription">
@@ -216,15 +220,15 @@
 
   </aside>
 
-  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• MAIN CONTENT â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+  <!-- ══════════════════ MAIN CONTENT ══════════════════ -->
   <main class="main-content">
 
-    <!-- â”€â”€â”€â”€â”€ STORY DRIFTS â”€â”€â”€â”€â”€ -->
+    <!-- ───── STORY DRIFTS ───── -->
     <section id="drifts-panel" class="panel active">
       <div class="panel-header">
         <div class="panel-title-group">
           <h1 class="panel-title">Story Drift Extractor</h1>
-          <span class="panel-sub">Elevation vs drift â€” plot multiple load cases with allowable limit line</span>
+          <span class="panel-sub">Elevation vs drift — plot multiple load cases with allowable limit line</span>
         </div>
         <div class="header-controls">
 
@@ -270,7 +274,7 @@
                   <line x1="10" y1="10" x2="14" y2="14"/>
                 </svg>
                 <input type="text" id="drift-picker-search"
-                       placeholder="Search sourcesâ€¦" autocomplete="off">
+                       placeholder="Search sources…" autocomplete="off">
               </div>
               <div class="combo-picker-actions">
                 <button id="drift-pick-all" type="button">Select All</button>
@@ -303,7 +307,7 @@
         </div>
       </div>
 
-      <!-- â”€â”€ Tab bar (same pattern as Joint Reactions) â”€â”€ -->
+      <!-- ── Tab bar (same pattern as Joint Reactions) ── -->
       <div class="tab-bar">
         <button class="tab-btn active" data-tab="drift-table-tab">
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
@@ -324,7 +328,7 @@
         </button>
       </div>
 
-      <!-- â”€â”€ Tab 1: Results Table â”€â”€ -->
+      <!-- ── Tab 1: Results Table ── -->
       <div id="drift-table-tab" class="tab-panel active">
         <div id="drift-table-empty" class="reactions-chart-empty">
           <svg width="64" height="64" viewBox="0 0 64 64" fill="none"
@@ -350,7 +354,7 @@
               </tr>
               <tr>
                 <th>Raw Ratio</th>
-                <th>Ã— Multiplier</th>
+                <th>× Multiplier</th>
               </tr>
             </thead>
             <tbody id="drift-table-body"></tbody>
@@ -358,7 +362,7 @@
         </div>
       </div>
 
-      <!-- â”€â”€ Tab 2: Drift Chart â”€â”€ -->
+      <!-- ── Tab 2: Drift Chart ── -->
       <div id="drift-chart-tab" class="tab-panel">
         <div id="drift-chart-empty" class="reactions-chart-empty">
           <svg width="72" height="72" viewBox="0 0 72 72" fill="none"
@@ -379,12 +383,12 @@
 
     </section>
 
-    <!-- â”€â”€â”€â”€â”€ TORSIONAL CHECK â”€â”€â”€â”€â”€ -->
+    <!-- ───── TORSIONAL CHECK ───── -->
     <section id="torsion-panel" class="panel">
       <div class="panel-header">
         <div class="panel-title-group">
           <h1 class="panel-title">Torsional Irregularity</h1>
-          <span class="panel-sub">Max / Avg drift ratio per story â€” irregular when ratio &gt; 1.2</span>
+          <span class="panel-sub">Max / Avg drift ratio per story — irregular when ratio &gt; 1.2</span>
         </div>
         <button id="btn-get-torsion" class="btn btn-primary">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
@@ -411,7 +415,7 @@
       </div>
     </section>
 
-    <!-- â”€â”€â”€â”€â”€ BASE REACTIONS â”€â”€â”€â”€â”€ -->
+    <!-- ───── BASE REACTIONS ───── -->
     <section id="reactions-panel" class="panel">
       <div class="panel-header">
         <div class="panel-title-group">
@@ -446,7 +450,7 @@
                   <line x1="10" y1="10" x2="14" y2="14"/>
                 </svg>
                 <input type="text" id="combo-picker-search"
-                       placeholder="Search combinationsâ€¦" autocomplete="off">
+                       placeholder="Search combinations…" autocomplete="off">
               </div>
               <!-- Quick actions -->
               <div class="combo-picker-actions">
@@ -471,7 +475,7 @@
         </div>
       </div>
 
-      <!-- â”€â”€ Tab bar â”€â”€ -->
+      <!-- ── Tab bar ── -->
       <div class="tab-bar">
         <button class="tab-btn active" data-tab="reactions-table-tab">
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
@@ -494,7 +498,7 @@
         </button>
       </div>
 
-      <!-- â”€â”€ Tab 1: Results Table â”€â”€ -->
+      <!-- ── Tab 1: Results Table ── -->
       <div id="reactions-table-tab" class="tab-panel active">
         <div class="table-card">
           <table class="data-table">
@@ -508,9 +512,9 @@
                 <th>FX <span class="unit">kN</span></th>
                 <th>FY <span class="unit">kN</span></th>
                 <th>FZ <span class="unit">kN</span></th>
-                <th>MX <span class="unit">kNÂ·m</span></th>
-                <th>MY <span class="unit">kNÂ·m</span></th>
-                <th>MZ <span class="unit">kNÂ·m</span></th>
+                <th>MX <span class="unit">kN·m</span></th>
+                <th>MY <span class="unit">kN·m</span></th>
+                <th>MZ <span class="unit">kN·m</span></th>
               </tr>
             </thead>
             <tbody id="reactions-tbody">
@@ -524,7 +528,7 @@
         </div>
       </div>
 
-      <!-- â”€â”€ Tab 2: Force Chart â”€â”€ -->
+      <!-- ── Tab 2: Force Chart ── -->
       <div id="reactions-chart-tab" class="tab-panel">
         <div class="reactions-chart-card">
 
@@ -537,7 +541,7 @@
             <button class="force-toggle active" data-force="MX">MX</button>
             <button class="force-toggle active" data-force="MY">MY</button>
             <button class="force-toggle active" data-force="MZ">MZ</button>
-            <span class="force-unit-note">kN Â· kNÂ·m</span>
+            <span class="force-unit-note">kN · kN·m</span>
           </div>
 
           <!-- Chart area -->
@@ -561,7 +565,7 @@
       </div>
     </section>
 
-    <!-- â”€â”€â”€â”€â”€ JOINT / SPRING REACTIONS â”€â”€â”€â”€â”€ -->
+    <!-- ───── JOINT / SPRING REACTIONS ───── -->
     <section id="joint-panel" class="panel">
       <div class="panel-header">
         <div class="panel-title-group">
@@ -595,14 +599,14 @@
                   <line x1="10" y1="10" x2="14" y2="14"/>
                 </svg>
                 <input type="text" id="joint-picker-search"
-                       placeholder="Search combinationsâ€¦" autocomplete="off">
+                       placeholder="Search combinations…" autocomplete="off">
               </div>
               <div class="combo-picker-actions">
                 <button id="joint-pick-all" type="button">Select All</button>
                 <button id="joint-pick-none" type="button">Clear All</button>
               </div>
               <div class="combo-picker-list" id="joint-picker-list">
-                <div class="combo-picker-empty">Loading sourcesâ€¦</div>
+                <div class="combo-picker-empty">Loading sources…</div>
               </div>
             </div>
           </div>
@@ -618,7 +622,7 @@
         </div>
       </div>
 
-      <!-- â”€â”€ Tab bar â”€â”€ -->
+      <!-- ── Tab bar ── -->
       <div class="tab-bar">
         <button class="tab-btn active" data-tab="joint-table-tab">
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
@@ -640,7 +644,7 @@
         </button>
       </div>
 
-      <!-- â”€â”€ Tab 1: Results Table â”€â”€ -->
+      <!-- ── Tab 1: Results Table ── -->
       <div id="joint-table-tab" class="tab-panel active">
         <div class="table-card">
           <table class="data-table">
@@ -651,7 +655,7 @@
                 <th rowspan="2" class="th-combo">Step</th>
                 <th colspan="3" class="th-group-header">Coordinates (m)</th>
                 <th colspan="3" class="th-group-header">Forces (kN)</th>
-                <th colspan="3" class="th-group-header">Moments (kNÂ·m)</th>
+                <th colspan="3" class="th-group-header">Moments (kN·m)</th>
               </tr>
               <tr>
                 <th>X</th><th>Y</th><th>Z</th>
@@ -670,7 +674,7 @@
         </div>
       </div>
 
-      <!-- â”€â”€ Tab 2: Bubble Plot â”€â”€ -->
+      <!-- ── Tab 2: Bubble Plot ── -->
       <div id="joint-bubble-tab" class="tab-panel">
         <div class="bubble-chart-card">
 
@@ -685,7 +689,7 @@
             <button class="joint-force-btn" data-jforce="MZ">MZ</button>
             <span class="bubble-combo-label">Combo / Case:</span>
             <select id="joint-bubble-combo" class="bubble-combo-select">
-              <option value="">â€” Fetch data first â€”</option>
+              <option value="">— Fetch data first —</option>
             </select>
           </div>
 
@@ -695,11 +699,11 @@
             <!-- Bubble size -->
             <div class="bubble-ctrl-group">
               <span class="bubble-ctrl-label">Bubble</span>
-              <button class="bubble-step-btn" id="bubble-size-minus" title="Decrease bubble size">âˆ’</button>
+              <button class="bubble-step-btn" id="bubble-size-minus" title="Decrease bubble size">−</button>
               <input type="range" id="bubble-size-slider" class="bubble-ctrl-slider"
                      min="0.25" max="4" step="0.25" value="1">
               <button class="bubble-step-btn" id="bubble-size-plus" title="Increase bubble size">+</button>
-              <span class="bubble-ctrl-value" id="bubble-size-val">1Ã—</span>
+              <span class="bubble-ctrl-value" id="bubble-size-val">1×</span>
             </div>
 
             <div class="bubble-ctrl-sep-v"></div>
@@ -707,7 +711,7 @@
             <!-- Text / label size -->
             <div class="bubble-ctrl-group">
               <span class="bubble-ctrl-label">Text</span>
-              <button class="bubble-step-btn" id="bubble-text-minus" title="Decrease label size">âˆ’</button>
+              <button class="bubble-step-btn" id="bubble-text-minus" title="Decrease label size">−</button>
               <input type="range" id="bubble-text-slider" class="bubble-ctrl-slider"
                      min="7" max="20" step="1" value="11">
               <button class="bubble-step-btn" id="bubble-text-plus" title="Increase label size">+</button>
@@ -720,9 +724,9 @@
             <div class="bubble-ctrl-group">
               <span class="bubble-ctrl-label">X&nbsp;Range</span>
               <input type="number" id="bubble-xmin" class="bubble-axis-input" placeholder="auto" step="any" title="X axis minimum">
-              <span class="bubble-ctrl-dash">â€”</span>
+              <span class="bubble-ctrl-dash">—</span>
               <input type="number" id="bubble-xmax" class="bubble-axis-input" placeholder="auto" step="any" title="X axis maximum">
-              <button class="bubble-reset-btn" id="bubble-x-reset" title="Reset X axis to auto">â†º</button>
+              <button class="bubble-reset-btn" id="bubble-x-reset" title="Reset X axis to auto">↺</button>
             </div>
 
             <div class="bubble-ctrl-sep-v"></div>
@@ -731,9 +735,9 @@
             <div class="bubble-ctrl-group">
               <span class="bubble-ctrl-label">Y&nbsp;Range</span>
               <input type="number" id="bubble-ymin" class="bubble-axis-input" placeholder="auto" step="any" title="Y axis minimum">
-              <span class="bubble-ctrl-dash">â€”</span>
+              <span class="bubble-ctrl-dash">—</span>
               <input type="number" id="bubble-ymax" class="bubble-axis-input" placeholder="auto" step="any" title="Y axis maximum">
-              <button class="bubble-reset-btn" id="bubble-y-reset" title="Reset Y axis to auto">â†º</button>
+              <button class="bubble-reset-btn" id="bubble-y-reset" title="Reset Y axis to auto">↺</button>
             </div>
 
             <div class="bubble-ctrl-sep-v"></div>
@@ -764,10 +768,10 @@
               <span class="bubble-ctrl-label">Color</span>
               <input type="number" id="bubble-cmin" class="bubble-axis-input bubble-axis-input--color"
                      placeholder="auto" step="any" title="Color scale minimum (legend low end)">
-              <span class="bubble-ctrl-dash">â€”</span>
+              <span class="bubble-ctrl-dash">—</span>
               <input type="number" id="bubble-cmax" class="bubble-axis-input bubble-axis-input--color"
                      placeholder="auto" step="any" title="Color scale maximum (legend high end)">
-              <button class="bubble-reset-btn" id="bubble-c-reset" title="Reset color scale to auto">â†º</button>
+              <button class="bubble-reset-btn" id="bubble-c-reset" title="Reset color scale to auto">↺</button>
             </div>
 
           </div>
@@ -793,7 +797,7 @@
       </div>
     </section>
 
-    <!-- â”€â”€â”€â”€â”€ LOAD COMBINATIONS â”€â”€â”€â”€â”€ -->
+    <!-- ───── LOAD COMBINATIONS ───── -->
     <section id="combos-panel" class="panel lc-panel">
       <div class="panel-header">
         <div class="panel-title-group">
@@ -893,7 +897,7 @@
 
     </section>
 
-    <!-- â”€â”€â”€â”€â”€ RC BEAM SECTION GENERATOR â”€â”€â”€â”€â”€ -->
+    <!-- ───── RC BEAM SECTION GENERATOR ───── -->
     <section id="rcbeam-panel" class="panel">
 
       <!-- Panel header + toolbar -->
@@ -1044,7 +1048,7 @@
 
     </section><!-- /#rcbeam-panel -->
 
-    <!-- â”€â”€â”€â”€â”€ RC COLUMN SECTION GENERATOR â”€â”€â”€â”€â”€ -->
+    <!-- ───── RC COLUMN SECTION GENERATOR ───── -->
     <section id="rccolumn-panel" class="panel">
 
       <!-- Panel header + toolbar -->
@@ -1110,7 +1114,7 @@
             Write to ETABS
           </button>
 
-          <button id="rcc-btn-spcol" class="btn btn-ghost" disabled title="Coming soon â€” feed reference code first">
+          <button id="rcc-btn-spcol" class="btn btn-ghost" disabled title="Coming soon — feed reference code first">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
                  stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="2" width="10" height="12" rx="1"/>
@@ -1213,14 +1217,14 @@
     </section><!-- /#rccolumn-panel -->
 
 
-    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• P-M-M INTERACTION DIAGRAM PANEL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- ══════════════════ P-M-M INTERACTION DIAGRAM PANEL ══════════════════ -->
     <section id="pmm-panel" class="panel pmm-panel">
 
       <!-- Header -->
       <div class="panel-header">
         <div class="panel-title-group">
           <h2 class="panel-title">P-M-M Interaction Diagram</h2>
-          <p class="panel-subtitle">ACI 318-19 Â· Biaxial bending interaction surface for RC columns</p>
+          <p class="panel-subtitle">ACI 318-19 · Biaxial bending interaction surface for RC columns</p>
         </div>
         <div class="pmm-header-actions">
           <button class="pmm-hdr-btn" onclick="pmmSaveSession()" title="Save session to .siq file">
@@ -1248,7 +1252,7 @@
 
       <div class="pmm-layout">
 
-        <!-- â”€â”€ Left: inputs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+        <!-- ── Left: inputs ──────────────────────────────────── -->
         <div class="pmm-inputs">
 
           <div class="pmm-group">
@@ -1305,14 +1309,14 @@
               </div>
             </div>
             <div class="pmm-row">
-              <label class="pmm-label" title="Shear reinforcement (stirrup/tie) diameter">Stirrup âŒ€</label>
+              <label class="pmm-label" title="Shear reinforcement (stirrup/tie) diameter">Stirrup ⌀</label>
               <select id="pmm-stirrup-dia" class="pmm-input pmm-select"
-                      title="Stirrup / tie bar diameter â€” used to compute cover to longitudinal bar centre">
-                <option value="6">Ã˜6</option>
-                <option value="8">Ã˜8</option>
-                <option value="10" selected>Ã˜10</option>
-                <option value="12">Ã˜12</option>
-                <option value="16">Ã˜16</option>
+                      title="Stirrup / tie bar diameter — used to compute cover to longitudinal bar centre">
+                <option value="6">Ø6</option>
+                <option value="8">Ø8</option>
+                <option value="10" selected>Ø10</option>
+                <option value="12">Ø12</option>
+                <option value="16">Ø16</option>
               </select>
             </div>
             <div class="pmm-row">
@@ -1339,14 +1343,14 @@
             <div class="pmm-group-title">OPTIONS</div>
             <label class="pmm-checkbox-row">
               <input id="pmm-phi" type="checkbox" checked/>
-              Include Ï† factors (ACI 318)
+              Include φ factors (ACI 318)
             </label>
             <div class="pmm-row">
               <label class="pmm-label">Resolution</label>
               <select id="pmm-res" class="pmm-input pmm-select">
-                <option value="10:70" selected>Standard (10Â° Â· 70 pts)</option>
-                <option value="5:120">Fine (5Â° Â· 120 pts)</option>
-                <option value="3:200">Ultra (3Â° Â· 200 pts)</option>
+                <option value="10:70" selected>Standard (10° · 70 pts)</option>
+                <option value="5:120">Fine (5° · 120 pts)</option>
+                <option value="3:200">Ultra (3° · 200 pts)</option>
               </select>
             </div>
           </div>
@@ -1390,7 +1394,7 @@
 
           <div id="pmm-status" class="pmm-status"></div>
 
-          <!-- â”€â”€ Optimize section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+          <!-- ── Optimize section ─────────────────────────── -->
           <div class="pmm-group pmm-optimize-group">
             <div class="pmm-group-title">OPTIMIZE DESIGN</div>
             <div class="pmm-row">
@@ -1402,16 +1406,16 @@
               </div>
             </div>
             <div class="pmm-row">
-              <label class="pmm-label">Min Ï</label>
+              <label class="pmm-label">Min ρ</label>
               <div class="pmm-input-unit" style="max-width:110px">
                 <input id="pmm-opt-minrho" type="number" class="pmm-input"
                        value="1" min="1" max="8" step="0.5"
-                       title="ACI Â§10.6.1.1 minimum steel ratio (%)"/>
+                       title="ACI §10.6.1.1 minimum steel ratio (%)"/>
                 <span class="pmm-unit">%</span>
               </div>
             </div>
             <div class="pmm-row">
-              <label class="pmm-label">Max Ï</label>
+              <label class="pmm-label">Max ρ</label>
               <div class="pmm-input-unit" style="max-width:110px">
                 <input id="pmm-opt-maxrho" type="number" class="pmm-input"
                        value="4" min="1" max="8" step="0.5"
@@ -1421,15 +1425,15 @@
             </div>
             <div class="pmm-row" style="align-items:center;gap:8px;margin-top:2px;">
               <label class="pmm-label" for="pmm-opt-sweep" style="cursor:pointer;"
-                     title="Try all bar sizes (Ã˜8â†’Ã˜40) and return the globally lightest passing arrangement">
+                     title="Try all bar sizes (Ø8→Ø40) and return the globally lightest passing arrangement">
                 Sweep all bar sizes
               </label>
               <input id="pmm-opt-sweep" type="checkbox"
-                     title="Try Ã˜8â†’Ã˜40 and return globally lightest passing arrangement"
+                     title="Try Ø8→Ø40 and return globally lightest passing arrangement"
                      style="width:16px;height:16px;cursor:pointer;accent-color:#3b82f6;"/>
             </div>
             <button id="btn-pmm-optimize" class="pmm-optimize-btn" onclick="pmmOptimize()">
-              âš¡ Optimize
+              ⚡ Optimize
             </button>
             <div id="pmm-opt-result" class="pmm-opt-result hidden"></div>
           </div>
@@ -1438,20 +1442,20 @@
           <div id="pmm-summary" class="pmm-summary hidden">
             <div class="pmm-summary-row"><span>Ag</span><span id="pmm-s-ag"></span></div>
             <div class="pmm-summary-row"><span>Ast</span><span id="pmm-s-ast"></span></div>
-            <div class="pmm-summary-row"><span>Ï</span><span id="pmm-s-rho"></span></div>
-            <div class="pmm-summary-row"><span>Ï†Pn,max</span><span id="pmm-s-pmax"></span></div>
-            <div class="pmm-summary-row"><span>Ï†Pn,min</span><span id="pmm-s-pmin"></span></div>
+            <div class="pmm-summary-row"><span>ρ</span><span id="pmm-s-rho"></span></div>
+            <div class="pmm-summary-row"><span>φPn,max</span><span id="pmm-s-pmax"></span></div>
+            <div class="pmm-summary-row"><span>φPn,min</span><span id="pmm-s-pmin"></span></div>
           </div>
         </div><!-- /.pmm-inputs -->
 
-        <!-- â”€â”€ Right: charts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+        <!-- ── Right: charts ─────────────────────────────────── -->
         <div class="pmm-charts">
           <div class="pmm-tabs">
             <button class="pmm-tab active" data-tab="3d">3D Surface</button>
-            <button class="pmm-tab" data-tab="pmx">P â€“ Mx</button>
-            <button class="pmm-tab" data-tab="pmy">P â€“ My</button>
-            <button class="pmm-tab" data-tab="mxmy">Mx â€“ My</button>
-            <button class="pmm-tab" data-tab="batch" id="pmm-tab-batch" style="display:none">âš¡ Batch Results</button>
+            <button class="pmm-tab" data-tab="pmx">P – Mx</button>
+            <button class="pmm-tab" data-tab="pmy">P – My</button>
+            <button class="pmm-tab" data-tab="mxmy">Mx – My</button>
+            <button class="pmm-tab" data-tab="batch" id="pmm-tab-batch" style="display:none">⚡ Batch Results</button>
           </div>
           <!-- 3D chart + loads panel side-by-side -->
           <div id="pmm-3d-wrapper" class="pmm-3d-wrapper">
@@ -1459,15 +1463,15 @@
               <div id="pmm-chart-3d" class="pmm-3d-chart"></div>
               <div class="pmm-3d-view-btns">
                 <button class="pmm-3d-vbtn active" data-view="3d"    onclick="pmmSet3DView('3d')"    title="Perspective">3D</button>
-                <button class="pmm-3d-vbtn"        data-view="top"   onclick="pmmSet3DView('top')"   title="Top â€” MxÂ·My plane">Top</button>
-                <button class="pmm-3d-vbtn"        data-view="front" onclick="pmmSet3DView('front')" title="Front â€” PÂ·Mx plane">Front</button>
-                <button class="pmm-3d-vbtn"        data-view="side"  onclick="pmmSet3DView('side')"  title="Side â€” PÂ·My plane">Side</button>
-                <button class="pmm-3d-vbtn active" id="pmm-3d-wire-btn"    onclick="pmmToggleWireframe()" title="Toggle wireframe rings">âŠž Wire</button>
-                <button class="pmm-3d-vbtn active" id="pmm-3d-section-btn" onclick="pmmToggleSection()"   title="Toggle cross-section">â¬› Section</button>
-                <button class="pmm-3d-vbtn" id="pmm-3d-rotate-btn"        onclick="pmmToggleRotate()"     title="Auto-rotate">â–¶</button>
-                <button class="pmm-3d-vbtn" id="pmm-3d-loads-btn"         onclick="pmmToggleDemands()"    title="Hide / show Demand Loads panel">âŠŸ Loads</button>
+                <button class="pmm-3d-vbtn"        data-view="top"   onclick="pmmSet3DView('top')"   title="Top — Mx·My plane">Top</button>
+                <button class="pmm-3d-vbtn"        data-view="front" onclick="pmmSet3DView('front')" title="Front — P·Mx plane">Front</button>
+                <button class="pmm-3d-vbtn"        data-view="side"  onclick="pmmSet3DView('side')"  title="Side — P·My plane">Side</button>
+                <button class="pmm-3d-vbtn active" id="pmm-3d-wire-btn"    onclick="pmmToggleWireframe()" title="Toggle wireframe rings">⊞ Wire</button>
+                <button class="pmm-3d-vbtn active" id="pmm-3d-section-btn" onclick="pmmToggleSection()"   title="Toggle cross-section">⬛ Section</button>
+                <button class="pmm-3d-vbtn" id="pmm-3d-rotate-btn"        onclick="pmmToggleRotate()"     title="Auto-rotate">▶</button>
+                <button class="pmm-3d-vbtn" id="pmm-3d-loads-btn"         onclick="pmmToggleDemands()"    title="Hide / show Demand Loads panel">⊟ Loads</button>
               </div>
-              <!-- Floating cross-section preview â€” top-left of 3D chart -->
+              <!-- Floating cross-section preview — top-left of 3D chart -->
               <div id="pmm-3d-section-float" class="pmm-3d-section-float">
                 <div id="pmm-section-plot" style="width:100%;height:100%;"></div>
               </div>
@@ -1477,34 +1481,34 @@
           <div class="pmm-2d-outer hidden" id="pmm-2d-outer-pmx">
             <div id="pmm-chart-pmx" class="pmm-chart-area"></div>
             <button class="pmm-2d-csv-btn" onclick="pmmExport2DCSV('pmx','Mx')"
-                    title="Export Pâ€“Mx interaction curve as CSV (spColumn compatible)">â¬‡ Export CSV</button>
+                    title="Export P–Mx interaction curve as CSV (spColumn compatible)">⬇ Export CSV</button>
           </div>
           <div class="pmm-2d-outer hidden" id="pmm-2d-outer-pmy">
             <div id="pmm-chart-pmy" class="pmm-chart-area"></div>
             <button class="pmm-2d-csv-btn" onclick="pmmExport2DCSV('pmy','My')"
-                    title="Export Pâ€“My interaction curve as CSV (spColumn compatible)">â¬‡ Export CSV</button>
+                    title="Export P–My interaction curve as CSV (spColumn compatible)">⬇ Export CSV</button>
           </div>
           <div id="pmm-mxmy-toolbar" class="pmm-mxmy-toolbar hidden">
             <label for="pmm-mxmy-p-input">Axial load</label>
             <div class="pmm-p-combo">
               <input type="text" id="pmm-mxmy-p-input" class="pmm-mxmy-p-input"
-                     list="pmm-mxmy-p-list" placeholder="e.g. âˆ’1345"
+                     list="pmm-mxmy-p-list" placeholder="e.g. −1345"
                      oninput="pmmMxMyUpdateP(this.value)"
                      onblur="pmmMxMyPBlur()" />
               <datalist id="pmm-mxmy-p-list"></datalist>
-              <button class="pmm-p-combo-drop" onmousedown="pmmMxMyOpenDrop(event)" title="Show demand P values">â–¾</button>
+              <button class="pmm-p-combo-drop" onmousedown="pmmMxMyOpenDrop(event)" title="Show demand P values">▾</button>
               <div class="pmm-p-combo-spin">
-                <button onmousedown="pmmMxMyStepP(event,1)"  title="Previous P">âˆ§</button>
-                <button onmousedown="pmmMxMyStepP(event,-1)" title="Next P">âˆ¨</button>
+                <button onmousedown="pmmMxMyStepP(event,1)"  title="Previous P">∧</button>
+                <button onmousedown="pmmMxMyStepP(event,-1)" title="Next P">∨</button>
               </div>
             </div>
-            <span class="pmm-mxmy-p-hint">kN &nbsp;Â·&nbsp; compression = negative</span>
+            <span class="pmm-mxmy-p-hint">kN &nbsp;·&nbsp; compression = negative</span>
           </div>
           <div id="pmm-chart-mxmy" class="pmm-chart-area hidden"></div>
           <!-- Batch Results tab panel -->
           <div id="pmm-batch-results-panel" class="hidden" style="flex:1;overflow:hidden;display:flex;flex-direction:column;padding:0">
             <div id="pmm-batch-no-results" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--t3)">
-              <div style="font-size:32px">âš¡</div>
+              <div style="font-size:32px">⚡</div>
               <div style="font-size:13px;font-weight:600">No batch results yet</div>
               <div style="font-size:12px">Run a Batch Column Check to see results here.</div>
               <button class="btn btn-primary btn-sm" onclick="pmmBatchOpen()">Run Batch Check</button>
@@ -1512,8 +1516,8 @@
             <!-- Toolbar row 1: summary + actions -->
             <div id="pmm-batch-results-toolbar" class="hidden" style="padding:8px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px;flex-shrink:0">
               <div id="pmm-batch-results-summary" style="font-size:13px;font-weight:600;flex:1"></div>
-              <button class="btn btn-ghost btn-sm" onclick="pmmBatchExportCSV()">â¬‡ Export CSV</button>
-              <button class="btn btn-ghost btn-sm" onclick="pmmBatchOpen()">â†» Re-run</button>
+              <button class="btn btn-ghost btn-sm" onclick="pmmBatchExportCSV()">⬇ Export CSV</button>
+              <button class="btn btn-ghost btn-sm" onclick="pmmBatchOpen()">↻ Re-run</button>
             </div>
             <!-- Toolbar row 2: rebar optimization controls -->
             <div id="pmm-batch-opt-toolbar" class="hidden" style="padding:7px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:10px;flex-shrink:0;background:#fff7ed">
@@ -1524,14 +1528,14 @@
               <span style="font-size:11px;color:#92400e">Target DCR</span>
               <input id="pmm-opt-target-dcr" type="number" value="0.90" min="0.5" max="1.0" step="0.05"
                 style="width:64px;font-size:12px;padding:3px 6px;border:1px solid #f97316;border-radius:5px;text-align:center;background:#fff"/>
-              <span style="font-size:11px;color:#92400e">Min Ï (%)</span>
+              <span style="font-size:11px;color:#92400e">Min ρ (%)</span>
               <input id="pmm-opt-min-rho" type="number" value="1.0" min="0.5" max="8.0" step="0.5"
                 style="width:58px;font-size:12px;padding:3px 6px;border:1px solid #f97316;border-radius:5px;text-align:center;background:#fff"/>
               <button onclick="pmmBatchOptimize()"
                 style="background:#ea6c00;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;padding:5px 16px;cursor:pointer;white-space:nowrap">
-                âš¡ Optimize Rebar
+                ⚡ Optimize Rebar
               </button>
-              <span style="font-size:11px;color:#92400e;flex:1">Finds minimum rebar per section Â· respects Ï_min</span>
+              <span style="font-size:11px;color:#92400e;flex:1">Finds minimum rebar per section · respects ρ_min</span>
             </div>
             <!-- Sub-tabs: Section Results | Story Summary | 3D View | Rebar Optimization -->
             <div id="pmm-batch-results-subtabs" class="hidden" style="display:flex;gap:0;border-bottom:1px solid var(--bdr);flex-shrink:0;padding:0 14px;background:#f8fafc">
@@ -1549,7 +1553,7 @@
               </button>
               <button id="brs-tab-opt" onclick="pmmBrSubTab('opt')"
                 style="padding:7px 16px;font-size:12px;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:#ea6c00">
-                âš¡ Rebar Opt.
+                ⚡ Rebar Opt.
               </button>
             </div>
             <!-- Section Results pane -->
@@ -1558,18 +1562,18 @@
                 <thead id="pmm-batch-results-thead">
                   <tr class="pmm-br-header-row" style="position:sticky;top:0;z-index:2">
                     <th class="pmm-batch-th pmm-br-sort" style="text-align:left;padding:8px 10px;cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="0" onclick="pmmBrSort(0)">Section <span class="pmm-br-arrow"></span></th>
-                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="1" onclick="pmmBrSort(1)">bÃ—h (mm) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="1" onclick="pmmBrSort(1)">b×h (mm) <span class="pmm-br-arrow"></span></th>
                     <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="2" onclick="pmmBrSort(2)">Bars <span class="pmm-br-arrow"></span></th>
-                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="3" onclick="pmmBrSort(3)">Ï (%) <span class="pmm-br-arrow"></span></th>
-                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="4" onclick="pmmBrSort(4)">Ï†Pn,max (kN) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="3" onclick="pmmBrSort(3)">ρ (%) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="4" onclick="pmmBrSort(4)">φPn,max (kN) <span class="pmm-br-arrow"></span></th>
                     <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="5" onclick="pmmBrSort(5)">Frames <span class="pmm-br-arrow"></span></th>
                     <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="6" onclick="pmmBrSort(6)">Story <span class="pmm-br-arrow"></span></th>
                     <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="7" onclick="pmmBrSort(7)">Column ID <span class="pmm-br-arrow"></span></th>
                     <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="8" onclick="pmmBrSort(8)">Worst Combo <span class="pmm-br-arrow"></span></th>
                     <th class="pmm-batch-th" style="background:#f1f5f9;border:1px solid #cbd5e1">Loc</th>
                     <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="10" onclick="pmmBrSort(10)">P (kN) <span class="pmm-br-arrow"></span></th>
-                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="11" onclick="pmmBrSort(11)">Mx (kNÂ·m) <span class="pmm-br-arrow"></span></th>
-                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="12" onclick="pmmBrSort(12)">My (kNÂ·m) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="11" onclick="pmmBrSort(11)">Mx (kN·m) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="12" onclick="pmmBrSort(12)">My (kN·m) <span class="pmm-br-arrow"></span></th>
                     <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="13" onclick="pmmBrSort(13)">Max DCR <span class="pmm-br-arrow"></span></th>
                     <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="14" onclick="pmmBrSort(14)">Status <span class="pmm-br-arrow"></span></th>
                     <th class="pmm-batch-th" style="background:#f1f5f9;border:1px solid #cbd5e1"></th>
@@ -1633,11 +1637,11 @@
             <!-- Rebar Optimization pane -->
             <div id="pmm-batch-opt-pane" style="display:none;overflow:auto;flex:1;padding:0">
               <div id="pmm-batch-opt-loading" style="display:none;padding:40px;text-align:center;color:var(--t2);font-size:13px">
-                âš¡ Optimizing rebarâ€¦ <span id="pmm-opt-timer">0.0s</span>
+                ⚡ Optimizing rebar… <span id="pmm-opt-timer">0.0s</span>
               </div>
               <div id="pmm-batch-opt-wrap">
                 <div style="padding:40px;text-align:center;color:var(--t3);font-size:13px">
-                  Click <strong>âš¡ Optimize Rebar</strong> in the toolbar to run.
+                  Click <strong>⚡ Optimize Rebar</strong> in the toolbar to run.
                 </div>
               </div>
             </div>
@@ -1662,7 +1666,7 @@
     </section><!-- /#pmm-panel -->
 
 
-    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• RUN FILE CLEANER PANEL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- ══════════════════ RUN FILE CLEANER PANEL ══════════════════ -->
     <section id="cleaner-panel" class="panel">
       <div class="panel-header">
         <h2 class="panel-title">Run File Cleaner</h2>
@@ -1757,13 +1761,13 @@
       <div class="panel-header">
         <div class="panel-title-group">
           <h2 class="panel-title">Plate 2D FEM</h2>
-          <p class="panel-subtitle">Plane elasticity â€” Q4 isoparametric elements Â· stress contours Â· displacement</p>
+          <p class="panel-subtitle">Plane elasticity — Q4 isoparametric elements · stress contours · displacement</p>
         </div>
       </div>
 
       <div class="pmm-layout" style="align-items:flex-start">
 
-        <!-- â”€â”€ Left sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+        <!-- ── Left sidebar ──────────────────────────────────── -->
         <div class="pmm-inputs" id="fem2d-sidebar" style="min-width:280px;max-width:300px">
 
           <!-- GEOMETRY -->
@@ -1850,14 +1854,14 @@
               </div>
             </div>
             <div class="pmm-row">
-              <label class="pmm-label">Î½ (Poisson)</label>
+              <label class="pmm-label">ν (Poisson)</label>
               <input id="fem2d-nu" type="number" class="pmm-input" value="0.3" min="0" max="0.499" step="0.01"/>
             </div>
             <div class="pmm-row">
               <label class="pmm-label">Unit wt.</label>
               <div class="pmm-input-unit">
                 <input id="fem2d-unitwt" type="number" class="pmm-input" value="0" min="0" step="0.0001"/>
-                <span class="pmm-unit">N/mmÂ³</span>
+                <span class="pmm-unit">N/mm³</span>
               </div>
             </div>
             <div class="pmm-row">
@@ -1930,18 +1934,18 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
               <div style="background:var(--bg1);border-radius:6px;padding:6px 8px;text-align:center">
                 <div style="font-size:10px;color:var(--t3)">Max |U| (mm)</div>
-                <div id="fem2d-res-maxdisp" style="font-size:14px;font-weight:700;color:var(--blue)">â€”</div>
+                <div id="fem2d-res-maxdisp" style="font-size:14px;font-weight:700;color:var(--blue)">—</div>
               </div>
               <div style="background:var(--bg1);border-radius:6px;padding:6px 8px;text-align:center">
                 <div style="font-size:10px;color:var(--t3)">Max VM (MPa)</div>
-                <div id="fem2d-res-maxvm" style="font-size:14px;font-weight:700;color:#f59e0b">â€”</div>
+                <div id="fem2d-res-maxvm" style="font-size:14px;font-weight:700;color:#f59e0b">—</div>
               </div>
             </div>
           </div>
 
         </div><!-- /.pmm-inputs (sidebar) -->
 
-        <!-- â”€â”€ Right: chart area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+        <!-- ── Right: chart area ─────────────────────────────── -->
         <div style="flex:1;display:flex;flex-direction:column;gap:0;min-width:0">
 
           <!-- Tab bar -->
@@ -1949,12 +1953,12 @@
             <button class="tab-btn active" data-fem2d-tab="mesh">Mesh</button>
             <button class="tab-btn" data-fem2d-tab="Ux">Ux</button>
             <button class="tab-btn" data-fem2d-tab="Uy">Uy</button>
-            <button class="tab-btn" data-fem2d-tab="sxx">Ïƒxx</button>
-            <button class="tab-btn" data-fem2d-tab="syy">Ïƒyy</button>
-            <button class="tab-btn" data-fem2d-tab="txy">Ï„xy</button>
+            <button class="tab-btn" data-fem2d-tab="sxx">σxx</button>
+            <button class="tab-btn" data-fem2d-tab="syy">σyy</button>
+            <button class="tab-btn" data-fem2d-tab="txy">τxy</button>
             <button class="tab-btn" data-fem2d-tab="vm">Von Mises</button>
-            <button class="tab-btn" data-fem2d-tab="ps1">P.S. Ïƒâ‚</button>
-            <button class="tab-btn" data-fem2d-tab="ps2">P.S. Ïƒâ‚‚</button>
+            <button class="tab-btn" data-fem2d-tab="ps1">P.S. σ₁</button>
+            <button class="tab-btn" data-fem2d-tab="ps2">P.S. σ₂</button>
           </div>
 
           <!-- Chart div -->
@@ -1967,7 +1971,7 @@
                   <span class="fem2d-props-title">Node <span id="fem2d-props-nodeid">0</span></span>
                   <span id="fem2d-props-coords" class="fem2d-props-coords"></span>
                 </div>
-                <button id="fem2d-props-close" class="fem2d-props-close" aria-label="Close">Ã—</button>
+                <button id="fem2d-props-close" class="fem2d-props-close" aria-label="Close">×</button>
               </div>
 
               <!-- Support type visual buttons -->
@@ -1975,21 +1979,21 @@
                 <div class="fem2d-props-label">Support Condition</div>
                 <div class="fem2d-sup-grid">
                   <button class="fem2d-sup-btn active" data-dof="" id="fem2d-sup-free">
-                    <span class="fem2d-sup-icon">â—‹</span>
+                    <span class="fem2d-sup-icon">○</span>
                     <span class="fem2d-sup-name">Free</span>
                   </button>
                   <button class="fem2d-sup-btn" data-dof="XY" id="fem2d-sup-pin">
-                    <span class="fem2d-sup-icon">â–½</span>
+                    <span class="fem2d-sup-icon">▽</span>
                     <span class="fem2d-sup-name">Pin</span>
                     <span class="fem2d-sup-desc">fix X+Y</span>
                   </button>
                   <button class="fem2d-sup-btn" data-dof="Y" id="fem2d-sup-rollerx">
-                    <span class="fem2d-sup-icon">â¬¡</span>
+                    <span class="fem2d-sup-icon">⬡</span>
                     <span class="fem2d-sup-name">Roller</span>
                     <span class="fem2d-sup-desc">fix Y</span>
                   </button>
                   <button class="fem2d-sup-btn" data-dof="X" id="fem2d-sup-rollery">
-                    <span class="fem2d-sup-icon">â¬¡</span>
+                    <span class="fem2d-sup-icon">⬡</span>
                     <span class="fem2d-sup-name">Roller</span>
                     <span class="fem2d-sup-desc">fix X</span>
                   </button>
@@ -2000,12 +2004,12 @@
               <div class="fem2d-props-section">
                 <div class="fem2d-props-label">Point Load</div>
                 <div class="fem2d-load-row">
-                  <span class="fem2d-load-axis" style="color:#3b82f6">â†’ Fx</span>
+                  <span class="fem2d-load-axis" style="color:#3b82f6">→ Fx</span>
                   <input id="fem2d-props-fx" type="number" class="pmm-input fem2d-load-input" value="0" step="100" placeholder="0"/>
                   <span class="fem2d-load-unit">N</span>
                 </div>
                 <div class="fem2d-load-row">
-                  <span class="fem2d-load-axis" style="color:#ef4444">â†‘ Fy</span>
+                  <span class="fem2d-load-axis" style="color:#ef4444">↑ Fy</span>
                   <input id="fem2d-props-fy" type="number" class="pmm-input fem2d-load-input" value="0" step="100" placeholder="0"/>
                   <span class="fem2d-load-unit">N</span>
                 </div>
@@ -2041,14 +2045,14 @@
   </main>
 </div>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• RC BEAM â€” IMPORT SECTION PICKER â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ══════════════════ RC BEAM — IMPORT SECTION PICKER ══════════════════ -->
 <div id="rcb-import-modal" class="modal-overlay hidden">
   <div class="modal-box rcb-import-box">
 
     <div class="modal-header" style="padding:16px 20px 14px">
       <div>
         <div class="modal-title">Import Sections from ETABS</div>
-        <div class="rcb-import-subtitle" id="rcb-import-subtitle">Loadingâ€¦</div>
+        <div class="rcb-import-subtitle" id="rcb-import-subtitle">Loading…</div>
       </div>
       <button id="rcb-import-close" class="modal-close-btn" aria-label="Close">
         <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
@@ -2061,7 +2065,7 @@
     <!-- Search + bulk-select toolbar -->
     <div class="rcb-import-toolbar">
       <input id="rcb-import-search" type="search" class="rcb-import-search"
-             placeholder="Search sectionsâ€¦" autocomplete="off"/>
+             placeholder="Search sections…" autocomplete="off"/>
       <button id="rcb-import-all"    class="btn btn-ghost btn-xs">All</button>
       <button id="rcb-import-none"   class="btn btn-ghost btn-xs">None</button>
       <button id="rcb-import-invert" class="btn btn-ghost btn-xs">Invert</button>
@@ -2082,7 +2086,7 @@
   </div>
 </div>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• RC BEAM â€” AUTOGENERATE MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ══════════════════ RC BEAM — AUTOGENERATE MODAL ══════════════════ -->
 <div id="rcb-autogen-modal" class="modal-overlay hidden">
   <div class="modal-box" style="max-width:520px">
     <div class="modal-header">
@@ -2101,27 +2105,27 @@
         <div class="rcb-gen-row">
           <label class="rcb-gen-label">Property Name</label>
           <input id="rcb-gen-name" type="text" class="rcb-gen-input"
-                 placeholder="Auto â€” e.g. G-300x500" autocomplete="off"/>
+                 placeholder="Auto — e.g. G-300x500" autocomplete="off"/>
         </div>
 
         <div class="rcb-gen-row">
           <label class="rcb-gen-label">Concrete Strength</label>
           <select id="rcb-gen-conc" class="rcb-gen-input">
-            <option value="">â€” select material â€”</option>
+            <option value="">— select material —</option>
           </select>
         </div>
 
         <div class="rcb-gen-row">
           <label class="rcb-gen-label">Fy (Main)</label>
           <select id="rcb-gen-fym" class="rcb-gen-input">
-            <option value="">â€” select material â€”</option>
+            <option value="">— select material —</option>
           </select>
         </div>
 
         <div class="rcb-gen-row">
           <label class="rcb-gen-label">Fy (Ties)</label>
           <select id="rcb-gen-fyt" class="rcb-gen-input">
-            <option value="">â€” select material â€”</option>
+            <option value="">— select material —</option>
           </select>
         </div>
 
@@ -2178,7 +2182,7 @@
   </div>
 </div>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• RC BEAM â€” AUTOGENERATE (RANGE) MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ══════════════════ RC BEAM — AUTOGENERATE (RANGE) MODAL ══════════════════ -->
 <div id="rcb-agr-modal" class="modal-overlay hidden">
   <div class="modal-box rcb-agr-box">
 
@@ -2194,24 +2198,24 @@
 
     <div class="rcb-agr-body">
 
-      <!-- â‘  Material Properties -->
+      <!-- ① Material Properties -->
       <div class="rcb-agr-group">
         <div class="rcb-agr-group-title">Material Properties</div>
         <div class="rcb-agr-row">
           <label class="rcb-agr-label">Concrete Strength, f<sub>c</sub></label>
-          <select id="rcbr-conc" class="rcb-agr-ctrl"><option value="">â€” Select Material â€”</option></select>
+          <select id="rcbr-conc" class="rcb-agr-ctrl"><option value="">— Select Material —</option></select>
         </div>
         <div class="rcb-agr-row">
           <label class="rcb-agr-label">Rebar Yield Strength, f<sub>y</sub></label>
-          <select id="rcbr-fym" class="rcb-agr-ctrl"><option value="">â€” Select Material â€”</option></select>
+          <select id="rcbr-fym" class="rcb-agr-ctrl"><option value="">— Select Material —</option></select>
         </div>
         <div class="rcb-agr-row">
           <label class="rcb-agr-label">Ties Yield Strength, f<sub>y</sub></label>
-          <select id="rcbr-fyt" class="rcb-agr-ctrl"><option value="">â€” Select Material â€”</option></select>
+          <select id="rcbr-fyt" class="rcb-agr-ctrl"><option value="">— Select Material —</option></select>
         </div>
       </div>
 
-      <!-- â‘¡ Reinforcement Details -->
+      <!-- ② Reinforcement Details -->
       <div class="rcb-agr-group">
         <div class="rcb-agr-group-title">Reinforcement Details</div>
         <div class="rcb-agr-row">
@@ -2232,7 +2236,7 @@
         </div>
       </div>
 
-      <!-- â‘¢ Beam Dimension -->
+      <!-- ③ Beam Dimension -->
       <div class="rcb-agr-group">
         <div class="rcb-agr-group-title">Beam Dimension</div>
         <div class="rcb-agr-row">
@@ -2275,7 +2279,7 @@
         </div>
       </div>
 
-      <!-- â‘£ Stiffness Modifiers -->
+      <!-- ④ Stiffness Modifiers -->
       <div class="rcb-agr-group">
         <div class="rcb-agr-group-title">Stiffness Modifiers</div>
         <div class="rcb-agr-row">
@@ -2302,7 +2306,7 @@
   </div>
 </div>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• SECTION EDIT MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ══════════════════ SECTION EDIT MODAL ══════════════════ -->
 <div id="sec-edit-modal" class="modal-overlay hidden">
   <div class="modal-box sec-edit-box">
     <div class="modal-header">
@@ -2333,11 +2337,11 @@
         <input type="hidden" id="sec-edit-name">
 
         <div class="sec-field-group">
-          <label class="sec-field-lbl">Width â€” b (m)</label>
+          <label class="sec-field-lbl">Width — b (m)</label>
           <input type="number" id="sec-edit-b" class="sec-field-inp" step="0.001" min="0.001" placeholder="0.300">
         </div>
         <div class="sec-field-group">
-          <label class="sec-field-lbl">Depth â€” h (m)</label>
+          <label class="sec-field-lbl">Depth — h (m)</label>
           <input type="number" id="sec-edit-h" class="sec-field-inp" step="0.001" min="0.001" placeholder="0.600">
         </div>
 
@@ -2347,12 +2351,12 @@
             <input type="number" id="sec-edit-scale" class="sec-field-inp" step="1" min="1" max="500" placeholder="100">
             <button id="btn-sec-apply-scale" class="btn btn-ghost btn-sm">Apply</button>
           </div>
-          <span class="sec-scale-hint">Scales b and h uniformly so A = original Ã— factor</span>
+          <span class="sec-scale-hint">Scales b and h uniformly so A = original × factor</span>
         </div>
 
         <div class="sec-area-preview">
           <span class="sec-area-lbl">Computed Area</span>
-          <span class="sec-area-val" id="sec-edit-area-preview">â€”</span>
+          <span class="sec-area-val" id="sec-edit-area-preview">—</span>
         </div>
       </div>
     </div>
@@ -2371,7 +2375,7 @@
   </div>
 </div>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• ADD BEAM MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ══════════════════ ADD BEAM MODAL ══════════════════ -->
 <div id="sec-add-modal" class="modal-overlay hidden">
   <div class="modal-box sec-edit-box">
     <div class="modal-header">
@@ -2395,16 +2399,16 @@
           <select id="sec-add-material" class="sec-field-inp"></select>
         </div>
         <div class="sec-field-group">
-          <label class="sec-field-lbl">Width â€” b (m)</label>
+          <label class="sec-field-lbl">Width — b (m)</label>
           <input type="number" id="sec-add-b" class="sec-field-inp" step="0.001" min="0.001" placeholder="0.300">
         </div>
         <div class="sec-field-group">
-          <label class="sec-field-lbl">Depth â€” h (m)</label>
+          <label class="sec-field-lbl">Depth — h (m)</label>
           <input type="number" id="sec-add-h" class="sec-field-inp" step="0.001" min="0.001" placeholder="0.600">
         </div>
         <div class="sec-area-preview">
           <span class="sec-area-lbl">Computed Area</span>
-          <span class="sec-area-val" id="sec-add-area-preview">â€”</span>
+          <span class="sec-area-val" id="sec-add-area-preview">—</span>
         </div>
       </div>
     </div>
@@ -2422,7 +2426,7 @@
   </div>
 </div>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• AUTOGENERATE MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ══════════════════ AUTOGENERATE MODAL ══════════════════ -->
 <div id="sec-autogen-modal" class="modal-overlay hidden">
   <div class="modal-box sec-edit-box">
     <div class="modal-header">
@@ -2503,7 +2507,7 @@
 <!-- Toast -->
 <div id="toast" class="toast"></div>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• UPGRADE MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ══════════════════ UPGRADE MODAL ══════════════════ -->
 <div id="upgrade-modal" class="modal-overlay hidden">
   <div class="modal-box upgrade-box">
     <div class="modal-header">
@@ -2569,10 +2573,10 @@
       <!-- Enterprise panel -->
       <div class="upgrade-plan-panel hidden" data-tab="enterprise">
         <ul class="ent-feature-list">
-          <li>âœ“ 3 simultaneous users per license</li>
-          <li>âœ“ All PRO features included</li>
-          <li>âœ“ Shared company account</li>
-          <li>âœ“ Priority support</li>
+          <li>✓ 3 simultaneous users per license</li>
+          <li>✓ All PRO features included</li>
+          <li>✓ Shared company account</li>
+          <li>✓ Priority support</li>
         </ul>
         <div class="ent-price-row">
           <span class="ent-price">$699</span>
@@ -2601,7 +2605,7 @@
   </div>
 </div>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• GRACE PERIOD MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ══════════════════ GRACE PERIOD MODAL ══════════════════ -->
 <div id="grace-modal" class="modal-overlay hidden">
   <div class="modal-box grace-box">
     <div class="modal-header">
@@ -2634,7 +2638,7 @@
   </div>
 </div>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• LOGIN OVERLAY â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ══════════════════ LOGIN OVERLAY ══════════════════ -->
 <div id="auth-overlay" class="auth-overlay">
   <div class="auth-brand-panel">
     <div class="auth-brand-logo">
@@ -2684,7 +2688,7 @@
         </div>
         <div class="auth-field">
           <label class="auth-label">Password</label>
-          <input id="login-password" type="password" class="auth-input" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" autocomplete="current-password" />
+          <input id="login-password" type="password" class="auth-input" placeholder="••••••••" autocomplete="current-password" />
         </div>
         <div id="login-error" class="auth-error hidden"></div>
         <button type="submit" class="auth-submit-btn">Sign In</button>
@@ -2702,7 +2706,7 @@
         </div>
         <div class="auth-field">
           <label class="auth-label">Password <span class="auth-hint">(min 8 characters)</span></label>
-          <input id="reg-password" type="password" class="auth-input" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" autocomplete="new-password" />
+          <input id="reg-password" type="password" class="auth-input" placeholder="••••••••" autocomplete="new-password" />
         </div>
         <div id="reg-error" class="auth-error hidden"></div>
         <button type="submit" class="auth-submit-btn">Create Account</button>
@@ -2712,14 +2716,14 @@
   </div>
 </div>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• RC COLUMN â€” IMPORT SECTION PICKER â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ══════════════════ RC COLUMN — IMPORT SECTION PICKER ══════════════════ -->
 <div id="rcc-import-modal" class="modal-overlay hidden">
   <div class="modal-box rcc-import-box">
 
     <div class="modal-header" style="padding:16px 20px 14px">
       <div>
         <div class="modal-title">Import Column Sections from ETABS</div>
-        <div class="rcc-import-subtitle" id="rcc-import-subtitle">Loadingâ€¦</div>
+        <div class="rcc-import-subtitle" id="rcc-import-subtitle">Loading…</div>
       </div>
       <button id="rcc-import-close" class="modal-close-btn" aria-label="Close">
         <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
@@ -2731,7 +2735,7 @@
 
     <div class="rcc-import-toolbar">
       <input id="rcc-import-search" type="search" class="rcc-import-search"
-             placeholder="Search sectionsâ€¦" autocomplete="off"/>
+             placeholder="Search sections…" autocomplete="off"/>
       <button id="rcc-import-all"    class="btn btn-ghost btn-xs">All</button>
       <button id="rcc-import-none"   class="btn btn-ghost btn-xs">None</button>
       <button id="rcc-import-invert" class="btn btn-ghost btn-xs">Invert</button>
@@ -2750,7 +2754,7 @@
   </div>
 </div>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• RC COLUMN â€” ADD COLUMN MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ══════════════════ RC COLUMN — ADD COLUMN MODAL ══════════════════ -->
 <div id="rcc-addcol-modal" class="modal-overlay hidden">
   <div class="modal-box" style="max-width:520px">
     <div class="modal-header">
@@ -2769,27 +2773,27 @@
         <div class="rcb-gen-row">
           <label class="rcb-gen-label">Property Name</label>
           <input id="rcc-gen-name" type="text" class="rcb-gen-input"
-                 placeholder="Auto â€” e.g. C-500x500" autocomplete="off"/>
+                 placeholder="Auto — e.g. C-500x500" autocomplete="off"/>
         </div>
 
         <div class="rcb-gen-row">
           <label class="rcb-gen-label">Concrete Strength</label>
           <select id="rcc-gen-conc" class="rcb-gen-input">
-            <option value="">â€” select material â€”</option>
+            <option value="">— select material —</option>
           </select>
         </div>
 
         <div class="rcb-gen-row">
           <label class="rcb-gen-label">Fy (Main)</label>
           <select id="rcc-gen-fym" class="rcb-gen-input">
-            <option value="">â€” select material â€”</option>
+            <option value="">— select material —</option>
           </select>
         </div>
 
         <div class="rcb-gen-row">
           <label class="rcb-gen-label">Fy (Ties)</label>
           <select id="rcc-gen-fyt" class="rcb-gen-input">
-            <option value="">â€” select material â€”</option>
+            <option value="">— select material —</option>
           </select>
         </div>
 
@@ -2868,7 +2872,7 @@
   </div>
 </div>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• RC COLUMN â€” VIEW SECTIONS MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ══════════════════ RC COLUMN — VIEW SECTIONS MODAL ══════════════════ -->
 <div id="rcc-view-modal" class="modal-overlay hidden">
   <div class="modal-box rcc-view-box">
 
@@ -2891,7 +2895,7 @@
 
       <!-- Left: cross-section drawing -->
       <div class="rcc-view-left">
-        <div class="rcc-view-label" id="rcc-view-label">â€”</div>
+        <div class="rcc-view-label" id="rcc-view-label">—</div>
         <div class="rcc-view-canvas" id="rcc-view-canvas">
           <svg id="rcc-view-svg" width="260" height="340" viewBox="0 0 260 340">
             <text x="130" y="170" text-anchor="middle" fill="#94a3b8" font-size="12">
@@ -2908,15 +2912,15 @@
           <div class="rcc-view-group-title">Material Properties</div>
           <div class="rcc-view-prop">
             <span class="rcc-view-prop-label">Concrete Strength (f'c)</span>
-            <span class="rcc-view-prop-val" id="rvp-conc">â€”</span>
+            <span class="rcc-view-prop-val" id="rvp-conc">—</span>
           </div>
           <div class="rcc-view-prop">
             <span class="rcc-view-prop-label">Main Bars (fy)</span>
-            <span class="rcc-view-prop-val" id="rvp-fym">â€”</span>
+            <span class="rcc-view-prop-val" id="rvp-fym">—</span>
           </div>
           <div class="rcc-view-prop">
             <span class="rcc-view-prop-label">Confinement Bars (fys)</span>
-            <span class="rcc-view-prop-val" id="rvp-fyt">â€”</span>
+            <span class="rcc-view-prop-val" id="rvp-fyt">—</span>
           </div>
         </div>
 
@@ -2924,11 +2928,11 @@
           <div class="rcc-view-group-title">Section Dimensions</div>
           <div class="rcc-view-prop">
             <span class="rcc-view-prop-label">Depth (mm)</span>
-            <span class="rcc-view-prop-val" id="rvp-depth">â€”</span>
+            <span class="rcc-view-prop-val" id="rvp-depth">—</span>
           </div>
           <div class="rcc-view-prop">
             <span class="rcc-view-prop-label">Width (mm)</span>
-            <span class="rcc-view-prop-val" id="rvp-width">â€”</span>
+            <span class="rcc-view-prop-val" id="rvp-width">—</span>
           </div>
         </div>
 
@@ -2936,19 +2940,19 @@
           <div class="rcc-view-group-title">Longitudinal Reinforcement</div>
           <div class="rcc-view-prop">
             <span class="rcc-view-prop-label">Main Bar Diameter</span>
-            <span class="rcc-view-prop-val" id="rvp-bardia">â€”</span>
+            <span class="rcc-view-prop-val" id="rvp-bardia">—</span>
           </div>
           <div class="rcc-view-prop">
             <span class="rcc-view-prop-label">Clear Cover</span>
-            <span class="rcc-view-prop-val" id="rvp-cover">â€”</span>
+            <span class="rcc-view-prop-val" id="rvp-cover">—</span>
           </div>
           <div class="rcc-view-prop">
             <span class="rcc-view-prop-label">NBars (3)</span>
-            <span class="rcc-view-prop-val" id="rvp-nb3">â€”</span>
+            <span class="rcc-view-prop-val" id="rvp-nb3">—</span>
           </div>
           <div class="rcc-view-prop">
             <span class="rcc-view-prop-label">NBars (2)</span>
-            <span class="rcc-view-prop-val" id="rvp-nb2">â€”</span>
+            <span class="rcc-view-prop-val" id="rvp-nb2">—</span>
           </div>
         </div>
 
@@ -2956,19 +2960,19 @@
           <div class="rcc-view-group-title">Confinement Bars</div>
           <div class="rcc-view-prop">
             <span class="rcc-view-prop-label">Confinement Bar Diameter</span>
-            <span class="rcc-view-prop-val" id="rvp-tiesize">â€”</span>
+            <span class="rcc-view-prop-val" id="rvp-tiesize">—</span>
           </div>
           <div class="rcc-view-prop">
             <span class="rcc-view-prop-label">Spacing</span>
-            <span class="rcc-view-prop-val" id="rvp-spacing">â€”</span>
+            <span class="rcc-view-prop-val" id="rvp-spacing">—</span>
           </div>
           <div class="rcc-view-prop">
             <span class="rcc-view-prop-label">Conf. bars (3)</span>
-            <span class="rcc-view-prop-val" id="rvp-ntie3">â€”</span>
+            <span class="rcc-view-prop-val" id="rvp-ntie3">—</span>
           </div>
           <div class="rcc-view-prop">
             <span class="rcc-view-prop-label">Conf. bars (2)</span>
-            <span class="rcc-view-prop-val" id="rvp-ntie2">â€”</span>
+            <span class="rcc-view-prop-val" id="rvp-ntie2">—</span>
           </div>
         </div>
 
@@ -2976,15 +2980,15 @@
           <div class="rcc-view-group-title">Stiffness Modifiers</div>
           <div class="rcc-view-prop">
             <span class="rcc-view-prop-label">Torsion Constant</span>
-            <span class="rcc-view-prop-val" id="rvp-torsion">â€”</span>
+            <span class="rcc-view-prop-val" id="rvp-torsion">—</span>
           </div>
           <div class="rcc-view-prop">
             <span class="rcc-view-prop-label">Moment of Inertia I22</span>
-            <span class="rcc-view-prop-val" id="rvp-i22">â€”</span>
+            <span class="rcc-view-prop-val" id="rvp-i22">—</span>
           </div>
           <div class="rcc-view-prop">
             <span class="rcc-view-prop-label">Moment of Inertia I33</span>
-            <span class="rcc-view-prop-val" id="rvp-i33">â€”</span>
+            <span class="rcc-view-prop-val" id="rvp-i33">—</span>
           </div>
         </div>
 
@@ -2995,8 +2999,8 @@
     <div class="rcc-import-footer" style="border-top:1px solid var(--bdr);margin-top:0">
       <span class="rcc-view-barcount" id="rcc-view-barcount"></span>
       <div style="display:flex;gap:8px">
-        <button id="rcc-view-prev" class="btn btn-ghost btn-xs">â—€ Prev</button>
-        <button id="rcc-view-next" class="btn btn-ghost btn-xs">Next â–¶</button>
+        <button id="rcc-view-prev" class="btn btn-ghost btn-xs">◀ Prev</button>
+        <button id="rcc-view-next" class="btn btn-ghost btn-xs">Next ▶</button>
         <button id="rcc-view-close2" class="btn btn-ghost">Close</button>
       </div>
     </div>
@@ -3005,17 +3009,17 @@
 </div>
 
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• PMM BATCH CHECK MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ══════════════════ PMM BATCH CHECK MODAL ══════════════════ -->
 <div id="pmm-batch-modal" class="modal-overlay hidden">
   <div class="modal-box" style="width:1500px;max-width:98vw;max-height:96vh;display:flex;flex-direction:column;padding:0;overflow:hidden">
 
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--bdr);flex-shrink:0">
       <div>
-        <div style="font-size:15px;font-weight:700">âš¡ Batch Column Check â€” ETABS</div>
+        <div style="font-size:15px;font-weight:700">⚡ Batch Column Check — ETABS</div>
         <div style="font-size:11px;color:var(--t3);margin-top:2px">Checks all RC column sections against selected load combinations</div>
       </div>
-      <button onclick="pmmBatchClose()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--t2);line-height:1">Ã—</button>
+      <button onclick="pmmBatchClose()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--t2);line-height:1">×</button>
     </div>
 
     <!-- Step 1: Combo selection -->
@@ -3028,15 +3032,15 @@
         <label style="font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer">
           <input type="radio" name="pmm-batch-type" value="case"> Load Cases
         </label>
-        <button class="btn btn-ghost btn-sm" onclick="pmmBatchFetchCombos()" style="margin-left:auto">â†» Refresh from ETABS</button>
+        <button class="btn btn-ghost btn-sm" onclick="pmmBatchFetchCombos()" style="margin-left:auto">↻ Refresh from ETABS</button>
       </div>
       <div class="pmm-etabs-search-row">
         <input type="text" id="pmm-batch-search" class="pmm-etabs-search"
-               placeholder="Filter combinationsâ€¦" oninput="pmmBatchFilter()"/>
+               placeholder="Filter combinations…" oninput="pmmBatchFilter()"/>
         <span id="pmm-batch-count" class="pmm-etabs-count"></span>
       </div>
       <div id="pmm-batch-combos-wrap" class="pmm-etabs-combos-wrap" style="flex:1;overflow-y:auto;min-height:120px">
-        <div class="pmm-etabs-combo-hint">Click â†» Refresh to load combinations from ETABS</div>
+        <div class="pmm-etabs-combo-hint">Click ↻ Refresh to load combinations from ETABS</div>
       </div>
       <div class="pmm-etabs-actions">
         <button class="pmm-etabs-selall" onclick="pmmBatchSelectAll(true)">Select All</button>
@@ -3046,14 +3050,14 @@
       <div id="pmm-batch-note" style="font-size:11px;color:var(--t3);min-height:16px"></div>
       <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px">
         <button class="btn btn-ghost" onclick="pmmBatchClose()">Cancel</button>
-        <button class="btn btn-primary" id="btn-pmm-batch-run" onclick="pmmBatchRun()">âš¡ Run Batch Check</button>
+        <button class="btn btn-primary" id="btn-pmm-batch-run" onclick="pmmBatchRun()">⚡ Run Batch Check</button>
       </div>
     </div>
 
     <!-- Step 2: Progress -->
     <div id="pmm-batch-step2" class="hidden" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:40px">
-      <div style="font-size:28px">â³</div>
-      <div id="pmm-batch-progress-text" style="font-size:14px;font-weight:600">Running batch checkâ€¦</div>
+      <div style="font-size:28px">⏳</div>
+      <div id="pmm-batch-progress-text" style="font-size:14px;font-weight:600">Running batch check…</div>
       <div style="font-size:12px;color:var(--t3)">Fetching forces and computing PMM surfaces for all column sections.</div>
       <div id="pmm-batch-timer" style="font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--accent,#6366f1);letter-spacing:1px">0.0s</div>
     </div>
@@ -3062,9 +3066,9 @@
     <div id="pmm-batch-step3" class="hidden" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
       <div style="padding:12px 20px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:14px;flex-shrink:0">
         <div id="pmm-batch-summary-text" style="font-size:13px;font-weight:600;flex:1"></div>
-        <button class="btn btn-ghost btn-sm" onclick="pmmBatchExportCSV()">â¬‡ Export CSV</button>
-        <button class="btn btn-ghost btn-sm" onclick="pmmBatchReset()">â† Back</button>
-        <button onclick="pmmBatchClose()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--t2);line-height:1">Ã—</button>
+        <button class="btn btn-ghost btn-sm" onclick="pmmBatchExportCSV()">⬇ Export CSV</button>
+        <button class="btn btn-ghost btn-sm" onclick="pmmBatchReset()">← Back</button>
+        <button onclick="pmmBatchClose()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--t2);line-height:1">×</button>
       </div>
       <div style="overflow:auto;flex:1;padding:0 4px 8px 4px">
         <div id="pmm-batch-story-wrap"></div>
@@ -3072,18 +3076,18 @@
           <thead>
             <tr style="background:var(--bg2);position:sticky;top:0;z-index:1">
               <th class="pmm-batch-th" style="text-align:left;padding:8px 10px">Section</th>
-              <th class="pmm-batch-th">bÃ—h (mm)</th>
+              <th class="pmm-batch-th">b×h (mm)</th>
               <th class="pmm-batch-th">Bars</th>
-              <th class="pmm-batch-th">Ï (%)</th>
-              <th class="pmm-batch-th">Ï†Pn,max (kN)</th>
+              <th class="pmm-batch-th">ρ (%)</th>
+              <th class="pmm-batch-th">φPn,max (kN)</th>
               <th class="pmm-batch-th">Frames</th>
               <th class="pmm-batch-th">Story</th>
               <th class="pmm-batch-th">Column ID</th>
               <th class="pmm-batch-th">Worst Combo</th>
               <th class="pmm-batch-th">Loc</th>
               <th class="pmm-batch-th">P (kN)</th>
-              <th class="pmm-batch-th">Mx (kNÂ·m)</th>
-              <th class="pmm-batch-th">My (kNÂ·m)</th>
+              <th class="pmm-batch-th">Mx (kN·m)</th>
+              <th class="pmm-batch-th">My (kN·m)</th>
               <th class="pmm-batch-th">Max DCR</th>
               <th class="pmm-batch-th">Status</th>
               <th class="pmm-batch-th"></th>

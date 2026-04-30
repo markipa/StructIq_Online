@@ -1900,6 +1900,12 @@ body {
   font-size: 11px; color: #60a5fa; text-decoration: none; white-space: nowrap;
 }
 .bridge-install-link:hover { text-decoration: underline; }
+.bridge-launch-btn {
+  font-size: 11px; font-weight: 600; color: #fff;
+  background: #3b82f6; border: none; border-radius: 5px;
+  padding: 3px 8px; cursor: pointer; white-space: nowrap;
+}
+.bridge-launch-btn:hover { background: #2563eb; }
 
 /* ── User pill ─────────────────────────────────────────────── */
 .user-pill {

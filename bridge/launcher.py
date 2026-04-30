@@ -23,6 +23,38 @@ LOCAL_PORT      = int(os.environ.get("BRIDGE_LOCAL_PORT", "19999"))
 
 os.makedirs(_CONFIG_DIR, exist_ok=True)
 
+# ── Windows self-registration ─────────────────────────────────────
+def _register_windows():
+    """
+    Run once on first launch:
+      1. Register structiq:// URI scheme so the web app can launch the bridge.
+      2. Add the bridge to Windows startup so it auto-runs on login.
+    """
+    if sys.platform != "win32":
+        return
+    try:
+        import winreg
+
+        exe = sys.executable if not getattr(sys, 'frozen', False) else os.path.abspath(sys.argv[0])
+
+        # ── URI scheme: structiq:// ────────────────────────────────
+        key_path = r"Software\Classes\structiq"
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path) as k:
+            winreg.SetValue(k, "", winreg.REG_SZ, "StructIQ Bridge")
+            winreg.SetValueEx(k, "URL Protocol", 0, winreg.REG_SZ, "")
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path + r"\shell\open\command") as k:
+            winreg.SetValue(k, "", winreg.REG_SZ, f'"{exe}" "%1"')
+
+        # ── Startup entry ──────────────────────────────────────────
+        run_key = r"Software\Microsoft\Windows\CurrentVersion\Run"
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, run_key, 0, winreg.KEY_SET_VALUE) as k:
+            winreg.SetValueEx(k, "StructIQ Bridge", 0, winreg.REG_SZ, f'"{exe}"')
+
+        _log("Registered structiq:// URI scheme and Windows startup entry.")
+    except Exception as e:
+        _log(f"Windows registration skipped: {e}")
+
+
 # ── Logging ───────────────────────────────────────────────────────
 def _log(msg: str):
     ts = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -230,6 +262,8 @@ async def _bridge_client(token: str):
                 _log(f"Bridge connected as {user_name}")
                 _update_tray("connected")
                 reconnect_delay = 5
+                import webbrowser
+                webbrowser.open("https://structiqonline-production.up.railway.app")
 
                 async with httpx.AsyncClient(timeout=90.0) as http:
                     async for raw in ws:
@@ -378,6 +412,7 @@ def _add_setup_to_server(app, token_holder: list):
 # ── Main entry point ──────────────────────────────────────────────
 def main():
     _log("StructIQ Bridge starting…")
+    _register_windows()
     _update_tray("starting")
 
     token_holder: list = []
