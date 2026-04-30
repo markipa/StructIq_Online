@@ -2134,6 +2134,7 @@ let lcHiddenCols = new Set();
 let lcRowId      = 0;
 let lcAcIndex    = -1;
 let lcAcRowEl    = null;
+let _lcSource    = 'etabs';   // current source for Get Load Cases + Import Combos
 
 // ── Templates ──
 const LC_TEMPLATES = [
@@ -2407,10 +2408,25 @@ function lcApplyFilter() {
   document.getElementById('lc-filter-modal').classList.add('hidden');
 }
 
-async function lcGenerateBatch() {
-  const btn      = document.getElementById('btn-generate-batch');
-  const statusEl = document.getElementById('lc-gen-status');
-  btn.textContent = 'Generating…';
+function lcSetSource(src) {
+  _lcSource = src;
+  document.getElementById('lc-src-etabs').classList.toggle('active', src === 'etabs');
+  document.getElementById('lc-src-safe').classList.toggle('active',  src === 'safe');
+}
+
+async function lcGenerateBatch(target = 'etabs') {
+  const isSafe   = target === 'safe';
+  const btnId    = isSafe ? 'btn-generate-batch-safe' : 'btn-generate-batch';
+  const statId   = isSafe ? 'lc-gen-status-safe'      : 'lc-gen-status';
+  const label    = isSafe ? 'Generate in SAFE'         : 'Generate in ETABS';
+  const btn      = document.getElementById(btnId);
+  const statusEl = document.getElementById(statId);
+
+  const SVG_PLAY = '<svg width="14" height="14" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3,2 13,7.5 3,13" fill="currentColor" stroke="none"/></svg>';
+
+  btn.disabled  = true;
+  btn.innerHTML = `${SVG_PLAY} Generating…`;
+  if (statusEl) statusEl.className = 'status-chip hidden';
 
   const combinations = [];
   document.querySelectorAll('#lc-tbody tr:not(#lc-empty-row)').forEach(row => {
@@ -2426,15 +2442,16 @@ async function lcGenerateBatch() {
 
   if (!combinations.length) {
     showToast('No combinations to generate.');
-    btn.innerHTML = '<svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3,2 13,7.5 3,13"/></svg> Generate in ETABS';
+    btn.disabled  = false;
+    btn.innerHTML = `${SVG_PLAY} ${label}`;
     return;
   }
 
   try {
-    const res  = await authFetch('/api/load-combinations/generate-batch', {
-      method: 'POST',
+    const res = await authFetch('/api/load-combinations/generate-batch', {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ combinations })
+      body:    JSON.stringify({ combinations, target }),
     });
     if (res.status === 402) {
       const d = (await res.json().catch(() => ({}))).detail || {};
@@ -2446,22 +2463,27 @@ async function lcGenerateBatch() {
       return;
     }
     const data = await res.json();
-    statusEl.classList.remove('hidden', 'ok', 'err');
-    if (data.status === 'success') {
-      statusEl.classList.add('ok');
-      statusEl.textContent = '✔ ' + data.message;
-      showToast(data.message);
-    } else {
-      statusEl.classList.add('err');
-      statusEl.textContent = '✘ ' + (data.detail || 'Error');
+    if (statusEl) {
+      statusEl.classList.remove('hidden', 'ok', 'err');
+      if (data.status === 'success') {
+        statusEl.classList.add('ok');
+        statusEl.textContent = '✔ ' + data.message;
+        showToast(data.message);
+      } else {
+        statusEl.classList.add('err');
+        statusEl.textContent = '✘ ' + (data.detail || 'Error');
+      }
     }
   } catch (e) {
-    statusEl.classList.remove('hidden');
-    statusEl.classList.add('err');
-    statusEl.textContent = '✘ ' + e.message;
+    if (statusEl) {
+      statusEl.classList.remove('hidden');
+      statusEl.classList.add('err');
+      statusEl.textContent = '✘ ' + e.message;
+    }
     showToast('Error: ' + e.message);
   } finally {
-    btn.innerHTML = '<svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3,2 13,7.5 3,13"/></svg> Generate in ETABS';
+    btn.disabled  = false;
+    btn.innerHTML = `${SVG_PLAY} ${label}`;
   }
 }
 
@@ -8487,4 +8509,236 @@ document.querySelectorAll('input[name="pmm-batch-type"]').forEach(r => {
     if (_pmmBatchItems.length) pmmBatchFetchCombos();
   });
 });
+
+// ================================================================
+//  IMPORT LOAD COMBINATIONS FROM ETABS / SAFE
+// ================================================================
+
+let _lciData        = [];   // [{name, cases:[{name,item_type,factor}]}]
+let _lciPreviewName = null; // currently previewed combo name
+
+// ── Open / Close ──────────────────────────────────────────────────
+
+async function lcImportOpen() {
+  const modal     = document.getElementById('lc-import-modal');
+  const statusEl  = document.getElementById('lc-import-status');
+  const listEl    = document.getElementById('lci-list');
+  const previewEl = document.getElementById('lci-preview');
+  const source    = _lcSource;
+  const srcLabel  = source.toUpperCase();
+
+  modal.classList.remove('hidden');
+  listEl.innerHTML     = '<div class="lci-list-empty">Loading…</div>';
+  previewEl.innerHTML  = _lciEmptyPreview();
+  statusEl.textContent = `Connecting to ${srcLabel}…`;
+  statusEl.style.color = '';
+  document.getElementById('lci-filter-input').value = '';
+  _lciData = [];
+  _lciUpdateBtn();
+
+  // Update modal title to reflect source
+  const titleEl = modal.querySelector('.modal-title');
+  if (titleEl) titleEl.textContent = `Import Combinations from ${srcLabel}`;
+
+  try {
+    const res = await authFetch(`/api/load-combinations/import-details?source=${source}`);
+    if (!res.ok) throw new Error((await res.json()).detail || `HTTP ${res.status}`);
+    const data = await res.json();
+    _lciData = data.combinations || [];
+    _lciRenderList('');
+    statusEl.textContent = `${_lciData.length} combination(s) from ${srcLabel}`;
+  } catch (err) {
+    listEl.innerHTML     = `<div class="lci-list-empty">Error: ${_lcEscHtml(err.message)}</div>`;
+    statusEl.textContent = `Failed to load from ${srcLabel}`;
+    statusEl.style.color = 'var(--red,#ef4444)';
+  }
+}
+
+function lcImportClose() {
+  document.getElementById('lc-import-modal').classList.add('hidden');
+  _lciPreviewName = null;
+}
+
+function lcImportBackdropClick(e) {
+  if (e.target === document.getElementById('lc-import-modal')) lcImportClose();
+}
+
+// ── List rendering ─────────────────────────────────────────────────
+
+function _lciRenderList(filter) {
+  const listEl = document.getElementById('lci-list');
+  listEl.innerHTML = '';
+  const q        = (filter || '').toLowerCase();
+  const filtered = _lciData.filter(c => !q || c.name.toLowerCase().includes(q));
+
+  if (!filtered.length) {
+    listEl.innerHTML = `<div class="lci-list-empty">${q ? 'No matches found' : 'No combinations in model'}</div>`;
+    return;
+  }
+
+  filtered.forEach(combo => {
+    const row = document.createElement('label');
+    row.className  = 'lci-item';
+    row.dataset.name = combo.name;
+
+    const cb = document.createElement('input');
+    cb.type  = 'checkbox';
+    cb.value = combo.name;
+    cb.addEventListener('change', _lciUpdateBtn);
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className   = 'lci-item-name';
+    nameSpan.textContent = combo.name;
+    nameSpan.title       = combo.name;
+
+    const countSpan = document.createElement('span');
+    countSpan.className = 'lci-item-count';
+    const caseCount     = combo.cases.filter(c => c.item_type === 0).length;
+    countSpan.textContent = `${caseCount} case${caseCount !== 1 ? 's' : ''}`;
+
+    row.appendChild(cb);
+    row.appendChild(nameSpan);
+    row.appendChild(countSpan);
+
+    row.addEventListener('click', () => {
+      _lciShowPreview(combo.name);
+      document.querySelectorAll('.lci-item').forEach(el => el.classList.remove('lci-item--active'));
+      row.classList.add('lci-item--active');
+    });
+
+    listEl.appendChild(row);
+  });
+
+  _lciUpdateBtn();
+}
+
+function lcImportFilter(q) { _lciRenderList(q); }
+
+function lcImportSelectAll() {
+  document.querySelectorAll('#lci-list input[type=checkbox]').forEach(cb => cb.checked = true);
+  _lciUpdateBtn();
+}
+
+function lcImportClearAll() {
+  document.querySelectorAll('#lci-list input[type=checkbox]').forEach(cb => cb.checked = false);
+  _lciUpdateBtn();
+}
+
+function _lciUpdateBtn() {
+  const n   = document.querySelectorAll('#lci-list input[type=checkbox]:checked').length;
+  const btn = document.getElementById('btn-lci-confirm');
+  if (!btn) return;
+  btn.disabled    = n === 0;
+  btn.textContent = n ? `Import ${n} Combination${n > 1 ? 's' : ''}` : 'Import Selected';
+}
+
+// ── Preview panel ──────────────────────────────────────────────────
+
+function _lciShowPreview(name) {
+  _lciPreviewName = name;
+  const previewEl = document.getElementById('lci-preview');
+  const combo     = _lciData.find(c => c.name === name);
+  if (!combo) { previewEl.innerHTML = _lciEmptyPreview(); return; }
+
+  const caseCases = combo.cases.filter(c => c.item_type === 0);
+  const subCombos = combo.cases.filter(c => c.item_type === 1);
+
+  const caseRows = caseCases.map(c => `
+    <div class="lci-prev-row">
+      <span class="lci-prev-case" title="${_lcEscHtml(c.name)}">${_lcEscHtml(c.name)}</span>
+      <span class="lci-prev-type">case</span>
+      <span class="lci-prev-factor ${c.factor < 0 ? 'neg' : ''}">${c.factor}</span>
+    </div>`).join('');
+
+  const comboRows = subCombos.map(c => `
+    <div class="lci-prev-row">
+      <span class="lci-prev-case lci-prev-combo-ref" title="${_lcEscHtml(c.name)}">${_lcEscHtml(c.name)}</span>
+      <span class="lci-prev-type">combo</span>
+      <span class="lci-prev-factor ${c.factor < 0 ? 'neg' : ''}">${c.factor}</span>
+    </div>`).join('');
+
+  const noData = !caseCases.length && !subCombos.length;
+
+  previewEl.innerHTML = `
+    <div class="lci-prev-title">${_lcEscHtml(name)}</div>
+    ${!noData ? `
+      <div class="lci-prev-cols">
+        <span>Load Case</span><span>Type</span><span style="text-align:right">Factor</span>
+      </div>
+      ${caseRows}
+      ${comboRows}
+      ${subCombos.length ? `<div style="padding:6px 14px;font-size:11px;color:var(--t3);font-style:italic">
+        ↑ Nested combo refs shown but not imported as factor columns.</div>` : ''}
+    ` : '<div class="lci-preview-empty" style="height:auto;padding:16px;color:var(--t3);font-size:13px">No cases defined for this combination.</div>'}`;
+}
+
+function _lciEmptyPreview() {
+  return `<div class="lci-preview-empty">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none"
+         stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+      <rect x="4" y="6" width="24" height="20" rx="2"/>
+      <line x1="4" y1="12" x2="28" y2="12"/>
+      <line x1="10" y1="12" x2="10" y2="26"/>
+    </svg>
+    <span>Click a combination<br>to preview its cases</span>
+  </div>`;
+}
+
+// ── Utilities ──────────────────────────────────────────────────────
+
+function _lcEscHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ── Import ─────────────────────────────────────────────────────────
+
+function lcImportConfirm() {
+  const checkedNames = [...document.querySelectorAll('#lci-list input[type=checkbox]:checked')]
+                         .map(cb => cb.value);
+  if (!checkedNames.length) return;
+
+  const selected = _lciData.filter(c => checkedNames.includes(c.name));
+
+  // Add any new load case columns
+  const newCols = [];
+  selected.forEach(combo => {
+    combo.cases.forEach(c => {
+      if (c.item_type === 0 && !lcColumns.includes(c.name)) {
+        lcColumns.push(c.name);
+        if (!lcAllCases.includes(c.name)) lcAllCases.push(c.name);
+        newCols.push(c.name);
+      }
+    });
+  });
+  if (newCols.length) {
+    lcBuildHeader();
+    lcUpdateCasesList();
+  }
+
+  // Add one row per selected combination
+  let imported = 0;
+  let skippedSubCombos = false;
+  selected.forEach(combo => {
+    const factors = {};
+    combo.cases.forEach(c => {
+      if (c.item_type === 0) {
+        factors[c.name] = c.factor;
+      } else {
+        skippedSubCombos = true;
+      }
+    });
+    lcAddRow({ name: combo.name, factors });
+    imported++;
+  });
+
+  lcImportClose();
+  showToast(`Imported ${imported} combination${imported > 1 ? 's' : ''}` +
+            (newCols.length ? ` · ${newCols.length} new column${newCols.length > 1 ? 's' : ''} added` : ''));
+
+  if (skippedSubCombos) {
+    setTimeout(() => showToast('Note: nested combo references were skipped (only load case factors imported).'), 2200);
+  }
+}
 

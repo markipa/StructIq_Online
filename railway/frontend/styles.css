@@ -1337,6 +1337,54 @@ body {
 .btn-green:active { transform: translateY(0); }
 .btn-green:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 
+.btn-safe {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 0 14px; height: var(--h-btn);
+  border-radius: var(--r-sm);
+  background: linear-gradient(145deg, #0e7490, #0891b2);
+  border: 1px solid rgba(8,145,178,0.45);
+  color: #fff; font-size: var(--fs-sm); font-weight: 700;
+  font-family: inherit; cursor: pointer; white-space: nowrap;
+  transition: all 0.15s;
+  box-shadow: 0 1px 3px rgba(8,145,178,0.25), 0 2px 8px rgba(8,145,178,0.15);
+}
+.btn-safe:hover {
+  background: linear-gradient(145deg, #0c6580, #0e7490);
+  box-shadow: 0 2px 8px rgba(8,145,178,0.35), 0 4px 16px rgba(8,145,178,0.22);
+  transform: translateY(-1px);
+}
+.btn-safe:active  { transform: translateY(0); }
+.btn-safe:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+/* Button group for ETABS + SAFE generate buttons */
+.lc-gen-btn-group { display: flex; gap: 6px; align-items: center; }
+
+/* Source toggle pill: ETABS | SAFE */
+.lc-source-toggle {
+  display: inline-flex;
+  border: 1px solid var(--bdr-md, #334155);
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.lc-src-btn {
+  padding: 0 10px;
+  height: var(--h-btn);
+  background: transparent;
+  border: none;
+  color: var(--t2, #94a3b8);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.lc-src-btn:hover { background: var(--surface-2, #1e293b); color: var(--t1, #e2e8f0); }
+.lc-src-btn.active { background: var(--accent, #3b82f6); color: #fff; }
+.lc-src-btn + .lc-src-btn { border-left: 1px solid var(--bdr-md, #334155); }
+
 /* ── Load cases chip bar ── */
 .lc-cases-bar {
   display:      flex;
@@ -4366,4 +4414,192 @@ body {
 .fem2d-bc-tag.load-tag {
   background: rgba(239,68,68,0.1);
   color: #ef4444;
+}
+
+/* ================================================================
+   IMPORT LOAD COMBINATIONS MODAL  (lci-*)
+   ================================================================ */
+.lci-box {
+  width: 740px;
+  max-width: 92vw;
+  max-height: 82vh;
+  gap: 12px;
+}
+
+.lci-body {
+  display: flex;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--bdr-xs);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.lci-left {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid var(--bdr-xs);
+}
+
+.lci-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--bdr-xs);
+  flex-shrink: 0;
+  color: var(--t3);
+}
+
+.lci-filter-input {
+  flex: 1;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--bdr-md);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  font-family: inherit;
+  background: var(--bg-card);
+  color: var(--t1);
+  outline: none;
+  min-width: 0;
+  transition: border-color 0.15s;
+}
+.lci-filter-input:focus { border-color: var(--blue); }
+.lci-filter-input::placeholder { color: var(--t3); }
+
+.lci-quick-btns { display: flex; gap: 5px; flex-shrink: 0; }
+
+.lci-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 4px 0;
+}
+
+.lci-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  font-size: var(--fs-md);
+  color: var(--t1);
+  cursor: pointer;
+  border-radius: 0;
+  transition: background 0.1s;
+  user-select: none;
+}
+.lci-item:hover { background: var(--blue-dim); }
+.lci-item.lci-item--active { background: var(--blue-dim); }
+.lci-item input[type=checkbox] {
+  accent-color: var(--blue);
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.lci-item-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lci-item-count {
+  font-size: var(--fs-xs);
+  color: var(--t3);
+  flex-shrink: 0;
+}
+
+.lci-list-empty {
+  padding: 24px 16px;
+  font-size: var(--fs-sm);
+  color: var(--t3);
+  text-align: center;
+}
+
+.lci-right {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-subtle);
+  min-height: 0;
+}
+
+.lci-preview-hdr {
+  padding: 8px 14px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--bdr-xs);
+  flex-shrink: 0;
+}
+
+.lci-preview {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 0;
+}
+
+.lci-preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  color: var(--t3);
+  font-size: var(--fs-sm);
+  text-align: center;
+  padding: 16px;
+}
+.lci-preview-empty svg { opacity: 0.35; }
+
+.lci-prev-title {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--t1);
+  padding: 0 14px 8px;
+  word-break: break-word;
+}
+
+.lci-prev-cols {
+  display: grid;
+  grid-template-columns: 1fr 48px 60px;
+  gap: 0;
+  padding: 5px 14px;
+  background: var(--bg-header);
+  border-top: 1px solid var(--bdr-xs);
+  border-bottom: 1px solid var(--bdr-xs);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lci-prev-row {
+  display: grid;
+  grid-template-columns: 1fr 48px 60px;
+  gap: 0;
+  padding: 5px 14px;
+  font-size: var(--fs-sm);
+  border-bottom: 1px solid var(--bdr-xs);
+}
+.lci-prev-row:last-child { border-bottom: none; }
+.lci-prev-case  { color: var(--t1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lci-prev-type  { color: var(--t3); font-size: var(--fs-xs); display: flex; align-items: center; }
+.lci-prev-factor { text-align: right; font-variant-numeric: tabular-nums; color: var(--t2); font-weight: 600; }
+.lci-prev-factor.neg { color: var(--red, #ef4444); }
+.lci-prev-combo-ref { color: var(--t3); font-style: italic; }
+
+.lci-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
 }
