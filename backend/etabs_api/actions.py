@@ -2315,3 +2315,98 @@ def debug_rc_column_raw(section_name: str):
         rebar_out = [f"ERROR: {e}"]
     return {"section_name": section_name, "unit_code": unit_code,
             "GetRectangle": rect_out, "GetRebarColumn": rebar_out}
+
+
+def get_etabs_combo_details(source: str = "etabs"):
+    """
+    Return all load combinations with their constituent case lists and scale factors.
+
+    Response shape:
+      {"combinations": [{"name": str, "cases": [{"name": str, "item_type": int, "factor": float}]}]}
+
+    item_type: 0 = Load Case, 1 = Load Combination (nested combo reference)
+
+    source: "etabs" | "safe" — currently only ETABS is supported; "safe" falls
+            back to ETABS with a note in the response.
+    """
+    SapModel = get_active_etabs()
+    if not SapModel:
+        return {"error": "ETABS is not currently running."}
+
+    try:
+        ret = SapModel.RespCombo.GetNameList()
+        combo_names = list(ret[1]) if ret and int(ret[-1]) == 0 else []
+    except Exception as e:
+        return {"error": f"Failed to get combination list: {e}"}
+
+    combinations = []
+    for name in combo_names:
+        try:
+            # GetCaseList returns [count, (names...), (types...), (factors...), retcode]
+            cl = SapModel.RespCombo.GetCaseList(name)
+            if cl and int(cl[-1]) == 0 and int(cl[0]) > 0:
+                cases = [
+                    {
+                        "name":      cl[1][i],
+                        "item_type": int(cl[2][i]),   # 0=Load Case, 1=Load Combo
+                        "factor":    float(cl[3][i]),
+                    }
+                    for i in range(int(cl[0]))
+                ]
+            else:
+                cases = []
+        except Exception:
+            cases = []
+
+        combinations.append({"name": name, "cases": cases})
+
+    result = {"combinations": combinations}
+    if source == "safe":
+        result["source_note"] = "SAFE connection not available — showing ETABS combinations."
+    return result
+
+
+def create_load_envelope(name: str, combo_names: list, targets: list):
+    """
+    Create an Envelope-type load combination in ETABS (and/or SAFE) from a
+    list of existing combination names.
+
+    targets: list of "etabs" | "safe"  (currently only "etabs" is implemented)
+    """
+    SapModel = get_active_etabs()
+    if not SapModel:
+        return {"error": "ETABS is not currently running."}
+
+    results = []
+
+    if "etabs" in [t.lower() for t in targets]:
+        try:
+            # Delete if already exists so we can re-create cleanly
+            try:
+                SapModel.RespCombo.Delete(name)
+            except Exception:
+                pass
+
+            # combo_type 1 = Envelope
+            SapModel.RespCombo.Add(name, 1)
+
+            for combo in combo_names:
+                # CaseComboType 1 = Load Combination reference
+                SapModel.RespCombo.SetCaseList(name, 1, combo, 1.0)
+
+            results.append({"target": "etabs", "status": "success"})
+        except Exception as e:
+            results.append({"target": "etabs", "status": "error", "detail": str(e)})
+
+    if "safe" in [t.lower() for t in targets]:
+        results.append({
+            "target": "safe",
+            "status": "error",
+            "detail": "SAFE connection not yet implemented.",
+        })
+
+    errors = [r for r in results if r["status"] == "error"]
+    if errors and len(errors) == len(results):
+        return {"error": errors[0]["detail"], "results": results}
+
+    return {"status": "success", "name": name, "results": results}
