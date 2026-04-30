@@ -198,10 +198,17 @@
       </div>
       <!-- Bridge path box (shown when bridge is offline) -->
       <div id="bridge-path-box" class="bridge-login-box hidden">
-        <span style="font-size:11px;color:#94a3b8;">Bridge .exe location (optional)</span>
+        <span style="font-size:11px;color:#94a3b8;">Bridge .exe location</span>
         <input id="bridge-path-input" type="text" placeholder="C:\...\StructIQ-Bridge.exe"
                class="bridge-login-input"
                oninput="localStorage.setItem('bridge_exe_path', this.value)">
+        <div id="bridge-manual-hint" class="bridge-manual-hint hidden">
+          <span>Bridge didn't start. Run manually:</span>
+          <div class="bridge-hint-row">
+            <code id="bridge-hint-path" class="bridge-hint-path"></code>
+            <button class="bridge-copy-btn" onclick="copyBridgePath()" title="Copy path">⎘</button>
+          </div>
+        </div>
       </div>
 
       <!-- User pill (shown after login) -->

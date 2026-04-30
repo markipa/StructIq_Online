@@ -305,13 +305,39 @@ async function bridgeSignIn() {
 }
 
 function launchBridge() {
-  // Save the path if the user typed one
   const pathInput = document.getElementById('bridge-path-input');
-  if (pathInput && pathInput.value.trim()) {
-    localStorage.setItem('bridge_exe_path', pathInput.value.trim());
-  }
-  // Launch via registered URI scheme
+  const path = pathInput ? pathInput.value.trim() : '';
+  if (path) localStorage.setItem('bridge_exe_path', path);
+
+  // Try launching via registered URI scheme
   window.location.href = 'structiq://connect';
+
+  // After 3s, recheck — if still offline, show manual instructions
+  const hint = document.getElementById('bridge-manual-hint');
+  const hintPath = document.getElementById('bridge-hint-path');
+  if (hint) hint.classList.add('hidden');
+
+  setTimeout(async () => {
+    try {
+      const res = await fetch(`${BRIDGE_LOCAL}/api/status`, { signal: AbortSignal.timeout(1500) });
+      if (res.ok) {
+        // Bridge started — trigger full status check
+        _checkBridgeStatus();
+        return;
+      }
+    } catch {}
+    // Bridge still offline — show manual run hint
+    if (hint) {
+      const exePath = localStorage.getItem('bridge_exe_path') || 'StructIQ-Bridge.exe';
+      if (hintPath) hintPath.textContent = exePath;
+      hint.classList.remove('hidden');
+    }
+  }, 3000);
+}
+
+function copyBridgePath() {
+  const path = localStorage.getItem('bridge_exe_path') || '';
+  if (path) navigator.clipboard.writeText(path).then(() => showToast('Path copied.'));
 }
 
 function _clearEtabsConnection() {

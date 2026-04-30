@@ -1924,6 +1924,18 @@ body {
 }
 .bridge-login-input:focus { border-color: #3b82f6; }
 .bridge-login-msg { font-size: 11px; color: #ef4444; min-height: 14px; }
+.bridge-manual-hint { font-size: 11px; color: #f59e0b; margin-top: 4px; }
+.bridge-hint-row { display: flex; align-items: center; gap: 4px; margin-top: 3px; }
+.bridge-hint-path {
+  font-size: 10px; background: #05101e; color: #94a3b8;
+  padding: 2px 6px; border-radius: 4px; word-break: break-all; flex: 1;
+}
+.bridge-copy-btn {
+  background: none; border: 1px solid rgba(255,255,255,.15);
+  border-radius: 4px; color: #94a3b8; font-size: 12px;
+  padding: 1px 5px; cursor: pointer; flex-shrink: 0;
+}
+.bridge-copy-btn:hover { color: #fff; }
 
 /* ── User pill ─────────────────────────────────────────────── */
 .user-pill {
