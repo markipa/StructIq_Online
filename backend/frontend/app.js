@@ -240,52 +240,39 @@ function _setBridgeUI(state) {
   dot.classList.remove('bridge-dot--on', 'bridge-dot--off', 'bridge-dot--spin');
 
   const disconnectBtn = document.getElementById('bridge-disconnect-btn');
-  const pathBox = document.getElementById('bridge-path-box');
+  const pathBox      = document.getElementById('bridge-path-box');
+  const offlineActs  = document.getElementById('bridge-offline-actions');
+  const connectBtn   = document.getElementById('bridge-connect-btn');
+  const manualHint   = document.getElementById('bridge-manual-hint');
+
+  // Reset hint on every state change
+  manualHint && manualHint.classList.add('hidden');
 
   if (state === 'connected') {
     dot.classList.add('bridge-dot--on');
     label.textContent = 'ETABS bridge connected';
-    link          && link.classList.add('hidden');
-    launchBtn     && launchBtn.classList.add('hidden');
-    loginBox      && loginBox.classList.add('hidden');
-    pathBox       && pathBox.classList.add('hidden');
+    pathBox      && pathBox.classList.add('hidden');
     disconnectBtn && disconnectBtn.classList.remove('hidden');
   } else if (state === 'connecting') {
     dot.classList.add('bridge-dot--spin');
     label.textContent = 'Bridge connecting…';
-    link          && link.classList.add('hidden');
-    launchBtn     && launchBtn.classList.add('hidden');
-    loginBox      && loginBox.classList.add('hidden');
-    pathBox       && pathBox.classList.add('hidden');
+    pathBox      && pathBox.classList.add('hidden');
     disconnectBtn && disconnectBtn.classList.add('hidden');
-    const cb = document.getElementById('bridge-connect-btn');
-    cb && cb.classList.add('hidden');
   } else if (state === 'needs_token') {
-    // Bridge running but not connected — user must click Connect manually
     dot.classList.add('bridge-dot--off');
     label.textContent = 'Bridge ready — click Connect';
-    link          && link.classList.add('hidden');
-    launchBtn     && launchBtn.classList.add('hidden');
-    loginBox      && loginBox.classList.add('hidden');
-    pathBox       && pathBox.classList.remove('hidden');
+    pathBox      && pathBox.classList.remove('hidden');
+    offlineActs  && offlineActs.classList.add('hidden');
+    connectBtn   && connectBtn.classList.remove('hidden');
     disconnectBtn && disconnectBtn.classList.add('hidden');
-    const cb = document.getElementById('bridge-connect-btn');
-    cb && cb.classList.remove('hidden');
-    const lb = document.getElementById('bridge-launch-in-path');
-    lb && lb.classList.add('hidden');
-  } else if (state === 'offline') {
-    // Bridge not running — show path input + launch button
+  } else {
+    // offline
     dot.classList.add('bridge-dot--off');
     label.textContent = 'Bridge offline';
-    link          && link.classList.remove('hidden');
-    launchBtn     && launchBtn.classList.remove('hidden');
-    loginBox      && loginBox.classList.add('hidden');
-    pathBox       && pathBox.classList.remove('hidden');
+    pathBox      && pathBox.classList.remove('hidden');
+    offlineActs  && offlineActs.classList.remove('hidden');
+    connectBtn   && connectBtn.classList.add('hidden');
     disconnectBtn && disconnectBtn.classList.add('hidden');
-    const cb = document.getElementById('bridge-connect-btn');
-    cb && cb.classList.add('hidden');
-    const lb = document.getElementById('bridge-launch-in-path');
-    lb && lb.classList.remove('hidden');
     _clearEtabsConnection();
   }
 }
@@ -315,39 +302,16 @@ async function bridgeSignIn() {
 }
 
 function launchBridge() {
-  const pathInput = document.getElementById('bridge-path-input');
-  const path = pathInput ? pathInput.value.trim() : '';
-  if (path) localStorage.setItem('bridge_exe_path', path);
-
-  // Try launching via registered URI scheme
   window.location.href = 'structiq://connect';
-
-  // After 3s, recheck — if still offline, show manual instructions
-  const hint = document.getElementById('bridge-manual-hint');
-  const hintPath = document.getElementById('bridge-hint-path');
-  if (hint) hint.classList.add('hidden');
-
+  // After 3s recheck — if still offline show download hint
   setTimeout(async () => {
     try {
       const res = await fetch(`${BRIDGE_LOCAL}/api/status`, { signal: AbortSignal.timeout(1500) });
-      if (res.ok) {
-        // Bridge started — trigger full status check
-        _checkBridgeStatus();
-        return;
-      }
+      if (res.ok) { _checkBridgeStatus(); return; }
     } catch {}
-    // Bridge still offline — show manual run hint
-    if (hint) {
-      const exePath = localStorage.getItem('bridge_exe_path') || 'StructIQ-Bridge.exe';
-      if (hintPath) hintPath.textContent = exePath;
-      hint.classList.remove('hidden');
-    }
+    const hint = document.getElementById('bridge-manual-hint');
+    hint && hint.classList.remove('hidden');
   }, 3000);
-}
-
-function copyBridgePath() {
-  const path = localStorage.getItem('bridge_exe_path') || '';
-  if (path) navigator.clipboard.writeText(path).then(() => showToast('Path copied.'));
 }
 
 function _clearEtabsConnection() {
@@ -369,10 +333,6 @@ async function bridgeDisconnect() {
 
 function initBridgeStatus() {
   if (!_isBridgeModeAvailable()) return;
-  // Pre-fill saved bridge path
-  const saved = localStorage.getItem('bridge_exe_path');
-  const inp = document.getElementById('bridge-path-input');
-  if (saved && inp) inp.value = saved;
   _setBridgeUI(false);  // show bar immediately, dot=off
   document.getElementById('bridge-dot').classList.remove('bridge-dot--off');
   document.getElementById('bridge-dot').classList.add('bridge-dot--spin');

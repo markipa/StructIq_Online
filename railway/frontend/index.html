@@ -184,34 +184,27 @@
       <div id="bridge-status-bar" class="bridge-status-bar hidden">
         <span id="bridge-dot" class="bridge-dot bridge-dot--off"></span>
         <span id="bridge-label" class="bridge-status-label">Bridge offline</span>
-        <button id="bridge-launch-btn" class="bridge-launch-btn hidden"
-                onclick="launchBridge()" title="Launch StructIQ Bridge on this machine" style="display:none">
-        </button>
         <button id="bridge-disconnect-btn" class="bridge-disconnect-btn hidden"
                 onclick="bridgeDisconnect()" title="Disconnect bridge">
           Disconnect
         </button>
-        <a href="https://structiqonline-production.up.railway.app/bridge-download"
-           id="bridge-install-link" class="bridge-install-link hidden"
-           target="_blank">Install</a>
       </div>
-      <!-- Bridge path box (offline: launch | running: connect) -->
+      <!-- Bridge action box -->
       <div id="bridge-path-box" class="bridge-login-box hidden">
-        <span style="font-size:11px;color:#94a3b8;">Bridge .exe location</span>
-        <input id="bridge-path-input" type="text" placeholder="C:\...\StructIQ-Bridge.exe"
-               class="bridge-login-input"
-               oninput="localStorage.setItem('bridge_exe_path', this.value)">
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button id="bridge-launch-in-path" class="bridge-launch-btn" onclick="launchBridge()">▶ Launch</button>
-          <button id="bridge-connect-btn" class="bridge-launch-btn hidden" onclick="connectBridge()">⚡ Connect</button>
-        </div>
-        <div id="bridge-manual-hint" class="bridge-manual-hint hidden">
-          <span>Bridge didn't start. Run manually:</span>
-          <div class="bridge-hint-row">
-            <code id="bridge-hint-path" class="bridge-hint-path"></code>
-            <button class="bridge-copy-btn" onclick="copyBridgePath()" title="Copy path">⎘</button>
+        <!-- Offline: launch + install link -->
+        <div id="bridge-offline-actions" class="hidden">
+          <button class="bridge-launch-btn" onclick="launchBridge()">▶ Launch Bridge</button>
+          <a href="https://structiqonline-production.up.railway.app/bridge-download"
+             class="bridge-install-link" target="_blank">Not installed? Download here</a>
+          <div id="bridge-manual-hint" class="bridge-manual-hint hidden">
+            Bridge didn't start. &nbsp;
+            <a href="https://structiqonline-production.up.railway.app/bridge-download"
+               class="bridge-install-link" target="_blank">Download &amp; install</a>
           </div>
         </div>
+        <!-- Running but not connected: connect button -->
+        <button id="bridge-connect-btn" class="bridge-launch-btn hidden"
+                onclick="connectBridge()">⚡ Connect</button>
       </div>
 
       <!-- User pill (shown after login) -->
