@@ -221,11 +221,28 @@ async function _pushTokenToBridge() {
     });
     if (res.ok) {
       _setBridgeUI('connecting');
-      setTimeout(_checkBridgeStatus, 3000);
+      // Poll up to 4× (2s, 4s, 7s, 11s) waiting for bridge WS to register with Railway
+      _pollBridgeConnected(4);
     } else {
       _setBridgeUI('needs_token');
     }
   } catch {
+    _setBridgeUI('needs_token');
+  }
+}
+
+async function _pollBridgeConnected(retriesLeft, delayMs = 2000) {
+  await new Promise(r => setTimeout(r, delayMs));
+  try {
+    const railRes = await authFetch('/api/bridge/status');
+    if (railRes.ok) {
+      const data = await railRes.json();
+      if (data.connected) { _setBridgeUI('connected'); return; }
+    }
+  } catch {}
+  if (retriesLeft > 1) {
+    _pollBridgeConnected(retriesLeft - 1, delayMs + 1500);
+  } else {
     _setBridgeUI('needs_token');
   }
 }

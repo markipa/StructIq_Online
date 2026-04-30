@@ -94,6 +94,9 @@ def _clear_token():
 
 # ── Disconnect signal ─────────────────────────────────────────────
 _disconnect_requested = False
+_client_task_global: "asyncio.Task | None" = None
+_event_loop_global: "asyncio.AbstractEventLoop | None" = None
+_token_holder_ref: "list | None" = None   # set in main(), read by _bridge_client on auth fail
 
 # ── Tray state ────────────────────────────────────────────────────
 _tray_icon = None
@@ -258,8 +261,11 @@ async def _bridge_client(token: str):
                     _log(f"Auth rejected: {auth_resp.get('reason', '?')}")
                     _update_tray("no_token")
                     _clear_token()
-                    await asyncio.sleep(30)
-                    return   # caller will re-prompt for login
+                    # Clear in-memory token so _run() stops retrying with bad token
+                    if _token_holder_ref is not None:
+                        _token_holder_ref.clear()
+                    await asyncio.sleep(5)
+                    return   # caller will wait for user to re-connect via web app
 
                 user_name = auth_resp.get("name", "")
                 _log(f"Bridge connected as {user_name}")
@@ -422,8 +428,7 @@ def _add_setup_to_server(app, token_holder: list):
 
     @app.post("/bridge-connect")
     def bridge_connect(body: _ConnectBody):
-        """Accept token passed directly from the web app — no separate credentials needed."""
-        _save_token(body.token, body.name)
+        """Accept token passed directly from the web app — kept in memory only, not persisted."""
         token_holder.append(body.token)
         _log(f"Token received from web app for {body.name or '(unknown)'}")
         return {"ok": True}
@@ -432,19 +437,26 @@ def _add_setup_to_server(app, token_holder: list):
     def bridge_disconnect():
         global _disconnect_requested
         _clear_token()
+        token_holder.clear()
         _disconnect_requested = True
         _update_tray("no_token")
         _log("Bridge disconnected by user.")
+        # Cancel the running WS task immediately (don't wait for next message)
+        if _client_task_global and not _client_task_global.done() and _event_loop_global:
+            _event_loop_global.call_soon_threadsafe(_client_task_global.cancel)
         return {"ok": True}
 
 
 # ── Main entry point ──────────────────────────────────────────────
 def main():
     _log("StructIQ Bridge starting…")
+    _clear_token()   # always start fresh — user must connect manually via web app
     _register_windows()
     _update_tray("starting")
 
     token_holder: list = []
+    global _token_holder_ref
+    _token_holder_ref = token_holder
 
     # ── Start local ETABS server in background thread ─────────────
     server_thread = threading.Thread(target=_start_local_server, daemon=True)
@@ -474,23 +486,38 @@ def main():
     # ── Bridge WebSocket client loop ──────────────────────────────
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+    global _event_loop_global
+    _event_loop_global = loop
+
+    _client_task: asyncio.Task = None
 
     async def _run():
+        global _client_task_global
+        nonlocal _client_task
         while True:
-            token = _load_token()
+            token = token_holder[-1] if token_holder else None
             if not token:
-                if token_holder:
-                    token = token_holder[-1]
-                else:
-                    _log("No token — waiting for login via web app (localhost:{}/bridge-login)".format(LOCAL_PORT))
-                    _update_tray("no_token")
-                    # Wait silently — web app will POST to /bridge-login when user signs in
-                    while not _load_token() and not token_holder:
-                        await asyncio.sleep(2)
-                    continue
+                _log("Waiting for user to connect via web app…")
+                _update_tray("no_token")
+                while not token_holder:
+                    await asyncio.sleep(2)
+                continue
 
-            await _bridge_client(token)
-            # If _bridge_client returns (auth failure), clear token and re-prompt
+            # Cancel any existing client before starting a new one
+            if _client_task and not _client_task.done():
+                _client_task.cancel()
+                try:
+                    await _client_task
+                except asyncio.CancelledError:
+                    pass
+
+            _client_task = asyncio.create_task(_bridge_client(token))
+            _client_task_global = _client_task
+            try:
+                await _client_task
+            except asyncio.CancelledError:
+                _log("Bridge task cancelled.")
+            # If task returned (auth failure / disconnect), wait before retry
             await asyncio.sleep(2)
 
     try:

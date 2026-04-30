@@ -98,8 +98,13 @@ def _require_actions():
 
 @app.get("/api/status")
 def get_status():
-    _require_actions()
-    return {"connected": actions.check_connection()}
+    """Always returns HTTP 200 — frontend uses this to detect the bridge process is running."""
+    if actions is None:
+        return {"connected": False, "etabs_module": False}
+    try:
+        return {"connected": actions.check_connection(), "etabs_module": True}
+    except Exception:
+        return {"connected": False, "etabs_module": True}
 
 
 # ═══════════════════════════════════════════════════════════════════
