@@ -1485,11 +1485,11 @@ async def proxy_geometry(request: Request):
 #  SERVE FRONTEND  (mount last so API routes take priority)
 # ═══════════════════════════════════════════════════════════════════
 
-_FRONTEND_DIR = os.path.join(_RAILWAY_DIR, '..', 'backend', 'frontend')
+_FRONTEND_DIR = os.path.join(_RAILWAY_DIR, 'frontend')
 
 if os.path.isdir(_FRONTEND_DIR):
     # Serve individual static assets
-    app.mount("/assets", StaticFiles(directory=_FRONTEND_DIR), name="assets")
+    app.mount("/app", StaticFiles(directory=_FRONTEND_DIR), name="app")
 
     @app.get("/")
     def serve_root():

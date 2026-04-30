@@ -1,0 +1,3102 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StructIQ â€” Structural Analysis</title>
+  <link rel="icon" type="image/svg+xml"  href="/app/favicon.svg">
+  <link rel="icon" type="image/x-icon"   href="/favicon.ico">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/app/styles.css?v=104" />
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• SIDEBAR â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+  <aside class="sidebar">
+
+    <div class="sidebar-brand">
+      <div class="brand-mark">
+        <svg width="34" height="34" viewBox="0 0 36 36" fill="none">
+          <rect x="2"  y="14" width="9"  height="20" rx="1.5" fill="#3b82f6"/>
+          <rect x="14" y="7"  width="9"  height="27" rx="1.5" fill="#60a5fa"/>
+          <rect x="26" y="18" width="8"  height="16" rx="1.5" fill="#93c5fd"/>
+          <rect x="0"  y="33" width="36" height="2.5" rx="1.25" fill="#3b82f6" opacity="0.8"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">StructIQ</div>
+        <div class="brand-sub">Structural Dashboard</div>
+      </div>
+    </div>
+
+    <div class="conn-pill" id="conn-pill">
+      <span class="conn-dot" id="conn-dot"></span>
+      <span id="connection-status">Disconnected</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <span class="nav-label">ANALYSIS</span>
+
+      <a href="#" class="nav-item active" data-target="drifts-panel">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 18 18" fill="none"
+             stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="1,14 5.5,7.5 9,10.5 13,4 17,7"/>
+          <polyline points="13,4 17,4 17,7"/>
+        </svg>
+        Story Drifts
+      </a>
+
+      <a href="#" class="nav-item" data-target="torsion-panel" data-plan="pro">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 18 18" fill="none"
+             stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="9" r="6.5"/>
+          <polyline points="9,5.5 9,9 12,11"/>
+          <path d="M15.5 2.5l-2.5 2 2.5 2"/>
+        </svg>
+        Torsional Check
+        <span class="nav-plan-badge">PRO</span>
+      </a>
+
+      <a href="#" class="nav-item" data-target="reactions-panel">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 18 18" fill="none"
+             stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5"  y1="2"  x2="5"  y2="12"/>
+          <line x1="9"  y1="2"  x2="9"  y2="15"/>
+          <line x1="13" y1="2"  x2="13" y2="11"/>
+          <polyline points="3.5,12 5,14.5 6.5,12"/>
+          <polyline points="7.5,15 9,17.5 10.5,15"/>
+          <polyline points="11.5,11 13,13.5 14.5,11"/>
+        </svg>
+        Base Reactions
+      </a>
+
+      <a href="#" class="nav-item" data-target="joint-panel" data-plan="pro">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 18 18" fill="none"
+             stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="5"  cy="10" r="2.8"/>
+          <circle cx="13" cy="7"  r="2"/>
+          <circle cx="10" cy="14" r="3.5"/>
+          <line x1="1" y1="17.5" x2="17" y2="17.5"/>
+        </svg>
+        Joint Reactions
+        <span class="nav-plan-badge">PRO</span>
+      </a>
+
+      <span class="nav-label" style="margin-top:12px">DESIGN</span>
+
+      <a href="#" class="nav-item" data-target="combos-panel" data-plan="pro">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 18 18" fill="none"
+             stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2"  y="2"  width="6" height="6" rx="1"/>
+          <rect x="10" y="2"  width="6" height="6" rx="1"/>
+          <rect x="2"  y="10" width="6" height="6" rx="1"/>
+          <rect x="10" y="10" width="6" height="6" rx="1"/>
+        </svg>
+        Load Combinations
+        <span class="nav-plan-badge">PRO</span>
+      </a>
+
+      <span class="nav-label" style="margin-top:12px">RC SECTIONS</span>
+
+      <a href="#" class="nav-item" data-target="rcbeam-panel" data-plan="pro">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 18 18" fill="none"
+             stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="6" width="14" height="8" rx="1"/>
+          <line x1="5"  y1="6"  x2="5"  y2="14"/>
+          <line x1="9"  y1="6"  x2="9"  y2="14"/>
+          <line x1="13" y1="6"  x2="13" y2="14"/>
+          <circle cx="5"  cy="8"  r="1" fill="currentColor" stroke="none"/>
+          <circle cx="13" cy="8"  r="1" fill="currentColor" stroke="none"/>
+          <circle cx="5"  cy="12" r="1" fill="currentColor" stroke="none"/>
+          <circle cx="13" cy="12" r="1" fill="currentColor" stroke="none"/>
+        </svg>
+        RCSGen Beam
+        <span class="nav-plan-badge">PRO</span>
+      </a>
+
+      <a href="#" class="nav-item" data-target="rccolumn-panel" data-plan="pro">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 18 18" fill="none"
+             stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="2" width="10" height="14" rx="1"/>
+          <circle cx="6"  cy="4.5" r="1" fill="currentColor" stroke="none"/>
+          <circle cx="12" cy="4.5" r="1" fill="currentColor" stroke="none"/>
+          <circle cx="6"  cy="13.5" r="1" fill="currentColor" stroke="none"/>
+          <circle cx="12" cy="13.5" r="1" fill="currentColor" stroke="none"/>
+          <circle cx="6"  cy="9"  r="1" fill="currentColor" stroke="none"/>
+          <circle cx="12" cy="9"  r="1" fill="currentColor" stroke="none"/>
+          <rect x="6" y="4.5" width="6" height="9" rx="0.5" stroke-width="1.2" opacity="0.5"/>
+        </svg>
+        RCSGen Column
+        <span class="nav-plan-badge">PRO</span>
+      </a>
+
+      <a href="#" class="nav-item" data-target="pmm-panel" data-plan="pro">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 18 18" fill="none"
+             stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <ellipse cx="9" cy="9" rx="7" ry="5"/>
+          <line x1="9" y1="4" x2="9" y2="14"/>
+          <line x1="2" y1="9" x2="16" y2="9"/>
+          <path d="M4 6 Q9 2 14 6" stroke-width="1.2"/>
+          <path d="M4 12 Q9 16 14 12" stroke-width="1.2"/>
+        </svg>
+        P-M-M Diagram
+        <span class="nav-plan-badge">PRO</span>
+      </a>
+
+      <a href="#" class="nav-item nav-item-batch" data-target="pmm-panel" data-action="batch" data-plan="pro"
+         style="color:#ea6c00;font-weight:700;letter-spacing:0.01em">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 18 18" fill="none"
+             stroke="#ea6c00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 2L4 10h5l-1 6 6-8h-5l1-6z" fill="#ea6c00" stroke="none"/>
+        </svg>
+        âš¡ Batch Check
+        <span class="nav-plan-badge" style="background:#ea6c00">PRO</span>
+      </a>
+
+      <span class="nav-label" style="margin-top:12px">UTILITIES</span>
+
+      <a href="#" class="nav-item" data-target="cleaner-panel">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 18 18" fill="none"
+             stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 14l2-6h8l2 6H3z"/>
+          <path d="M7 8V5a2 2 0 014 0v3"/>
+          <line x1="1" y1="14" x2="17" y2="14"/>
+        </svg>
+        Run File Cleaner
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button id="btn-reconnect" class="scan-btn">
+        <svg width="13" height="13" viewBox="0 0 18 18" fill="none"
+             stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+          <circle cx="9" cy="9" r="2.5"/>
+          <path d="M9 1v2.5M9 14.5V17M1 9h2.5M14.5 9H17"/>
+          <path d="M3.2 3.2l1.8 1.8M13 13l1.8 1.8M3.2 14.8l1.8-1.8M13 5l1.8-1.8"/>
+        </svg>
+        Scan for ETABS
+      </button>
+
+      <!-- Bridge status indicator (online mode only) -->
+      <div id="bridge-status-bar" class="bridge-status-bar hidden">
+        <span id="bridge-dot" class="bridge-dot bridge-dot--off"></span>
+        <span id="bridge-label" class="bridge-status-label">Bridge offline</span>
+        <a href="https://structiqonline-production.up.railway.app/bridge-download"
+           id="bridge-install-link" class="bridge-install-link hidden"
+           target="_blank">Install Bridge</a>
+      </div>
+
+      <!-- User pill (shown after login) -->
+      <div id="user-pill" class="user-pill hidden">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-pill-info">
+          <span class="user-pill-name" id="user-pill-name">â€”</span>
+          <span class="user-pill-plan" id="user-pill-plan">free</span>
+        </div>
+        <button id="btn-manage-sub" class="user-manage-sub-btn hidden" title="Manage subscription">
+          <svg width="13" height="13" viewBox="0 0 18 18" fill="none"
+               stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="9" r="7"/>
+            <path d="M9 6v3l2 2"/>
+          </svg>
+        </button>
+        <button class="user-logout-btn" id="btn-logout" title="Sign out">
+          <svg width="14" height="14" viewBox="0 0 18 18" fill="none"
+               stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 3H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h4"/>
+            <polyline points="12,6 16,9 12,12"/>
+            <line x1="16" y1="9" x2="6" y2="9"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• MAIN CONTENT â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+  <main class="main-content">
+
+    <!-- â”€â”€â”€â”€â”€ STORY DRIFTS â”€â”€â”€â”€â”€ -->
+    <section id="drifts-panel" class="panel active">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <h1 class="panel-title">Story Drift Extractor</h1>
+          <span class="panel-sub">Elevation vs drift â€” plot multiple load cases with allowable limit line</span>
+        </div>
+        <div class="header-controls">
+
+          <!-- Parameters: Allowable + Multiplier -->
+          <div class="drift-params">
+            <div class="drift-param-item">
+              <span class="drift-param-lbl">Allowable</span>
+              <input type="number" id="drift-allowable" class="drift-param-inp drift-param-inp--red"
+                     value="0.002" step="0.0001" min="0">
+            </div>
+            <div class="drift-param-item">
+              <span class="drift-param-lbl">Multiplier</span>
+              <input type="number" id="drift-multiplier" class="drift-param-inp"
+                     value="1" step="0.1" min="0.1">
+            </div>
+          </div>
+
+          <!-- Source type filter: All | Combos | Cases -->
+          <div class="react-type-toggle">
+            <button class="react-type-btn drift-type-btn active" data-dtype="all">All</button>
+            <button class="react-type-btn drift-type-btn" data-dtype="combo">Combos</button>
+            <button class="react-type-btn drift-type-btn" data-dtype="case">Cases</button>
+          </div>
+
+          <!-- Multi-source picker (same combo-picker pattern) -->
+          <div class="combo-picker" id="drift-picker">
+            <button class="combo-picker-btn" id="drift-picker-btn" type="button">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+                   stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="2,3 14,3 10,8 10,13 6,13 6,8"/>
+              </svg>
+              <span id="drift-picker-label">Get Sources First</span>
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="2,4 6,8 10,4"/>
+              </svg>
+            </button>
+            <div class="combo-picker-dropdown hidden" id="drift-picker-dropdown">
+              <div class="combo-picker-search">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+                     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="6.5" cy="6.5" r="4.5"/>
+                  <line x1="10" y1="10" x2="14" y2="14"/>
+                </svg>
+                <input type="text" id="drift-picker-search"
+                       placeholder="Search sourcesâ€¦" autocomplete="off">
+              </div>
+              <div class="combo-picker-actions">
+                <button id="drift-pick-all" type="button">Select All</button>
+                <button id="drift-pick-none" type="button">Clear All</button>
+              </div>
+              <div class="combo-picker-list" id="drift-picker-list">
+                <div class="combo-picker-empty">Click "Get Sources" to load</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action buttons -->
+          <button id="btn-get-drift-sources" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="8" cy="8" r="6"/>
+              <line x1="8" y1="5" x2="8" y2="11"/>
+              <line x1="5" y1="8" x2="11" y2="8"/>
+            </svg>
+            Get Sources
+          </button>
+          <button id="btn-extract-drift" class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 15 15" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="3,2 13,7.5 3,13" fill="currentColor" stroke="none"/>
+            </svg>
+            Extract
+          </button>
+
+        </div>
+      </div>
+
+      <!-- â”€â”€ Tab bar (same pattern as Joint Reactions) â”€â”€ -->
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="drift-table-tab">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="2" width="14" height="12" rx="1.5"/>
+            <line x1="1"   y1="6.5" x2="15"  y2="6.5"/>
+            <line x1="5.5" y1="6.5" x2="5.5" y2="14"/>
+          </svg>
+          Results Table
+        </button>
+        <button class="tab-btn" data-tab="drift-chart-tab">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1,13 5,7 8,10 11,4 15,6"/>
+            <line x1="54" y1="10" x2="54" y2="58" opacity="0.7" stroke="#ef4444"/>
+          </svg>
+          Drift Chart
+        </button>
+      </div>
+
+      <!-- â”€â”€ Tab 1: Results Table â”€â”€ -->
+      <div id="drift-table-tab" class="tab-panel active">
+        <div id="drift-table-empty" class="reactions-chart-empty">
+          <svg width="64" height="64" viewBox="0 0 64 64" fill="none"
+               stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="4" width="56" height="56" rx="4" opacity="0.18"/>
+            <line x1="4"  y1="20" x2="60" y2="20" opacity="0.18"/>
+            <line x1="4"  y1="36" x2="60" y2="36" opacity="0.18"/>
+            <line x1="4"  y1="52" x2="60" y2="52" opacity="0.18"/>
+            <line x1="24" y1="4"  x2="24" y2="60" opacity="0.18"/>
+          </svg>
+          <p>Select sources then click <strong>Extract</strong></p>
+        </div>
+        <div id="drift-table-wrap" class="table-card hidden">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th rowspan="2" class="th-combo">Story</th>
+                <th rowspan="2" class="th-combo">Case</th>
+                <th rowspan="2" class="th-combo">Dir</th>
+                <th rowspan="2">Elevation <span class="unit">(m)</span></th>
+                <th colspan="2" class="th-group-header">Drift</th>
+                <th rowspan="2">Status</th>
+              </tr>
+              <tr>
+                <th>Raw Ratio</th>
+                <th>Ã— Multiplier</th>
+              </tr>
+            </thead>
+            <tbody id="drift-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- â”€â”€ Tab 2: Drift Chart â”€â”€ -->
+      <div id="drift-chart-tab" class="tab-panel">
+        <div id="drift-chart-empty" class="reactions-chart-empty">
+          <svg width="72" height="72" viewBox="0 0 72 72" fill="none"
+               stroke="currentColor" stroke-width="1.2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <line x1="14" y1="8"  x2="14" y2="58" opacity="0.2"/>
+            <line x1="14" y1="58" x2="64" y2="58" opacity="0.2"/>
+            <polyline points="14,52 22,38 30,30 40,18 50,22 58,14"
+                      opacity="0.22" stroke="#2563eb"/>
+            <polyline points="14,54 22,44 30,36 40,26 50,30 58,20"
+                      opacity="0.22" stroke="#10b981"/>
+            <line x1="54" y1="10" x2="54" y2="58" opacity="0.22" stroke="#ef4444"/>
+          </svg>
+          <p>Select sources then click <strong>Extract</strong></p>
+        </div>
+        <div id="driftsChart" style="display:none; position:absolute; inset:0;"></div>
+      </div>
+
+    </section>
+
+    <!-- â”€â”€â”€â”€â”€ TORSIONAL CHECK â”€â”€â”€â”€â”€ -->
+    <section id="torsion-panel" class="panel">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <h1 class="panel-title">Torsional Irregularity</h1>
+          <span class="panel-sub">Max / Avg drift ratio per story â€” irregular when ratio &gt; 1.2</span>
+        </div>
+        <button id="btn-get-torsion" class="btn btn-primary">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="8" cy="8" r="6"/>
+            <polyline points="8,5 8,8 10.5,10"/>
+          </svg>
+          Run Checks
+        </button>
+      </div>
+
+      <div id="torsion-summary" class="torsion-summary hidden"></div>
+
+      <div id="torsion-results" class="results-grid">
+        <div class="empty-placeholder">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none"
+               stroke="currentColor" stroke-width="1.2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="24" cy="24" r="20" opacity="0.25"/>
+            <polyline points="24,14 24,24 30,28" opacity="0.25"/>
+          </svg>
+          <p>Click <strong>Run Checks</strong> to evaluate torsional irregularity</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- â”€â”€â”€â”€â”€ BASE REACTIONS â”€â”€â”€â”€â”€ -->
+    <section id="reactions-panel" class="panel">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <h1 class="panel-title">Base Reactions</h1>
+          <span class="panel-sub">Global foundation forces and moments at the base</span>
+        </div>
+        <div class="header-controls">
+          <!-- Source type toggle: Combinations | Load Cases -->
+          <div class="react-type-toggle">
+            <button class="react-type-btn active" data-type="combo">Combinations</button>
+            <button class="react-type-btn" data-type="case">Load Cases</button>
+          </div>
+          <!-- Multi-item picker -->
+          <div class="combo-picker" id="combo-picker">
+            <button class="combo-picker-btn" id="combo-picker-btn" type="button">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+                   stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="2,3 14,3 10,8 10,13 6,13 6,8"/>
+              </svg>
+              <span id="combo-picker-label">All Combinations</span>
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="2,4 6,8 10,4"/>
+              </svg>
+            </button>
+            <div class="combo-picker-dropdown hidden" id="combo-picker-dropdown">
+              <!-- Search / filter -->
+              <div class="combo-picker-search">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+                     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="6.5" cy="6.5" r="4.5"/>
+                  <line x1="10" y1="10" x2="14" y2="14"/>
+                </svg>
+                <input type="text" id="combo-picker-search"
+                       placeholder="Search combinationsâ€¦" autocomplete="off">
+              </div>
+              <!-- Quick actions -->
+              <div class="combo-picker-actions">
+                <button id="combo-pick-all" type="button">Select All</button>
+                <button id="combo-pick-none" type="button">Clear All</button>
+              </div>
+              <!-- Checklist -->
+              <div class="combo-picker-list" id="combo-picker-list">
+                <div class="combo-picker-empty">Click Fetch to load combinations</div>
+              </div>
+            </div>
+          </div>
+          <button id="btn-get-reactions" class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <line x1="8" y1="2" x2="8" y2="11"/>
+              <polyline points="5,8 8,11 11,8"/>
+              <line x1="3" y1="14" x2="13" y2="14"/>
+            </svg>
+            Fetch
+          </button>
+        </div>
+      </div>
+
+      <!-- â”€â”€ Tab bar â”€â”€ -->
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="reactions-table-tab">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="2" width="14" height="12" rx="1.5"/>
+            <line x1="1" y1="6.5" x2="15" y2="6.5"/>
+            <line x1="5.5" y1="6.5" x2="5.5" y2="14"/>
+          </svg>
+          Results Table
+        </button>
+        <button class="tab-btn" data-tab="reactions-chart-tab">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1.5" y="7"  width="3" height="7"  rx="1"/>
+            <rect x="6.5" y="3"  width="3" height="11" rx="1"/>
+            <rect x="11.5" y="5" width="3" height="9"  rx="1"/>
+            <line x1="0.5" y1="15" x2="15.5" y2="15"/>
+          </svg>
+          Force Chart
+        </button>
+      </div>
+
+      <!-- â”€â”€ Tab 1: Results Table â”€â”€ -->
+      <div id="reactions-table-tab" class="tab-panel active">
+        <div class="table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th rowspan="2" class="th-combo">Combination</th>
+                <th colspan="3" class="th-group-header">Forces</th>
+                <th colspan="3" class="th-group-header">Moments</th>
+              </tr>
+              <tr>
+                <th>FX <span class="unit">kN</span></th>
+                <th>FY <span class="unit">kN</span></th>
+                <th>FZ <span class="unit">kN</span></th>
+                <th>MX <span class="unit">kNÂ·m</span></th>
+                <th>MY <span class="unit">kNÂ·m</span></th>
+                <th>MZ <span class="unit">kNÂ·m</span></th>
+              </tr>
+            </thead>
+            <tbody id="reactions-tbody">
+              <tr>
+                <td colspan="7" class="td-empty">
+                  <div class="empty-placeholder">Select a combination and click Fetch</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- â”€â”€ Tab 2: Force Chart â”€â”€ -->
+      <div id="reactions-chart-tab" class="tab-panel">
+        <div class="reactions-chart-card">
+
+          <!-- Force type toggles -->
+          <div class="force-toggle-bar">
+            <span class="force-toggle-label">Show:</span>
+            <button class="force-toggle active" data-force="FX">FX</button>
+            <button class="force-toggle active" data-force="FY">FY</button>
+            <button class="force-toggle active" data-force="FZ">FZ</button>
+            <button class="force-toggle active" data-force="MX">MX</button>
+            <button class="force-toggle active" data-force="MY">MY</button>
+            <button class="force-toggle active" data-force="MZ">MZ</button>
+            <span class="force-unit-note">kN Â· kNÂ·m</span>
+          </div>
+
+          <!-- Chart area -->
+          <div class="reactions-chart-wrap">
+            <div id="reactions-chart-empty" class="reactions-chart-empty">
+              <svg width="56" height="56" viewBox="0 0 56 56" fill="none"
+                   stroke="currentColor" stroke-width="1.3"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3"  y="28" width="10" height="20" rx="1.5" opacity="0.22"/>
+                <rect x="17" y="16" width="10" height="32" rx="1.5" opacity="0.22"/>
+                <rect x="31" y="22" width="10" height="26" rx="1.5" opacity="0.22"/>
+                <rect x="45" y="10" width="8"  height="38" rx="1.5" opacity="0.22"/>
+                <line x1="1" y1="50" x2="55" y2="50" opacity="0.25"/>
+              </svg>
+              <p>Click <strong>Fetch</strong> to load reaction data, then view the chart</p>
+            </div>
+            <div id="reactionsChart" style="display:none; position:absolute; inset:0;"></div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- â”€â”€â”€â”€â”€ JOINT / SPRING REACTIONS â”€â”€â”€â”€â”€ -->
+    <section id="joint-panel" class="panel">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <h1 class="panel-title">Joint / Spring Reactions</h1>
+          <span class="panel-sub">Individual support &amp; spring reactions with spatial bubble plot</span>
+        </div>
+        <div class="header-controls">
+          <!-- Source type toggle -->
+          <div class="react-type-toggle">
+            <button class="joint-type-btn active" data-jtype="combo">Combinations</button>
+            <button class="joint-type-btn" data-jtype="case">Load Cases</button>
+          </div>
+          <!-- Multi-item picker -->
+          <div class="combo-picker" id="joint-picker">
+            <button class="combo-picker-btn" id="joint-picker-btn" type="button">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+                   stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="2,3 14,3 10,8 10,13 6,13 6,8"/>
+              </svg>
+              <span id="joint-picker-label">All Combinations</span>
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="2,4 6,8 10,4"/>
+              </svg>
+            </button>
+            <div class="combo-picker-dropdown hidden" id="joint-picker-dropdown">
+              <div class="combo-picker-search">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+                     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="6.5" cy="6.5" r="4.5"/>
+                  <line x1="10" y1="10" x2="14" y2="14"/>
+                </svg>
+                <input type="text" id="joint-picker-search"
+                       placeholder="Search combinationsâ€¦" autocomplete="off">
+              </div>
+              <div class="combo-picker-actions">
+                <button id="joint-pick-all" type="button">Select All</button>
+                <button id="joint-pick-none" type="button">Clear All</button>
+              </div>
+              <div class="combo-picker-list" id="joint-picker-list">
+                <div class="combo-picker-empty">Loading sourcesâ€¦</div>
+              </div>
+            </div>
+          </div>
+          <button id="btn-get-joint-reactions" class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <line x1="8" y1="2" x2="8" y2="11"/>
+              <polyline points="5,8 8,11 11,8"/>
+              <line x1="3" y1="14" x2="13" y2="14"/>
+            </svg>
+            Fetch
+          </button>
+        </div>
+      </div>
+
+      <!-- â”€â”€ Tab bar â”€â”€ -->
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="joint-table-tab">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="2" width="14" height="12" rx="1.5"/>
+            <line x1="1" y1="6.5" x2="15" y2="6.5"/>
+            <line x1="5.5" y1="6.5" x2="5.5" y2="14"/>
+          </svg>
+          Results Table
+        </button>
+        <button class="tab-btn" data-tab="joint-bubble-tab">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="5"  cy="11" r="3.5"/>
+            <circle cx="12" cy="5"  r="2.2"/>
+            <circle cx="12" cy="12" r="1.4"/>
+          </svg>
+          Bubble Plot
+        </button>
+      </div>
+
+      <!-- â”€â”€ Tab 1: Results Table â”€â”€ -->
+      <div id="joint-table-tab" class="tab-panel active">
+        <div class="table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th rowspan="2" class="th-combo">Joint</th>
+                <th rowspan="2" class="th-combo">Combo / Case</th>
+                <th rowspan="2" class="th-combo">Step</th>
+                <th colspan="3" class="th-group-header">Coordinates (m)</th>
+                <th colspan="3" class="th-group-header">Forces (kN)</th>
+                <th colspan="3" class="th-group-header">Moments (kNÂ·m)</th>
+              </tr>
+              <tr>
+                <th>X</th><th>Y</th><th>Z</th>
+                <th>FX</th><th>FY</th><th>FZ</th>
+                <th>MX</th><th>MY</th><th>MZ</th>
+              </tr>
+            </thead>
+            <tbody id="joint-tbody">
+              <tr>
+                <td colspan="12" class="td-empty">
+                  <div class="empty-placeholder">Select a combination and click Fetch</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- â”€â”€ Tab 2: Bubble Plot â”€â”€ -->
+      <div id="joint-bubble-tab" class="tab-panel">
+        <div class="bubble-chart-card">
+
+          <!-- Force component pills + combo/case selector -->
+          <div class="force-toggle-bar">
+            <span class="force-toggle-label">Component:</span>
+            <button class="joint-force-btn active" data-jforce="FZ">FZ</button>
+            <button class="joint-force-btn" data-jforce="FX">FX</button>
+            <button class="joint-force-btn" data-jforce="FY">FY</button>
+            <button class="joint-force-btn" data-jforce="MX">MX</button>
+            <button class="joint-force-btn" data-jforce="MY">MY</button>
+            <button class="joint-force-btn" data-jforce="MZ">MZ</button>
+            <span class="bubble-combo-label">Combo / Case:</span>
+            <select id="joint-bubble-combo" class="bubble-combo-select">
+              <option value="">â€” Fetch data first â€”</option>
+            </select>
+          </div>
+
+          <!-- Chart display controls: bubble size, text size, axis ranges -->
+          <div class="bubble-controls-bar">
+
+            <!-- Bubble size -->
+            <div class="bubble-ctrl-group">
+              <span class="bubble-ctrl-label">Bubble</span>
+              <button class="bubble-step-btn" id="bubble-size-minus" title="Decrease bubble size">âˆ’</button>
+              <input type="range" id="bubble-size-slider" class="bubble-ctrl-slider"
+                     min="0.25" max="4" step="0.25" value="1">
+              <button class="bubble-step-btn" id="bubble-size-plus" title="Increase bubble size">+</button>
+              <span class="bubble-ctrl-value" id="bubble-size-val">1Ã—</span>
+            </div>
+
+            <div class="bubble-ctrl-sep-v"></div>
+
+            <!-- Text / label size -->
+            <div class="bubble-ctrl-group">
+              <span class="bubble-ctrl-label">Text</span>
+              <button class="bubble-step-btn" id="bubble-text-minus" title="Decrease label size">âˆ’</button>
+              <input type="range" id="bubble-text-slider" class="bubble-ctrl-slider"
+                     min="7" max="20" step="1" value="11">
+              <button class="bubble-step-btn" id="bubble-text-plus" title="Increase label size">+</button>
+              <span class="bubble-ctrl-value" id="bubble-text-val">11px</span>
+            </div>
+
+            <div class="bubble-ctrl-sep-v"></div>
+
+            <!-- X axis range -->
+            <div class="bubble-ctrl-group">
+              <span class="bubble-ctrl-label">X&nbsp;Range</span>
+              <input type="number" id="bubble-xmin" class="bubble-axis-input" placeholder="auto" step="any" title="X axis minimum">
+              <span class="bubble-ctrl-dash">â€”</span>
+              <input type="number" id="bubble-xmax" class="bubble-axis-input" placeholder="auto" step="any" title="X axis maximum">
+              <button class="bubble-reset-btn" id="bubble-x-reset" title="Reset X axis to auto">â†º</button>
+            </div>
+
+            <div class="bubble-ctrl-sep-v"></div>
+
+            <!-- Y axis range -->
+            <div class="bubble-ctrl-group">
+              <span class="bubble-ctrl-label">Y&nbsp;Range</span>
+              <input type="number" id="bubble-ymin" class="bubble-axis-input" placeholder="auto" step="any" title="Y axis minimum">
+              <span class="bubble-ctrl-dash">â€”</span>
+              <input type="number" id="bubble-ymax" class="bubble-axis-input" placeholder="auto" step="any" title="Y axis maximum">
+              <button class="bubble-reset-btn" id="bubble-y-reset" title="Reset Y axis to auto">â†º</button>
+            </div>
+
+            <div class="bubble-ctrl-sep-v"></div>
+
+            <!-- Color palette selector -->
+            <div class="bubble-ctrl-group">
+              <span class="bubble-ctrl-label">Palette</span>
+              <select id="bubble-palette" class="bubble-palette-select" title="Color palette">
+                <option value="Plasma">Plasma</option>
+                <option value="Viridis">Viridis</option>
+                <option value="Inferno">Inferno</option>
+                <option value="Magma">Magma</option>
+                <option value="Hot">Hot</option>
+                <option value="Jet">Jet</option>
+                <option value="RdYlBu">RdYlBu</option>
+                <option value="RdBu">RdBu</option>
+                <option value="Bluered">Bluered</option>
+                <option value="Electric">Electric</option>
+                <option value="Blackbody">Blackbody</option>
+                <option value="Rainbow">Rainbow</option>
+              </select>
+            </div>
+
+            <div class="bubble-ctrl-sep-v"></div>
+
+            <!-- Color scale min / max (legend range) -->
+            <div class="bubble-ctrl-group">
+              <span class="bubble-ctrl-label">Color</span>
+              <input type="number" id="bubble-cmin" class="bubble-axis-input bubble-axis-input--color"
+                     placeholder="auto" step="any" title="Color scale minimum (legend low end)">
+              <span class="bubble-ctrl-dash">â€”</span>
+              <input type="number" id="bubble-cmax" class="bubble-axis-input bubble-axis-input--color"
+                     placeholder="auto" step="any" title="Color scale maximum (legend high end)">
+              <button class="bubble-reset-btn" id="bubble-c-reset" title="Reset color scale to auto">â†º</button>
+            </div>
+
+          </div>
+
+          <!-- Chart area -->
+          <div class="bubble-chart-wrap">
+            <div id="joint-bubble-empty" class="reactions-chart-empty">
+              <svg width="64" height="64" viewBox="0 0 64 64" fill="none"
+                   stroke="currentColor" stroke-width="1.2"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="44" r="9"  opacity="0.22"/>
+                <circle cx="40" cy="22" r="13" opacity="0.22"/>
+                <circle cx="53" cy="47" r="5"  opacity="0.22"/>
+                <circle cx="10" cy="18" r="4"  opacity="0.22"/>
+                <line x1="2" y1="58" x2="62" y2="58" opacity="0.18"/>
+              </svg>
+              <p>Fetch reactions, then select a combo/case and force component</p>
+            </div>
+            <div id="jointBubbleChart" style="display:none; position:absolute; inset:0;"></div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- â”€â”€â”€â”€â”€ LOAD COMBINATIONS â”€â”€â”€â”€â”€ -->
+    <section id="combos-panel" class="panel lc-panel">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <h1 class="panel-title">Load Combinations</h1>
+          <span class="panel-sub">Define combinations and generate them directly into ETABS</span>
+        </div>
+        <div class="header-controls">
+          <button id="btn-get-lc" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 15 15" fill="none"
+                 stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+              <circle cx="7.5" cy="7.5" r="5.5"/>
+              <line x1="7.5" y1="5" x2="7.5" y2="10"/>
+              <line x1="5" y1="7.5" x2="10" y2="7.5"/>
+            </svg>
+            Get Load Cases
+          </button>
+          <button id="btn-filter-lc" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 15 15" fill="none"
+                 stroke="currentColor" stroke-width="1.7"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="2,3 13,3 9,8 9,13 6,13 6,8"/>
+            </svg>
+            Filter Columns
+          </button>
+          <button id="btn-clear-lc" class="btn btn-ghost btn-ghost--danger">
+            <svg width="14" height="14" viewBox="0 0 15 15" fill="none"
+                 stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+              <line x1="4" y1="4" x2="11" y2="11"/>
+              <line x1="11" y1="4" x2="4" y2="11"/>
+            </svg>
+            Clear
+          </button>
+          <button id="btn-generate-batch" class="btn btn-green">
+            <svg width="14" height="14" viewBox="0 0 15 15" fill="none"
+                 stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="3,2 13,7.5 3,13" fill="currentColor" stroke="none"/>
+            </svg>
+            Generate in ETABS
+          </button>
+          <span id="lc-gen-status" class="status-chip hidden"></span>
+        </div>
+      </div>
+
+      <!-- Load cases chip bar -->
+      <div class="lc-cases-bar">
+        <span class="lc-cases-label">LOAD CASES</span>
+        <ul id="lc-cases-list" class="lc-cases-ul"></ul>
+        <span id="lc-cases-empty" class="lc-cases-empty">Click Get Load Cases to populate</span>
+      </div>
+
+      <!-- Spreadsheet card (fills remaining height) -->
+      <div class="lc-card">
+        <div class="lc-table-scroll">
+          <table id="lc-table" class="lc-sheet">
+            <thead>
+              <tr id="lc-thead-row">
+                <th class="lc-th-rownum">#</th>
+                <th class="lc-th-name">Name</th>
+              </tr>
+            </thead>
+            <tbody id="lc-tbody">
+              <tr id="lc-empty-row">
+                <td colspan="2" class="lc-empty-cell">
+                  <div class="lc-empty-state">
+                    <svg width="52" height="52" viewBox="0 0 52 52" fill="none"
+                         stroke="currentColor" stroke-width="1.3"
+                         stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="4" y="8" width="44" height="36" rx="2"/>
+                      <line x1="4"  y1="18" x2="48" y2="18"/>
+                      <line x1="4"  y1="28" x2="48" y2="28"/>
+                      <line x1="4"  y1="38" x2="48" y2="38"/>
+                      <line x1="16" y1="8"  x2="16" y2="44"/>
+                      <line x1="28" y1="8"  x2="28" y2="44"/>
+                    </svg>
+                    <p>Click <strong>Get Load Cases</strong> to build columns,<br>
+                       then add rows and define factors.</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="lc-statusbar">
+          <button id="btn-add-lc-row" class="lc-add-row-btn">
+            <svg width="11" height="11" viewBox="0 0 14 14" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="7" y1="2" x2="7" y2="12"/>
+              <line x1="2" y1="7" x2="12" y2="7"/>
+            </svg>
+            Add Row
+          </button>
+          <span id="lc-row-count" class="lc-row-count">0 rows</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- â”€â”€â”€â”€â”€ RC BEAM SECTION GENERATOR â”€â”€â”€â”€â”€ -->
+    <section id="rcbeam-panel" class="panel">
+
+      <!-- Panel header + toolbar -->
+      <div class="panel-header rcb-header">
+        <div class="panel-title-group">
+          <h1 class="panel-title">RC Beam Section Generator</h1>
+          <span class="panel-sub">Design rectangular concrete beam sections and sync with ETABS</span>
+        </div>
+        <div class="header-controls rcb-toolbar">
+
+          <button id="rcb-btn-import-mat" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 2v9M4 7l4 4 4-4"/>
+              <rect x="2" y="13" width="12" height="1.5" rx="0.75"/>
+            </svg>
+            Import Material
+          </button>
+
+          <button id="rcb-btn-clear" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 4h12M6 4V2h4v2M5 4v9a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V4"/>
+            </svg>
+            Clear
+          </button>
+
+          <button id="rcb-btn-autogen" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="8" r="6"/>
+              <line x1="8" y1="5" x2="8" y2="11"/>
+              <line x1="5" y1="8" x2="11" y2="8"/>
+            </svg>
+            Add Beam
+          </button>
+
+          <button id="rcb-btn-autogen-range" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="1" y="4" width="4" height="4" rx="0.75"/>
+              <rect x="6" y="4" width="4" height="4" rx="0.75"/>
+              <rect x="11" y="4" width="4" height="4" rx="0.75"/>
+              <rect x="1" y="10" width="4" height="4" rx="0.75"/>
+              <rect x="6" y="10" width="4" height="4" rx="0.75"/>
+              <rect x="11" y="10" width="4" height="4" rx="0.75"/>
+            </svg>
+            AutoGenerate
+          </button>
+
+          <button id="rcb-btn-import-sec" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="12" height="12" rx="1.5"/>
+              <line x1="2"  y1="6"  x2="14" y2="6"/>
+              <line x1="6"  y1="6"  x2="6"  y2="14"/>
+            </svg>
+            Import Section
+          </button>
+
+          <button id="rcb-btn-write" class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 11V2M4 7l4-4 4 4"/>
+              <rect x="2" y="12" width="12" height="2" rx="1"/>
+            </svg>
+            Write to ETABS
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Main layout: material sidebar + table -->
+      <div class="rcb-layout">
+
+        <!-- Left: material list -->
+        <div class="rcb-mat-panel">
+          <div class="rcb-mat-header">Materials</div>
+          <ul class="rcb-mat-list" id="rcb-mat-list">
+            <li class="rcb-mat-empty">Click "Import Material"</li>
+          </ul>
+        </div>
+
+        <!-- Right: section table -->
+        <div class="rcb-table-outer">
+          <div class="rcb-table-empty" id="rcb-table-empty">
+            <svg width="56" height="56" viewBox="0 0 64 64" fill="none"
+                 stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+              <rect x="6"  y="6"  width="52" height="8"  rx="2" opacity=".25"/>
+              <rect x="6"  y="18" width="52" height="9"  rx="2" opacity=".18"/>
+              <rect x="6"  y="31" width="52" height="9"  rx="2" opacity=".12"/>
+              <rect x="6"  y="44" width="52" height="9"  rx="2" opacity=".07"/>
+            </svg>
+            <p>Click <strong>Import Section</strong> to load from ETABS,<br>use <strong>Add Beam</strong> or <strong>AutoGenerate</strong> to create sections</p>
+          </div>
+          <div class="rcb-table-wrap hidden" id="rcb-table-wrap">
+            <table class="data-table rcb-table" id="rcb-table">
+              <thead>
+                <tr>
+                  <th class="rcb-th-num">#</th>
+                  <th class="rcb-th-name">Property Name</th>
+                  <th>Concrete Strength</th>
+                  <th>Fy (Main)</th>
+                  <th>Fy (Ties)</th>
+                  <th>Depth (mm)</th>
+                  <th>Width (mm)</th>
+                  <th>Bar Dia.</th>
+                  <th>Top (cc)</th>
+                  <th>Bot (cc)</th>
+                  <th>NBar_Top (i)</th>
+                  <th>NBar_Top (j)</th>
+                  <th>NBar_Bot (i)</th>
+                  <th>NBar_Bot (j)</th>
+                  <th>Torsion</th>
+                  <th>I22</th>
+                  <th>I33</th>
+                  <th class="rcb-th-del"></th>
+                </tr>
+              </thead>
+              <tbody id="rcb-tbody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /.rcb-layout -->
+
+      <!-- Status bar -->
+      <div class="rcb-statusbar">
+        <span class="rcb-count" id="rcb-count">0 sections</span>
+        <button id="rcb-btn-add-row" class="btn btn-ghost btn-xs">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="6" y1="2" x2="6" y2="10"/>
+            <line x1="2" y1="6" x2="10" y2="6"/>
+          </svg>
+          Add Row
+        </button>
+        <button id="rcb-btn-add-copy" class="btn btn-ghost btn-xs">
+          <svg width="11" height="11" viewBox="0 0 14 14" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="4" width="8" height="8" rx="1"/>
+            <path d="M2 10V2h8"/>
+          </svg>
+          Add Copy
+        </button>
+      </div>
+
+    </section><!-- /#rcbeam-panel -->
+
+    <!-- â”€â”€â”€â”€â”€ RC COLUMN SECTION GENERATOR â”€â”€â”€â”€â”€ -->
+    <section id="rccolumn-panel" class="panel">
+
+      <!-- Panel header + toolbar -->
+      <div class="panel-header rcc-header">
+        <div class="panel-title-group">
+          <h1 class="panel-title">RC Column Section Generator</h1>
+          <span class="panel-sub">Design rectangular concrete column sections and sync with ETABS</span>
+        </div>
+        <div class="header-controls rcc-toolbar">
+
+          <button id="rcc-btn-import-mat" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 2v9M4 7l4 4 4-4"/>
+              <rect x="2" y="13" width="12" height="1.5" rx="0.75"/>
+            </svg>
+            Import Material
+          </button>
+
+          <button id="rcc-btn-clear" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 4h12M6 4V2h4v2M5 4v9a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V4"/>
+            </svg>
+            Clear
+          </button>
+
+          <button id="rcc-btn-add-col" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="8" r="6"/>
+              <line x1="8" y1="5" x2="8" y2="11"/>
+              <line x1="5" y1="8" x2="11" y2="8"/>
+            </svg>
+            Add Column
+          </button>
+
+          <button id="rcc-btn-import-sec" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="12" height="12" rx="1.5"/>
+              <line x1="2"  y1="6"  x2="14" y2="6"/>
+              <line x1="6"  y1="6"  x2="6"  y2="14"/>
+            </svg>
+            Import Section
+          </button>
+
+          <button id="rcc-btn-view-sec" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="8" r="5"/>
+              <circle cx="8" cy="8" r="2"/>
+            </svg>
+            View Sections
+          </button>
+
+          <button id="rcc-btn-write" class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 11V2M4 7l4-4 4 4"/>
+              <rect x="2" y="12" width="12" height="2" rx="1"/>
+            </svg>
+            Write to ETABS
+          </button>
+
+          <button id="rcc-btn-spcol" class="btn btn-ghost" disabled title="Coming soon â€” feed reference code first">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="2" width="10" height="12" rx="1"/>
+              <line x1="6" y1="6" x2="10" y2="6"/>
+              <line x1="6" y1="9" x2="10" y2="9"/>
+            </svg>
+            Create Spcol Files
+          </button>
+
+          <button id="rcc-btn-drawing" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="12" height="12" rx="1.5"/>
+              <path d="M5 11l2-4 2 3 1.5-2 2 3"/>
+            </svg>
+            Create Drawing
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Main layout: material sidebar + table -->
+      <div class="rcc-layout">
+
+        <!-- Left: material list -->
+        <div class="rcc-mat-panel">
+          <div class="rcc-mat-header">Materials</div>
+          <ul class="rcc-mat-list" id="rcc-mat-list">
+            <li class="rcc-mat-empty">Click "Import Material"</li>
+          </ul>
+        </div>
+
+        <!-- Right: section table -->
+        <div class="rcc-table-outer">
+          <div class="rcc-table-empty" id="rcc-table-empty">
+            <svg width="56" height="56" viewBox="0 0 64 64" fill="none"
+                 stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+              <rect x="6"  y="6"  width="52" height="8"  rx="2" opacity=".25"/>
+              <rect x="6"  y="18" width="52" height="9"  rx="2" opacity=".18"/>
+              <rect x="6"  y="31" width="52" height="9"  rx="2" opacity=".12"/>
+              <rect x="6"  y="44" width="52" height="9"  rx="2" opacity=".07"/>
+            </svg>
+            <p>Click <strong>Import Section</strong> to load from ETABS,<br>or use <strong>Add Column</strong> to create a new section</p>
+          </div>
+          <div class="rcc-table-wrap hidden" id="rcc-table-wrap">
+            <table class="data-table rcc-table" id="rcc-table">
+              <thead>
+                <tr>
+                  <th class="rcc-th-num">#</th>
+                  <th class="rcc-th-name">Property Name</th>
+                  <th>Concrete Strength</th>
+                  <th>Fy (Main)</th>
+                  <th>Fy (Ties)</th>
+                  <th>Depth (mm)</th>
+                  <th>Width (mm)</th>
+                  <th>Cover (mm)</th>
+                  <th>Rebar Size</th>
+                  <th>NBars(3)</th>
+                  <th>NBars(2)</th>
+                  <th>Tie Size</th>
+                  <th>Spacing (mm)</th>
+                  <th>#TieBars(3)</th>
+                  <th>#TieBars(2)</th>
+                  <th>To Design</th>
+                  <th>Torsion</th>
+                  <th>I22</th>
+                  <th>I33</th>
+                  <th class="rcc-th-del"></th>
+                </tr>
+              </thead>
+              <tbody id="rcc-tbody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /.rcc-layout -->
+
+      <!-- Status bar -->
+      <div class="rcc-statusbar">
+        <span class="rcc-count" id="rcc-count">0 sections</span>
+        <button id="rcc-btn-add-row" class="btn btn-ghost btn-xs">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="6" y1="2" x2="6" y2="10"/>
+            <line x1="2" y1="6" x2="10" y2="6"/>
+          </svg>
+          Add Row
+        </button>
+        <button id="rcc-btn-add-copy" class="btn btn-ghost btn-xs">
+          <svg width="11" height="11" viewBox="0 0 14 14" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="4" width="8" height="8" rx="1"/>
+            <path d="M2 10V2h8"/>
+          </svg>
+          Add Copy
+        </button>
+      </div>
+
+    </section><!-- /#rccolumn-panel -->
+
+
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• P-M-M INTERACTION DIAGRAM PANEL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <section id="pmm-panel" class="panel pmm-panel">
+
+      <!-- Header -->
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <h2 class="panel-title">P-M-M Interaction Diagram</h2>
+          <p class="panel-subtitle">ACI 318-19 Â· Biaxial bending interaction surface for RC columns</p>
+        </div>
+        <div class="pmm-header-actions">
+          <button class="pmm-hdr-btn" onclick="pmmSaveSession()" title="Save session to .siq file">
+            <svg width="14" height="14" viewBox="0 0 18 18" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V5l-2-3z"/>
+              <polyline points="13 2 13 6 5 6"/>
+              <line x1="9" y1="10" x2="9" y2="14"/>
+              <line x1="7" y1="12" x2="11" y2="12"/>
+            </svg>
+            Save
+          </button>
+          <button class="pmm-hdr-btn" onclick="document.getElementById('pmm-open-input').click()" title="Open a saved .siq file">
+            <svg width="14" height="14" viewBox="0 0 18 18" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 7h14v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7z"/>
+              <path d="M2 7V5a1 1 0 0 1 1-1h4l2 2h6a1 1 0 0 1 1 1v1"/>
+            </svg>
+            Open
+          </button>
+          <input id="pmm-open-input" type="file" accept=".siq,.json" style="display:none"
+                 onchange="pmmOpenSession(this)"/>
+        </div>
+      </div>
+
+      <div class="pmm-layout">
+
+        <!-- â”€â”€ Left: inputs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+        <div class="pmm-inputs">
+
+          <div class="pmm-group">
+            <div class="pmm-group-title">SECTION</div>
+            <div class="pmm-row">
+              <label class="pmm-label">Width b</label>
+              <div class="pmm-input-unit">
+                <input id="pmm-b" type="number" class="pmm-input" value="400" min="100" step="10"/>
+                <span class="pmm-unit">mm</span>
+              </div>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">Depth h</label>
+              <div class="pmm-input-unit">
+                <input id="pmm-h" type="number" class="pmm-input" value="500" min="100" step="10"/>
+                <span class="pmm-unit">mm</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pmm-group">
+            <div class="pmm-group-title">MATERIALS</div>
+            <div class="pmm-row">
+              <label class="pmm-label">f'c</label>
+              <div class="pmm-input-unit">
+                <input id="pmm-fc" type="number" class="pmm-input" value="28" min="17" step="1"/>
+                <span class="pmm-unit">MPa</span>
+              </div>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">fy</label>
+              <div class="pmm-input-unit">
+                <input id="pmm-fy" type="number" class="pmm-input" value="420" min="250" step="10"/>
+                <span class="pmm-unit">MPa</span>
+              </div>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">Es</label>
+              <div class="pmm-input-unit">
+                <input id="pmm-es" type="number" class="pmm-input" value="200000" min="100000" step="1000"/>
+                <span class="pmm-unit">MPa</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pmm-group">
+            <div class="pmm-group-title">REINFORCEMENT</div>
+            <div class="pmm-row">
+              <label class="pmm-label" title="Clear cover from concrete face to face of stirrup">Clear Cover</label>
+              <div class="pmm-input-unit">
+                <input id="pmm-cover" type="number" class="pmm-input" value="40" min="10" step="5"
+                       title="Clear cover from concrete face to stirrup face (mm)"/>
+                <span class="pmm-unit">mm</span>
+              </div>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label" title="Shear reinforcement (stirrup/tie) diameter">Stirrup âŒ€</label>
+              <select id="pmm-stirrup-dia" class="pmm-input pmm-select"
+                      title="Stirrup / tie bar diameter â€” used to compute cover to longitudinal bar centre">
+                <option value="6">Ã˜6</option>
+                <option value="8">Ã˜8</option>
+                <option value="10" selected>Ã˜10</option>
+                <option value="12">Ã˜12</option>
+                <option value="16">Ã˜16</option>
+              </select>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">Bars (b-dir)</label>
+              <input id="pmm-nbars-b" type="number" class="pmm-input" value="3" min="2" step="1"
+                     title="Bars on top/bottom faces including corners"/>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">Bars (h-dir)</label>
+              <input id="pmm-nbars-h" type="number" class="pmm-input" value="1" min="0" step="1"
+                     title="Extra bars on each side face, NOT counting corners"/>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">Bar Size</label>
+              <select id="pmm-barsize" class="pmm-input pmm-select">
+                <!-- populated by pmmInit() from /api/pmm/rebar-table?units=SI -->
+              </select>
+            </div>
+            <div id="pmm-rho-info" class="pmm-rho-info"></div>
+            <!-- Section preview moved to floating overlay on the 3D chart -->
+          </div>
+
+          <div class="pmm-group">
+            <div class="pmm-group-title">OPTIONS</div>
+            <label class="pmm-checkbox-row">
+              <input id="pmm-phi" type="checkbox" checked/>
+              Include Ï† factors (ACI 318)
+            </label>
+            <div class="pmm-row">
+              <label class="pmm-label">Resolution</label>
+              <select id="pmm-res" class="pmm-input pmm-select">
+                <option value="10:70" selected>Standard (10Â° Â· 70 pts)</option>
+                <option value="5:120">Fine (5Â° Â· 120 pts)</option>
+                <option value="3:200">Ultra (3Â° Â· 200 pts)</option>
+              </select>
+            </div>
+          </div>
+
+          <button id="btn-pmm-etabs" class="pmm-etabs-btn">
+            <svg width="14" height="14" viewBox="0 0 18 18" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9h12M9 3l6 6-6 6"/>
+            </svg>
+            Import from ETABS
+          </button>
+
+          <button id="btn-pmm-batch" class="pmm-etabs-btn" style="background:var(--blue);color:#fff;border-color:var(--blue)" onclick="pmmBatchOpen()">
+            <svg width="14" height="14" viewBox="0 0 18 18" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="6" height="6" rx="1"/>
+              <rect x="10" y="2" width="6" height="6" rx="1"/>
+              <rect x="2" y="10" width="6" height="6" rx="1"/>
+              <rect x="10" y="10" width="6" height="6" rx="1"/>
+            </svg>
+            Batch Check (ETABS)
+          </button>
+
+          <button id="btn-pmm-batch-results" class="pmm-etabs-btn hidden" style="border-color:var(--blue);color:var(--blue)" onclick="pmmShowTab('batch')">
+            <svg width="14" height="14" viewBox="0 0 18 18" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="14" height="3" rx="1"/>
+              <rect x="2" y="7" width="14" height="3" rx="1"/>
+              <rect x="2" y="12" width="14" height="3" rx="1"/>
+            </svg>
+            View Batch Results
+          </button>
+
+          <button id="btn-pmm-generate" class="pmm-generate-btn">
+            <svg width="14" height="14" viewBox="0 0 18 18" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <polygon points="3,2 15,9 3,16"/>
+            </svg>
+            Generate Diagram
+          </button>
+
+          <div id="pmm-status" class="pmm-status"></div>
+
+          <!-- â”€â”€ Optimize section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+          <div class="pmm-group pmm-optimize-group">
+            <div class="pmm-group-title">OPTIMIZE DESIGN</div>
+            <div class="pmm-row">
+              <label class="pmm-label">Target DCR</label>
+              <div class="pmm-input-unit" style="max-width:110px">
+                <input id="pmm-opt-dcr" type="number" class="pmm-input"
+                       value="90" min="10" max="100" step="5"/>
+                <span class="pmm-unit">%</span>
+              </div>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">Min Ï</label>
+              <div class="pmm-input-unit" style="max-width:110px">
+                <input id="pmm-opt-minrho" type="number" class="pmm-input"
+                       value="1" min="1" max="8" step="0.5"
+                       title="ACI Â§10.6.1.1 minimum steel ratio (%)"/>
+                <span class="pmm-unit">%</span>
+              </div>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">Max Ï</label>
+              <div class="pmm-input-unit" style="max-width:110px">
+                <input id="pmm-opt-maxrho" type="number" class="pmm-input"
+                       value="4" min="1" max="8" step="0.5"
+                       title="User-defined maximum steel ratio (%)"/>
+                <span class="pmm-unit">%</span>
+              </div>
+            </div>
+            <div class="pmm-row" style="align-items:center;gap:8px;margin-top:2px;">
+              <label class="pmm-label" for="pmm-opt-sweep" style="cursor:pointer;"
+                     title="Try all bar sizes (Ã˜8â†’Ã˜40) and return the globally lightest passing arrangement">
+                Sweep all bar sizes
+              </label>
+              <input id="pmm-opt-sweep" type="checkbox"
+                     title="Try Ã˜8â†’Ã˜40 and return globally lightest passing arrangement"
+                     style="width:16px;height:16px;cursor:pointer;accent-color:#3b82f6;"/>
+            </div>
+            <button id="btn-pmm-optimize" class="pmm-optimize-btn" onclick="pmmOptimize()">
+              âš¡ Optimize
+            </button>
+            <div id="pmm-opt-result" class="pmm-opt-result hidden"></div>
+          </div>
+
+          <!-- Results summary -->
+          <div id="pmm-summary" class="pmm-summary hidden">
+            <div class="pmm-summary-row"><span>Ag</span><span id="pmm-s-ag"></span></div>
+            <div class="pmm-summary-row"><span>Ast</span><span id="pmm-s-ast"></span></div>
+            <div class="pmm-summary-row"><span>Ï</span><span id="pmm-s-rho"></span></div>
+            <div class="pmm-summary-row"><span>Ï†Pn,max</span><span id="pmm-s-pmax"></span></div>
+            <div class="pmm-summary-row"><span>Ï†Pn,min</span><span id="pmm-s-pmin"></span></div>
+          </div>
+        </div><!-- /.pmm-inputs -->
+
+        <!-- â”€â”€ Right: charts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+        <div class="pmm-charts">
+          <div class="pmm-tabs">
+            <button class="pmm-tab active" data-tab="3d">3D Surface</button>
+            <button class="pmm-tab" data-tab="pmx">P â€“ Mx</button>
+            <button class="pmm-tab" data-tab="pmy">P â€“ My</button>
+            <button class="pmm-tab" data-tab="mxmy">Mx â€“ My</button>
+            <button class="pmm-tab" data-tab="batch" id="pmm-tab-batch" style="display:none">âš¡ Batch Results</button>
+          </div>
+          <!-- 3D chart + loads panel side-by-side -->
+          <div id="pmm-3d-wrapper" class="pmm-3d-wrapper">
+            <div class="pmm-3d-outer">
+              <div id="pmm-chart-3d" class="pmm-3d-chart"></div>
+              <div class="pmm-3d-view-btns">
+                <button class="pmm-3d-vbtn active" data-view="3d"    onclick="pmmSet3DView('3d')"    title="Perspective">3D</button>
+                <button class="pmm-3d-vbtn"        data-view="top"   onclick="pmmSet3DView('top')"   title="Top â€” MxÂ·My plane">Top</button>
+                <button class="pmm-3d-vbtn"        data-view="front" onclick="pmmSet3DView('front')" title="Front â€” PÂ·Mx plane">Front</button>
+                <button class="pmm-3d-vbtn"        data-view="side"  onclick="pmmSet3DView('side')"  title="Side â€” PÂ·My plane">Side</button>
+                <button class="pmm-3d-vbtn active" id="pmm-3d-wire-btn"    onclick="pmmToggleWireframe()" title="Toggle wireframe rings">âŠž Wire</button>
+                <button class="pmm-3d-vbtn active" id="pmm-3d-section-btn" onclick="pmmToggleSection()"   title="Toggle cross-section">â¬› Section</button>
+                <button class="pmm-3d-vbtn" id="pmm-3d-rotate-btn"        onclick="pmmToggleRotate()"     title="Auto-rotate">â–¶</button>
+                <button class="pmm-3d-vbtn" id="pmm-3d-loads-btn"         onclick="pmmToggleDemands()"    title="Hide / show Demand Loads panel">âŠŸ Loads</button>
+              </div>
+              <!-- Floating cross-section preview â€” top-left of 3D chart -->
+              <div id="pmm-3d-section-float" class="pmm-3d-section-float">
+                <div id="pmm-section-plot" style="width:100%;height:100%;"></div>
+              </div>
+            </div>
+            <div id="pmm-chart-loads" class="pmm-loads-panel"></div>
+          </div>
+          <div class="pmm-2d-outer hidden" id="pmm-2d-outer-pmx">
+            <div id="pmm-chart-pmx" class="pmm-chart-area"></div>
+            <button class="pmm-2d-csv-btn" onclick="pmmExport2DCSV('pmx','Mx')"
+                    title="Export Pâ€“Mx interaction curve as CSV (spColumn compatible)">â¬‡ Export CSV</button>
+          </div>
+          <div class="pmm-2d-outer hidden" id="pmm-2d-outer-pmy">
+            <div id="pmm-chart-pmy" class="pmm-chart-area"></div>
+            <button class="pmm-2d-csv-btn" onclick="pmmExport2DCSV('pmy','My')"
+                    title="Export Pâ€“My interaction curve as CSV (spColumn compatible)">â¬‡ Export CSV</button>
+          </div>
+          <div id="pmm-mxmy-toolbar" class="pmm-mxmy-toolbar hidden">
+            <label for="pmm-mxmy-p-input">Axial load</label>
+            <div class="pmm-p-combo">
+              <input type="text" id="pmm-mxmy-p-input" class="pmm-mxmy-p-input"
+                     list="pmm-mxmy-p-list" placeholder="e.g. âˆ’1345"
+                     oninput="pmmMxMyUpdateP(this.value)"
+                     onblur="pmmMxMyPBlur()" />
+              <datalist id="pmm-mxmy-p-list"></datalist>
+              <button class="pmm-p-combo-drop" onmousedown="pmmMxMyOpenDrop(event)" title="Show demand P values">â–¾</button>
+              <div class="pmm-p-combo-spin">
+                <button onmousedown="pmmMxMyStepP(event,1)"  title="Previous P">âˆ§</button>
+                <button onmousedown="pmmMxMyStepP(event,-1)" title="Next P">âˆ¨</button>
+              </div>
+            </div>
+            <span class="pmm-mxmy-p-hint">kN &nbsp;Â·&nbsp; compression = negative</span>
+          </div>
+          <div id="pmm-chart-mxmy" class="pmm-chart-area hidden"></div>
+          <!-- Batch Results tab panel -->
+          <div id="pmm-batch-results-panel" class="hidden" style="flex:1;overflow:hidden;display:flex;flex-direction:column;padding:0">
+            <div id="pmm-batch-no-results" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--t3)">
+              <div style="font-size:32px">âš¡</div>
+              <div style="font-size:13px;font-weight:600">No batch results yet</div>
+              <div style="font-size:12px">Run a Batch Column Check to see results here.</div>
+              <button class="btn btn-primary btn-sm" onclick="pmmBatchOpen()">Run Batch Check</button>
+            </div>
+            <!-- Toolbar row 1: summary + actions -->
+            <div id="pmm-batch-results-toolbar" class="hidden" style="padding:8px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px;flex-shrink:0">
+              <div id="pmm-batch-results-summary" style="font-size:13px;font-weight:600;flex:1"></div>
+              <button class="btn btn-ghost btn-sm" onclick="pmmBatchExportCSV()">â¬‡ Export CSV</button>
+              <button class="btn btn-ghost btn-sm" onclick="pmmBatchOpen()">â†» Re-run</button>
+            </div>
+            <!-- Toolbar row 2: rebar optimization controls -->
+            <div id="pmm-batch-opt-toolbar" class="hidden" style="padding:7px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:10px;flex-shrink:0;background:#fff7ed">
+              <svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="#ea6c00" stroke-width="2" stroke-linecap="round">
+                <path d="M10 2L4 10h5l-1 6 6-8h-5l1-6z" fill="#ea6c00" stroke="none"/>
+              </svg>
+              <span style="font-size:12px;font-weight:700;color:#ea6c00">Rebar Optimizer</span>
+              <span style="font-size:11px;color:#92400e">Target DCR</span>
+              <input id="pmm-opt-target-dcr" type="number" value="0.90" min="0.5" max="1.0" step="0.05"
+                style="width:64px;font-size:12px;padding:3px 6px;border:1px solid #f97316;border-radius:5px;text-align:center;background:#fff"/>
+              <span style="font-size:11px;color:#92400e">Min Ï (%)</span>
+              <input id="pmm-opt-min-rho" type="number" value="1.0" min="0.5" max="8.0" step="0.5"
+                style="width:58px;font-size:12px;padding:3px 6px;border:1px solid #f97316;border-radius:5px;text-align:center;background:#fff"/>
+              <button onclick="pmmBatchOptimize()"
+                style="background:#ea6c00;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;padding:5px 16px;cursor:pointer;white-space:nowrap">
+                âš¡ Optimize Rebar
+              </button>
+              <span style="font-size:11px;color:#92400e;flex:1">Finds minimum rebar per section Â· respects Ï_min</span>
+            </div>
+            <!-- Sub-tabs: Section Results | Story Summary | 3D View | Rebar Optimization -->
+            <div id="pmm-batch-results-subtabs" class="hidden" style="display:flex;gap:0;border-bottom:1px solid var(--bdr);flex-shrink:0;padding:0 14px;background:#f8fafc">
+              <button id="brs-tab-section" onclick="pmmBrSubTab('section')"
+                style="padding:7px 16px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid var(--blue);color:var(--blue)">
+                Section Results
+              </button>
+              <button id="brs-tab-story" onclick="pmmBrSubTab('story')"
+                style="padding:7px 16px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--t2)">
+                Story Summary
+              </button>
+              <button id="brs-tab-3d" onclick="pmmBrSubTab('3d')"
+                style="padding:7px 16px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--t2)">
+                3D View
+              </button>
+              <button id="brs-tab-opt" onclick="pmmBrSubTab('opt')"
+                style="padding:7px 16px;font-size:12px;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:#ea6c00">
+                âš¡ Rebar Opt.
+              </button>
+            </div>
+            <!-- Section Results pane -->
+            <div id="pmm-batch-results-table-wrap" class="hidden" style="overflow:auto;flex:1;padding:0">
+              <table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff">
+                <thead id="pmm-batch-results-thead">
+                  <tr class="pmm-br-header-row" style="position:sticky;top:0;z-index:2">
+                    <th class="pmm-batch-th pmm-br-sort" style="text-align:left;padding:8px 10px;cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="0" onclick="pmmBrSort(0)">Section <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="1" onclick="pmmBrSort(1)">bÃ—h (mm) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="2" onclick="pmmBrSort(2)">Bars <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="3" onclick="pmmBrSort(3)">Ï (%) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="4" onclick="pmmBrSort(4)">Ï†Pn,max (kN) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="5" onclick="pmmBrSort(5)">Frames <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="6" onclick="pmmBrSort(6)">Story <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="7" onclick="pmmBrSort(7)">Column ID <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="8" onclick="pmmBrSort(8)">Worst Combo <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th" style="background:#f1f5f9;border:1px solid #cbd5e1">Loc</th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="10" onclick="pmmBrSort(10)">P (kN) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="11" onclick="pmmBrSort(11)">Mx (kNÂ·m) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="12" onclick="pmmBrSort(12)">My (kNÂ·m) <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="13" onclick="pmmBrSort(13)">Max DCR <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th pmm-br-sort" style="cursor:pointer;background:#f1f5f9;border:1px solid #cbd5e1" data-col="14" onclick="pmmBrSort(14)">Status <span class="pmm-br-arrow"></span></th>
+                    <th class="pmm-batch-th" style="background:#f1f5f9;border:1px solid #cbd5e1"></th>
+                  </tr>
+                </thead>
+                <tbody id="pmm-batch-results-tbody"></tbody>
+              </table>
+            </div>
+            <!-- Story Summary pane -->
+            <div id="pmm-batch-results-story-pane" style="display:none;overflow:auto;flex:1;padding:0">
+              <div id="pmm-batch-results-story-wrap"></div>
+            </div>
+            <!-- 3D Building View pane -->
+            <div id="pmm-batch-results-3d-pane" style="display:none;flex:1;flex-direction:column;min-height:0">
+              <!-- Toolbar row 1: load / color mode / combos / bg toggle / status -->
+              <div style="padding:6px 14px;display:flex;gap:8px;align-items:center;flex-wrap:nowrap;overflow-x:auto;border-bottom:1px solid var(--bdr);flex-shrink:0">
+                <button id="btn-load-3d" class="btn btn-ghost btn-sm" onclick="pmmLoad3DView()"
+                  style="font-size:12px;padding:4px 12px">Load 3D View</button>
+
+                <select id="pmm-3d-color-mode" onchange="pmm3DColorModeChange()"
+                  style="font-size:12px;padding:3px 8px;border-radius:5px;border:1px solid #94a3b8;background:#fff;color:#1e293b;cursor:pointer;min-width:140px">
+                  <option value="dcr">Column DCR</option>
+                  <option value="axial">Axial Load (kN)</option>
+                  <option value="size">Column Size</option>
+                </select>
+
+                <select id="pmm-3d-axial-combo" onchange="pmm3DAxialComboChange()"
+                  style="display:none;font-size:12px;padding:3px 8px;border-radius:5px;border:1px solid #94a3b8;background:#fff;color:#1e293b;cursor:pointer;max-width:220px">
+                  <option value="__max__">Max (all combos)</option>
+                </select>
+
+                <button id="pmm-3d-bg-btn" class="btn btn-ghost btn-sm" onclick="pmmToggle3DBg()"
+                  title="Toggle light / dark background"
+                  style="font-size:12px;padding:4px 10px;border:1px solid #94a3b8;border-radius:5px;background:#fff;color:#1e293b">&#9728; Light</button>
+
+                <!-- View presets -->
+                <div style="display:flex;gap:4px;margin-left:4px">
+                  <button onclick="pmm3DSetView('top')"   title="Top view (plan)"
+                    style="font-size:11px;padding:3px 8px;border:1px solid #94a3b8;border-radius:5px;background:#fff;color:#1e293b;cursor:pointer">&#8633; Top</button>
+                  <button onclick="pmm3DSetView('front')" title="Front elevation"
+                    style="font-size:11px;padding:3px 8px;border:1px solid #94a3b8;border-radius:5px;background:#fff;color:#1e293b;cursor:pointer">Front</button>
+                  <button onclick="pmm3DSetView('side')"  title="Side elevation"
+                    style="font-size:11px;padding:3px 8px;border:1px solid #94a3b8;border-radius:5px;background:#fff;color:#1e293b;cursor:pointer">Side</button>
+                  <button onclick="pmm3DSetView('reset')" title="Reset to default 3D view"
+                    style="font-size:11px;padding:3px 8px;border:1px solid #94a3b8;border-radius:5px;background:#fff;color:#1e293b;cursor:pointer">&#8635; 3D</button>
+                </div>
+
+                <span id="pmm-3d-status" style="font-size:12px;color:var(--t3,#64748b);margin-left:4px"></span>
+              </div>
+              <!-- Toolbar row 2: story / level filter -->
+              <div style="padding:4px 14px;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--bdr);flex-shrink:0;background:#f8fafc">
+                <span style="font-size:12px;color:#475569;font-weight:500">Floor Level:</span>
+                <select id="pmm-3d-story" onchange="pmm3DStoryChange()"
+                  style="font-size:12px;padding:3px 8px;border-radius:5px;border:1px solid #94a3b8;background:#fff;color:#1e293b;cursor:pointer;min-width:150px">
+                  <option value="all">All Levels</option>
+                </select>
+                <span style="font-size:11px;color:#94a3b8">Select a floor to isolate that story</span>
+              </div>
+              <div id="pmm-3d-building-chart" style="width:100%;flex:1;min-height:0"></div>
+            </div>
+            <!-- Rebar Optimization pane -->
+            <div id="pmm-batch-opt-pane" style="display:none;overflow:auto;flex:1;padding:0">
+              <div id="pmm-batch-opt-loading" style="display:none;padding:40px;text-align:center;color:var(--t2);font-size:13px">
+                âš¡ Optimizing rebarâ€¦ <span id="pmm-opt-timer">0.0s</span>
+              </div>
+              <div id="pmm-batch-opt-wrap">
+                <div style="padding:40px;text-align:center;color:var(--t3);font-size:13px">
+                  Click <strong>âš¡ Optimize Rebar</strong> in the toolbar to run.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="pmm-chart-empty" class="pmm-chart-empty">
+            <svg class="pmm-empty-icon" width="56" height="56" viewBox="0 0 64 64" fill="none"
+                 stroke="currentColor" stroke-width="1.4"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <ellipse cx="32" cy="32" rx="24" ry="16"/>
+              <line x1="32" y1="16" x2="32" y2="48"/>
+              <line x1="8"  y1="32" x2="56" y2="32"/>
+              <path d="M14 22 Q32 10 50 22" stroke-width="1"/>
+              <path d="M14 42 Q32 54 50 42" stroke-width="1"/>
+            </svg>
+            <div class="pmm-empty-title">No diagram yet</div>
+            <div class="pmm-empty-sub">Fill in the inputs and click Generate Diagram</div>
+          </div>
+        </div><!-- /.pmm-charts -->
+
+      </div><!-- /.pmm-layout -->
+    </section><!-- /#pmm-panel -->
+
+
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• RUN FILE CLEANER PANEL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <section id="cleaner-panel" class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Run File Cleaner</h2>
+        <p class="panel-subtitle">Remove ETABS &amp; SAFE analysis run files from a project folder</p>
+      </div>
+
+      <div class="cleaner-body">
+
+        <!-- Directory input -->
+        <div class="cleaner-dir-row">
+          <label class="cleaner-label" for="cleaner-dir-input">Project Folder</label>
+          <div class="cleaner-dir-input-wrap">
+            <input id="cleaner-dir-input" type="text" class="cleaner-dir-input"
+                   placeholder="e.g. C:\Projects\Building A\Analysis" spellcheck="false"/>
+            <button id="btn-cleaner-browse" class="cleaner-browse-btn" title="Browse for folder">
+              <svg width="14" height="14" viewBox="0 0 18 18" fill="none"
+                   stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 5.5h6l2 2h6v9H2z"/>
+                <line x1="2" y1="5.5" x2="2" y2="14.5"/>
+              </svg>
+              Browse
+            </button>
+          </div>
+          <p class="cleaner-hint">Click Browse or paste the full folder path. All subfolders are scanned.</p>
+        </div>
+
+        <!-- File types info -->
+        <div class="cleaner-types-box">
+          <span class="cleaner-types-label">File types targeted:</span>
+          <span class="cleaner-types-chips">
+            <span class="cleaner-chip">.ebk</span><span class="cleaner-chip">.ico</span>
+            <span class="cleaner-chip">.K_0</span><span class="cleaner-chip">.K_E</span>
+            <span class="cleaner-chip">.K_G</span><span class="cleaner-chip">.K_I</span>
+            <span class="cleaner-chip">.K_J</span><span class="cleaner-chip">.K_M</span>
+            <span class="cleaner-chip">.K_L</span><span class="cleaner-chip">.K_1</span>
+            <span class="cleaner-chip">.LOG</span><span class="cleaner-chip">.msh</span>
+            <span class="cleaner-chip">.OUT</span><span class="cleaner-chip">.fbk</span>
+            <span class="cleaner-chip">.xsdm</span><span class="cleaner-chip">.CSJ</span>
+            <span class="cleaner-chip">.CSP</span>
+            <span class="cleaner-chip">.Y</span><span class="cleaner-chip">.Y$$</span>
+            <span class="cleaner-chip">.Y00</span><span class="cleaner-chip">.Y01</span>
+            <span class="cleaner-chip">.Y02</span><span class="cleaner-chip">.Y03</span>
+            <span class="cleaner-chip">.Y04</span><span class="cleaner-chip">.Y05</span>
+            <span class="cleaner-chip">.Y06</span><span class="cleaner-chip">.Y07</span>
+            <span class="cleaner-chip">.Y08</span><span class="cleaner-chip">.Y09</span>
+            <span class="cleaner-chip">.Y0A</span><span class="cleaner-chip">.Y0B</span>
+            <span class="cleaner-chip">.Y0C</span><span class="cleaner-chip">.Y0D</span>
+            <span class="cleaner-chip">.Y0E</span>
+            <span class="cleaner-chip">.Y_</span><span class="cleaner-chip">.Y_1</span>
+          </span>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="cleaner-actions">
+          <button id="btn-cleaner-scan" class="cleaner-btn cleaner-btn-scan">
+            <svg width="14" height="14" viewBox="0 0 18 18" fill="none"
+                 stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="8" r="5.5"/>
+              <line x1="12.5" y1="12.5" x2="17" y2="17"/>
+            </svg>
+            Scan Folder
+          </button>
+          <button id="btn-cleaner-delete" class="cleaner-btn cleaner-btn-delete" disabled>
+            <svg width="14" height="14" viewBox="0 0 18 18" fill="none"
+                 stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3,5 5,5 15,5"/>
+              <path d="M6 5V3.5a1 1 0 011-1h4a1 1 0 011 1V5"/>
+              <path d="M14 5l-.9 10.1a1 1 0 01-1 .9H5.9a1 1 0 01-1-.9L4 5"/>
+              <line x1="9" y1="8.5" x2="9" y2="12.5"/>
+              <line x1="6.5" y1="8.5" x2="6.8" y2="12.5"/>
+              <line x1="11.5" y1="8.5" x2="11.2" y2="12.5"/>
+            </svg>
+            Delete Files
+          </button>
+        </div>
+
+        <!-- Results area -->
+        <div id="cleaner-results" class="cleaner-results hidden">
+          <div class="cleaner-results-header">
+            <span id="cleaner-results-summary" class="cleaner-results-summary"></span>
+            <button id="btn-cleaner-toggle-list" class="cleaner-toggle-btn">Show files</button>
+          </div>
+          <div id="cleaner-file-list" class="cleaner-file-list hidden"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- PLATE 2D FEM shelved -->
+    <section id="plate-fem-panel" class="panel" style="display:none">
+
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <h2 class="panel-title">Plate 2D FEM</h2>
+          <p class="panel-subtitle">Plane elasticity â€” Q4 isoparametric elements Â· stress contours Â· displacement</p>
+        </div>
+      </div>
+
+      <div class="pmm-layout" style="align-items:flex-start">
+
+        <!-- â”€â”€ Left sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+        <div class="pmm-inputs" id="fem2d-sidebar" style="min-width:280px;max-width:300px">
+
+          <!-- GEOMETRY -->
+          <div class="pmm-group">
+            <div class="pmm-group-title">GEOMETRY</div>
+            <div class="pmm-row">
+              <label class="pmm-label">Type</label>
+              <select id="fem2d-geom-type" class="pmm-input" style="height:32px">
+                <option value="rectangle">Rectangle</option>
+                <option value="lshape">L-Shape</option>
+                <option value="polygon">Custom Polygon</option>
+              </select>
+            </div>
+            <div id="fem2d-rect-inputs">
+              <div class="pmm-row">
+                <label class="pmm-label">Width</label>
+                <div class="pmm-input-unit">
+                  <input id="fem2d-width" type="number" class="pmm-input" value="1000" min="1" step="10"/>
+                  <span class="pmm-unit">mm</span>
+                </div>
+              </div>
+              <div class="pmm-row">
+                <label class="pmm-label">Height</label>
+                <div class="pmm-input-unit">
+                  <input id="fem2d-height" type="number" class="pmm-input" value="500" min="1" step="10"/>
+                  <span class="pmm-unit">mm</span>
+                </div>
+              </div>
+            </div>
+            <div id="fem2d-lshape-inputs" class="hidden">
+              <div class="pmm-row">
+                <label class="pmm-label">Width</label>
+                <div class="pmm-input-unit">
+                  <input id="fem2d-lw" type="number" class="pmm-input" value="1000" min="1" step="10"/>
+                  <span class="pmm-unit">mm</span>
+                </div>
+              </div>
+              <div class="pmm-row">
+                <label class="pmm-label">Height</label>
+                <div class="pmm-input-unit">
+                  <input id="fem2d-lh" type="number" class="pmm-input" value="1000" min="1" step="10"/>
+                  <span class="pmm-unit">mm</span>
+                </div>
+              </div>
+              <div class="pmm-row">
+                <label class="pmm-label">Cutout W</label>
+                <div class="pmm-input-unit">
+                  <input id="fem2d-cw" type="number" class="pmm-input" value="500" min="1" step="10"/>
+                  <span class="pmm-unit">mm</span>
+                </div>
+              </div>
+              <div class="pmm-row">
+                <label class="pmm-label">Cutout H</label>
+                <div class="pmm-input-unit">
+                  <input id="fem2d-ch" type="number" class="pmm-input" value="500" min="1" step="10"/>
+                  <span class="pmm-unit">mm</span>
+                </div>
+              </div>
+            </div>
+            <div id="fem2d-polygon-inputs" class="hidden">
+              <p style="font-size:11px;color:var(--t3);margin:4px 0 6px">
+                Click on the canvas to add vertices. Close polygon to confirm.
+              </p>
+              <button id="fem2d-poly-clear" class="btn btn-ghost btn-sm" style="width:100%">Clear Vertices</button>
+              <div id="fem2d-poly-count" style="font-size:11px;color:var(--t3);margin-top:4px;text-align:center">0 vertices</div>
+            </div>
+            <div class="pmm-row" style="margin-top:6px">
+              <label class="pmm-label">Thickness</label>
+              <div class="pmm-input-unit">
+                <input id="fem2d-thickness" type="number" class="pmm-input" value="10" min="0.1" step="1"/>
+                <span class="pmm-unit">mm</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- MATERIAL -->
+          <div class="pmm-group">
+            <div class="pmm-group-title">MATERIAL</div>
+            <div class="pmm-row">
+              <label class="pmm-label">E (modulus)</label>
+              <div class="pmm-input-unit">
+                <input id="fem2d-E" type="number" class="pmm-input" value="200000" min="1"/>
+                <span class="pmm-unit">MPa</span>
+              </div>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">Î½ (Poisson)</label>
+              <input id="fem2d-nu" type="number" class="pmm-input" value="0.3" min="0" max="0.499" step="0.01"/>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">Unit wt.</label>
+              <div class="pmm-input-unit">
+                <input id="fem2d-unitwt" type="number" class="pmm-input" value="0" min="0" step="0.0001"/>
+                <span class="pmm-unit">N/mmÂ³</span>
+              </div>
+            </div>
+            <div class="pmm-row">
+              <label class="pmm-label">Analysis</label>
+              <select id="fem2d-mode" class="pmm-input" style="height:32px">
+                <option value="1">Plane Stress</option>
+                <option value="2">Plane Strain</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- MESH -->
+          <div class="pmm-group">
+            <div class="pmm-group-title">MESH</div>
+            <div class="pmm-row">
+              <label class="pmm-label">Element size</label>
+              <div class="pmm-input-unit">
+                <input id="fem2d-meshsize" type="number" class="pmm-input" value="50" min="1" step="5"/>
+                <span class="pmm-unit">mm</span>
+              </div>
+            </div>
+
+            <button id="fem2d-btn-mesh" class="btn btn-ghost" style="width:100%;margin-top:8px">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                   stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="2" width="5" height="5" rx="0.5"/>
+                <rect x="9" y="2" width="5" height="5" rx="0.5"/>
+                <rect x="2" y="9" width="5" height="5" rx="0.5"/>
+                <rect x="9" y="9" width="5" height="5" rx="0.5"/>
+              </svg>
+              Generate Mesh
+            </button>
+            <div id="fem2d-mesh-info" style="font-size:11px;color:var(--t3);margin-top:4px;text-align:center"></div>
+          </div>
+
+          <!-- SUPPORTS & LOADS SUMMARY -->
+          <div class="pmm-group">
+            <div class="pmm-group-title">SUPPORTS &amp; LOADS</div>
+            <p style="font-size:11px;color:var(--t3);margin:0 0 8px">
+              Generate mesh then click any node to assign supports or loads.
+            </p>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+              <span style="font-size:11px;font-weight:600;color:var(--t2)">Supports</span>
+              <button id="fem2d-btn-clear-supports" class="btn btn-ghost btn-sm" style="padding:1px 7px;font-size:10px">Clear</button>
+            </div>
+            <div id="fem2d-support-list" class="fem2d-bc-list">
+              <span class="fem2d-bc-empty">No supports yet</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 3px">
+              <span style="font-size:11px;font-weight:600;color:var(--t2)">Nodal Loads</span>
+              <button id="fem2d-btn-clear-loads" class="btn btn-ghost btn-sm" style="padding:1px 7px;font-size:10px">Clear</button>
+            </div>
+            <div id="fem2d-load-list" class="fem2d-bc-list">
+              <span class="fem2d-bc-empty">No loads yet</span>
+            </div>
+          </div>
+
+          <!-- RUN ANALYSIS -->
+          <button id="fem2d-btn-solve" class="btn btn-primary" style="width:100%;margin-top:4px;padding:10px 0;font-size:14px">
+            <svg width="14" height="14" viewBox="0 0 15 15" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="3,2 13,7.5 3,13" fill="currentColor" stroke="none"/>
+            </svg>
+            Run Analysis
+          </button>
+
+          <!-- RESULTS SUMMARY -->
+          <div id="fem2d-summary" class="hidden" style="margin-top:10px;background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:10px">
+            <div style="font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Results</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <div style="background:var(--bg1);border-radius:6px;padding:6px 8px;text-align:center">
+                <div style="font-size:10px;color:var(--t3)">Max |U| (mm)</div>
+                <div id="fem2d-res-maxdisp" style="font-size:14px;font-weight:700;color:var(--blue)">â€”</div>
+              </div>
+              <div style="background:var(--bg1);border-radius:6px;padding:6px 8px;text-align:center">
+                <div style="font-size:10px;color:var(--t3)">Max VM (MPa)</div>
+                <div id="fem2d-res-maxvm" style="font-size:14px;font-weight:700;color:#f59e0b">â€”</div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /.pmm-inputs (sidebar) -->
+
+        <!-- â”€â”€ Right: chart area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+        <div style="flex:1;display:flex;flex-direction:column;gap:0;min-width:0">
+
+          <!-- Tab bar -->
+          <div class="tab-bar" id="fem2d-tabs" style="border-bottom:1px solid var(--bdr);flex-shrink:0">
+            <button class="tab-btn active" data-fem2d-tab="mesh">Mesh</button>
+            <button class="tab-btn" data-fem2d-tab="Ux">Ux</button>
+            <button class="tab-btn" data-fem2d-tab="Uy">Uy</button>
+            <button class="tab-btn" data-fem2d-tab="sxx">Ïƒxx</button>
+            <button class="tab-btn" data-fem2d-tab="syy">Ïƒyy</button>
+            <button class="tab-btn" data-fem2d-tab="txy">Ï„xy</button>
+            <button class="tab-btn" data-fem2d-tab="vm">Von Mises</button>
+            <button class="tab-btn" data-fem2d-tab="ps1">P.S. Ïƒâ‚</button>
+            <button class="tab-btn" data-fem2d-tab="ps2">P.S. Ïƒâ‚‚</button>
+          </div>
+
+          <!-- Chart div -->
+          <div id="fem2d-chart" style="flex:1;min-height:480px;background:var(--bg1);border-radius:0 0 8px 8px;position:relative">
+
+            <!-- Node Properties Panel (overlay, top-right of canvas) -->
+            <div id="fem2d-props-panel" class="fem2d-props-panel hidden">
+              <div class="fem2d-props-header">
+                <div>
+                  <span class="fem2d-props-title">Node <span id="fem2d-props-nodeid">0</span></span>
+                  <span id="fem2d-props-coords" class="fem2d-props-coords"></span>
+                </div>
+                <button id="fem2d-props-close" class="fem2d-props-close" aria-label="Close">Ã—</button>
+              </div>
+
+              <!-- Support type visual buttons -->
+              <div class="fem2d-props-section">
+                <div class="fem2d-props-label">Support Condition</div>
+                <div class="fem2d-sup-grid">
+                  <button class="fem2d-sup-btn active" data-dof="" id="fem2d-sup-free">
+                    <span class="fem2d-sup-icon">â—‹</span>
+                    <span class="fem2d-sup-name">Free</span>
+                  </button>
+                  <button class="fem2d-sup-btn" data-dof="XY" id="fem2d-sup-pin">
+                    <span class="fem2d-sup-icon">â–½</span>
+                    <span class="fem2d-sup-name">Pin</span>
+                    <span class="fem2d-sup-desc">fix X+Y</span>
+                  </button>
+                  <button class="fem2d-sup-btn" data-dof="Y" id="fem2d-sup-rollerx">
+                    <span class="fem2d-sup-icon">â¬¡</span>
+                    <span class="fem2d-sup-name">Roller</span>
+                    <span class="fem2d-sup-desc">fix Y</span>
+                  </button>
+                  <button class="fem2d-sup-btn" data-dof="X" id="fem2d-sup-rollery">
+                    <span class="fem2d-sup-icon">â¬¡</span>
+                    <span class="fem2d-sup-name">Roller</span>
+                    <span class="fem2d-sup-desc">fix X</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Load inputs -->
+              <div class="fem2d-props-section">
+                <div class="fem2d-props-label">Point Load</div>
+                <div class="fem2d-load-row">
+                  <span class="fem2d-load-axis" style="color:#3b82f6">â†’ Fx</span>
+                  <input id="fem2d-props-fx" type="number" class="pmm-input fem2d-load-input" value="0" step="100" placeholder="0"/>
+                  <span class="fem2d-load-unit">N</span>
+                </div>
+                <div class="fem2d-load-row">
+                  <span class="fem2d-load-axis" style="color:#ef4444">â†‘ Fy</span>
+                  <input id="fem2d-props-fy" type="number" class="pmm-input fem2d-load-input" value="0" step="100" placeholder="0"/>
+                  <span class="fem2d-load-unit">N</span>
+                </div>
+              </div>
+
+              <div class="fem2d-props-footer">
+                <button id="fem2d-props-clear" class="btn btn-ghost btn-sm fem2d-btn-clear">Clear All</button>
+                <button id="fem2d-props-apply" class="btn btn-primary btn-sm">Apply</button>
+              </div>
+            </div>
+
+            <div id="fem2d-chart-empty" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--t3);pointer-events:none">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor"
+                   stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.4">
+                <rect x="4" y="4" width="40" height="40" rx="4"/>
+                <line x1="14" y1="4"  x2="14" y2="44"/>
+                <line x1="24" y1="4"  x2="24" y2="44"/>
+                <line x1="34" y1="4"  x2="34" y2="44"/>
+                <line x1="4"  y1="14" x2="44" y2="14"/>
+                <line x1="4"  y1="24" x2="44" y2="24"/>
+                <line x1="4"  y1="34" x2="44" y2="34"/>
+              </svg>
+              <p style="margin-top:12px;font-size:13px">Generate a mesh to begin</p>
+            </div>
+          </div>
+
+        </div><!-- /.right chart area -->
+
+      </div><!-- /.pmm-layout -->
+
+    </section><!-- /#plate-fem-panel -->
+
+  </main>
+</div>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• RC BEAM â€” IMPORT SECTION PICKER â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="rcb-import-modal" class="modal-overlay hidden">
+  <div class="modal-box rcb-import-box">
+
+    <div class="modal-header" style="padding:16px 20px 14px">
+      <div>
+        <div class="modal-title">Import Sections from ETABS</div>
+        <div class="rcb-import-subtitle" id="rcb-import-subtitle">Loadingâ€¦</div>
+      </div>
+      <button id="rcb-import-close" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Search + bulk-select toolbar -->
+    <div class="rcb-import-toolbar">
+      <input id="rcb-import-search" type="search" class="rcb-import-search"
+             placeholder="Search sectionsâ€¦" autocomplete="off"/>
+      <button id="rcb-import-all"    class="btn btn-ghost btn-xs">All</button>
+      <button id="rcb-import-none"   class="btn btn-ghost btn-xs">None</button>
+      <button id="rcb-import-invert" class="btn btn-ghost btn-xs">Invert</button>
+    </div>
+
+    <!-- Scrollable checklist -->
+    <div class="rcb-import-list" id="rcb-import-list"></div>
+
+    <!-- Footer -->
+    <div class="rcb-import-footer">
+      <span class="rcb-import-count" id="rcb-import-count">0 selected</span>
+      <div style="display:flex;gap:8px">
+        <button id="rcb-import-cancel"  class="btn btn-ghost">Cancel</button>
+        <button id="rcb-import-confirm" class="btn btn-primary">Import Selected</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• RC BEAM â€” AUTOGENERATE MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="rcb-autogen-modal" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title">Add Beam Section</div>
+      <button id="rcb-autogen-close" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/>
+          <line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="upgrade-body" style="padding:20px 24px">
+      <div class="rcb-gen-grid">
+
+        <div class="rcb-gen-row">
+          <label class="rcb-gen-label">Property Name</label>
+          <input id="rcb-gen-name" type="text" class="rcb-gen-input"
+                 placeholder="Auto â€” e.g. G-300x500" autocomplete="off"/>
+        </div>
+
+        <div class="rcb-gen-row">
+          <label class="rcb-gen-label">Concrete Strength</label>
+          <select id="rcb-gen-conc" class="rcb-gen-input">
+            <option value="">â€” select material â€”</option>
+          </select>
+        </div>
+
+        <div class="rcb-gen-row">
+          <label class="rcb-gen-label">Fy (Main)</label>
+          <select id="rcb-gen-fym" class="rcb-gen-input">
+            <option value="">â€” select material â€”</option>
+          </select>
+        </div>
+
+        <div class="rcb-gen-row">
+          <label class="rcb-gen-label">Fy (Ties)</label>
+          <select id="rcb-gen-fyt" class="rcb-gen-input">
+            <option value="">â€” select material â€”</option>
+          </select>
+        </div>
+
+        <div class="rcb-gen-2col">
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Depth (mm)</label>
+            <input id="rcb-gen-depth" type="number" class="rcb-gen-input" value="500" min="1"/>
+          </div>
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Width (mm)</label>
+            <input id="rcb-gen-width" type="number" class="rcb-gen-input" value="300" min="1"/>
+          </div>
+        </div>
+
+        <div class="rcb-gen-2col">
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Bar Dia. (mm)</label>
+            <input id="rcb-gen-bardia" type="number" class="rcb-gen-input" value="25" min="0"/>
+          </div>
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Top cc (mm)</label>
+            <input id="rcb-gen-topcc" type="number" class="rcb-gen-input" value="40" min="0"/>
+          </div>
+        </div>
+
+        <div class="rcb-gen-2col">
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Bot cc (mm)</label>
+            <input id="rcb-gen-botcc" type="number" class="rcb-gen-input" value="40" min="0"/>
+          </div>
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Torsion Mod</label>
+            <input id="rcb-gen-torsion" type="number" class="rcb-gen-input" value="0.01" step="0.001" min="0"/>
+          </div>
+        </div>
+
+        <div class="rcb-gen-2col">
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">I22 Modifier</label>
+            <input id="rcb-gen-i22" type="number" class="rcb-gen-input" value="0.35" step="0.01" min="0"/>
+          </div>
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">I33 Modifier</label>
+            <input id="rcb-gen-i33" type="number" class="rcb-gen-input" value="0.35" step="0.01" min="0"/>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="rcb-autogen-confirm" class="btn btn-primary">Add Section</button>
+      <button id="rcb-autogen-cancel" class="btn btn-ghost">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• RC BEAM â€” AUTOGENERATE (RANGE) MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="rcb-agr-modal" class="modal-overlay hidden">
+  <div class="modal-box rcb-agr-box">
+
+    <div class="modal-header" style="padding:14px 20px 12px">
+      <div class="modal-title">AutoGenerate Beam Sections</div>
+      <button id="rcb-agr-close" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="rcb-agr-body">
+
+      <!-- â‘  Material Properties -->
+      <div class="rcb-agr-group">
+        <div class="rcb-agr-group-title">Material Properties</div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Concrete Strength, f<sub>c</sub></label>
+          <select id="rcbr-conc" class="rcb-agr-ctrl"><option value="">â€” Select Material â€”</option></select>
+        </div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Rebar Yield Strength, f<sub>y</sub></label>
+          <select id="rcbr-fym" class="rcb-agr-ctrl"><option value="">â€” Select Material â€”</option></select>
+        </div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Ties Yield Strength, f<sub>y</sub></label>
+          <select id="rcbr-fyt" class="rcb-agr-ctrl"><option value="">â€” Select Material â€”</option></select>
+        </div>
+      </div>
+
+      <!-- â‘¡ Reinforcement Details -->
+      <div class="rcb-agr-group">
+        <div class="rcb-agr-group-title">Reinforcement Details</div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Concrete Cover (Top)</label>
+          <input id="rcbr-topcc" type="number" class="rcb-agr-ctrl" value="40" min="0"/>
+        </div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Concrete Cover (Bot)</label>
+          <input id="rcbr-botcc" type="number" class="rcb-agr-ctrl" value="40" min="0"/>
+        </div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Bar Diameter</label>
+          <select id="rcbr-bardia" class="rcb-agr-ctrl">
+            <option>10</option><option>12</option><option>16</option>
+            <option>20</option><option selected>25</option><option>28</option>
+            <option>32</option><option>36</option><option>40</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- â‘¢ Beam Dimension -->
+      <div class="rcb-agr-group">
+        <div class="rcb-agr-group-title">Beam Dimension</div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Minimum Beam Width</label>
+          <input id="rcbr-min-w" type="number" class="rcb-agr-ctrl" placeholder="mm" min="1"/>
+        </div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Maximum Beam Width</label>
+          <input id="rcbr-max-w" type="number" class="rcb-agr-ctrl" placeholder="mm" min="1"/>
+        </div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Minimum Beam Depth</label>
+          <input id="rcbr-min-d" type="number" class="rcb-agr-ctrl" placeholder="mm" min="1"/>
+        </div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Maximum Beam Depth</label>
+          <input id="rcbr-max-d" type="number" class="rcb-agr-ctrl" placeholder="mm" min="1"/>
+        </div>
+        <div class="rcb-agr-row rcb-agr-inc-row">
+          <label class="rcb-agr-inc-label">
+            <input type="checkbox" id="rcbr-chk-w" class="rcb-agr-chk"/>
+            Width Increment
+          </label>
+          <select id="rcbr-inc-w" class="rcb-agr-ctrl" disabled>
+            <option>25</option><option>50</option><option>75</option>
+            <option selected>100</option><option>150</option><option>200</option>
+            <option>250</option><option>300</option>
+          </select>
+        </div>
+        <div class="rcb-agr-row rcb-agr-inc-row">
+          <label class="rcb-agr-inc-label">
+            <input type="checkbox" id="rcbr-chk-d" class="rcb-agr-chk"/>
+            Depth Increment
+          </label>
+          <select id="rcbr-inc-d" class="rcb-agr-ctrl" disabled>
+            <option>25</option><option>50</option><option>75</option>
+            <option selected>100</option><option>150</option><option>200</option>
+            <option>250</option><option>300</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- â‘£ Stiffness Modifiers -->
+      <div class="rcb-agr-group">
+        <div class="rcb-agr-group-title">Stiffness Modifiers</div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Torsion Constant</label>
+          <input id="rcbr-torsion" type="number" class="rcb-agr-ctrl" value="0.01" step="0.001" min="0"/>
+        </div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Moment of Inertia, I22</label>
+          <input id="rcbr-i22" type="number" class="rcb-agr-ctrl" value="0.35" step="0.01" min="0"/>
+        </div>
+        <div class="rcb-agr-row">
+          <label class="rcb-agr-label">Moment of Inertia, I33</label>
+          <input id="rcbr-i33" type="number" class="rcb-agr-ctrl" value="0.35" step="0.01" min="0"/>
+        </div>
+      </div>
+
+    </div><!-- /.rcb-agr-body -->
+
+    <div class="modal-footer">
+      <button id="rcb-agr-confirm" class="btn btn-primary">Generate</button>
+      <button id="rcb-agr-cancel"  class="btn btn-ghost">Cancel</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• SECTION EDIT MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="sec-edit-modal" class="modal-overlay hidden">
+  <div class="modal-box sec-edit-box">
+    <div class="modal-header">
+      <div class="modal-title" id="sec-edit-title">Edit Section</div>
+      <button id="btn-sec-edit-close" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/>
+          <line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="sec-edit-body">
+      <!-- I-section / rectangle SVG preview -->
+      <div class="sec-preview-wrap">
+        <svg id="sec-preview-svg" class="sec-preview-svg" viewBox="0 0 120 160" fill="none">
+          <rect id="sec-prev-rect" x="20" y="20" width="80" height="120" rx="2"
+                fill="var(--blue-dim)" stroke="var(--blue)" stroke-width="2"/>
+          <text id="sec-prev-b-lbl" x="60" y="155" text-anchor="middle"
+                fill="var(--t2)" font-size="10">b</text>
+          <text id="sec-prev-h-lbl" x="10" y="82" text-anchor="middle"
+                fill="var(--t2)" font-size="10" transform="rotate(-90,10,82)">h</text>
+        </svg>
+      </div>
+
+      <div class="sec-edit-fields">
+        <input type="hidden" id="sec-edit-name">
+
+        <div class="sec-field-group">
+          <label class="sec-field-lbl">Width â€” b (m)</label>
+          <input type="number" id="sec-edit-b" class="sec-field-inp" step="0.001" min="0.001" placeholder="0.300">
+        </div>
+        <div class="sec-field-group">
+          <label class="sec-field-lbl">Depth â€” h (m)</label>
+          <input type="number" id="sec-edit-h" class="sec-field-inp" step="0.001" min="0.001" placeholder="0.600">
+        </div>
+
+        <div class="sec-field-group">
+          <label class="sec-field-lbl">Scale Area by %</label>
+          <div class="sec-scale-row">
+            <input type="number" id="sec-edit-scale" class="sec-field-inp" step="1" min="1" max="500" placeholder="100">
+            <button id="btn-sec-apply-scale" class="btn btn-ghost btn-sm">Apply</button>
+          </div>
+          <span class="sec-scale-hint">Scales b and h uniformly so A = original Ã— factor</span>
+        </div>
+
+        <div class="sec-area-preview">
+          <span class="sec-area-lbl">Computed Area</span>
+          <span class="sec-area-val" id="sec-edit-area-preview">â€”</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer sec-edit-footer">
+      <button id="btn-sec-edit-cancel" class="btn btn-ghost">Cancel</button>
+      <button id="btn-sec-edit-save" class="btn btn-primary">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 14V10h12v4"/>
+          <rect x="4" y="2" width="8" height="5" rx="1"/>
+        </svg>
+        Save to ETABS
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• ADD BEAM MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="sec-add-modal" class="modal-overlay hidden">
+  <div class="modal-box sec-edit-box">
+    <div class="modal-header">
+      <div class="modal-title">Add Beam Section</div>
+      <button id="btn-sec-add-close" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/>
+          <line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="sec-edit-body">
+      <div class="sec-edit-fields" style="flex:1">
+        <div class="sec-field-group">
+          <label class="sec-field-lbl">Section Name</label>
+          <input type="text" id="sec-add-name" class="sec-field-inp" placeholder="B300x600">
+        </div>
+        <div class="sec-field-group">
+          <label class="sec-field-lbl">Material</label>
+          <select id="sec-add-material" class="sec-field-inp"></select>
+        </div>
+        <div class="sec-field-group">
+          <label class="sec-field-lbl">Width â€” b (m)</label>
+          <input type="number" id="sec-add-b" class="sec-field-inp" step="0.001" min="0.001" placeholder="0.300">
+        </div>
+        <div class="sec-field-group">
+          <label class="sec-field-lbl">Depth â€” h (m)</label>
+          <input type="number" id="sec-add-h" class="sec-field-inp" step="0.001" min="0.001" placeholder="0.600">
+        </div>
+        <div class="sec-area-preview">
+          <span class="sec-area-lbl">Computed Area</span>
+          <span class="sec-area-val" id="sec-add-area-preview">â€”</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer sec-edit-footer">
+      <button id="btn-sec-add-cancel" class="btn btn-ghost">Cancel</button>
+      <button id="btn-sec-add-save" class="btn btn-primary">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="2" x2="8" y2="14"/>
+          <line x1="2" y1="8" x2="14" y2="8"/>
+        </svg>
+        Create in ETABS
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• AUTOGENERATE MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="sec-autogen-modal" class="modal-overlay hidden">
+  <div class="modal-box sec-edit-box">
+    <div class="modal-header">
+      <div class="modal-title">AutoGenerate Beam Section</div>
+      <button id="btn-sec-autogen-close" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/>
+          <line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="sec-edit-body">
+      <div class="sec-edit-fields" style="flex:1">
+        <div class="sec-field-group">
+          <label class="sec-field-lbl">Section Name</label>
+          <input type="text" id="sec-ag-name" class="sec-field-inp" placeholder="Auto_B1">
+        </div>
+        <div class="sec-field-group">
+          <label class="sec-field-lbl">Material</label>
+          <select id="sec-ag-material" class="sec-field-inp"></select>
+        </div>
+        <div class="sec-field-group">
+          <label class="sec-field-lbl">Clear Span (m)</label>
+          <input type="number" id="sec-ag-span" class="sec-field-inp" step="0.1" min="0.5" placeholder="6.0">
+        </div>
+        <div class="sec-field-group">
+          <label class="sec-field-lbl">Factored UDL (kN/m)</label>
+          <input type="number" id="sec-ag-load" class="sec-field-inp" step="1" min="0" placeholder="30">
+        </div>
+        <div class="sec-field-group">
+          <label class="sec-field-lbl">Concrete f'c or Steel Fy (MPa)</label>
+          <input type="number" id="sec-ag-strength" class="sec-field-inp" step="1" min="1" placeholder="25">
+        </div>
+        <div id="sec-ag-result" class="sec-ag-result hidden"></div>
+      </div>
+    </div>
+    <div class="modal-footer sec-edit-footer">
+      <button id="btn-sec-ag-cancel" class="btn btn-ghost">Cancel</button>
+      <button id="btn-sec-ag-calc" class="btn btn-ghost">
+        Calculate
+      </button>
+      <button id="btn-sec-ag-create" class="btn btn-primary" disabled>
+        Create in ETABS
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Autocomplete popup -->
+<div id="lc-ac-popup" class="lc-ac-popup hidden"></div>
+
+<!-- Filter modal -->
+<div id="lc-filter-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Filter Load Cases</div>
+      <button id="btn-filter-cancel" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/>
+          <line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+    <p class="modal-sub">Check the load cases to display as columns</p>
+    <div class="modal-filter-actions">
+      <button id="btn-filter-all"  class="filter-quick-btn">Select All</button>
+      <button id="btn-filter-none" class="filter-quick-btn">Clear All</button>
+    </div>
+    <div id="lc-filter-checks" class="modal-filter-list"></div>
+    <div class="modal-footer">
+      <button id="btn-filter-apply" class="btn btn-primary btn-full">Apply Filter</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• UPGRADE MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="upgrade-modal" class="modal-overlay hidden">
+  <div class="modal-box upgrade-box">
+    <div class="modal-header">
+      <div class="modal-title">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="7" width="10" height="8" rx="1.5"/>
+          <path d="M5 7V5a3 3 0 0 1 6 0v2"/>
+        </svg>
+        Upgrade Required
+      </div>
+      <button id="btn-upgrade-close" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="upgrade-body">
+      <p class="upgrade-feat-name" id="upgrade-feat-name">This feature</p>
+      <p class="upgrade-desc" id="upgrade-req-desc">requires a higher plan.</p>
+
+      <!-- Plan type tabs -->
+      <div class="upgrade-tabs">
+        <button class="upgrade-tab-btn active" data-tab="pro">
+          <span class="upgrade-tab-badge pro-tab-badge">PRO</span>
+          <span class="upgrade-tab-label">Single User</span>
+        </button>
+        <button class="upgrade-tab-btn" data-tab="enterprise">
+          <span class="upgrade-tab-badge ent-tab-badge">ENTERPRISE</span>
+          <span class="upgrade-tab-label">Up to 3 Users</span>
+        </button>
+      </div>
+
+      <!-- PRO panel -->
+      <div class="upgrade-plan-panel" data-tab="pro">
+        <div class="upgrade-plan-toggle">
+          <label class="upgrade-plan-option">
+            <input type="radio" name="upgrade-interval" value="monthly" checked>
+            <span class="plan-option-box">
+              <span class="plan-option-name">Monthly</span>
+              <span class="plan-option-price">$29 <span class="plan-option-per">/ month</span></span>
+            </span>
+          </label>
+          <label class="upgrade-plan-option">
+            <input type="radio" name="upgrade-interval" value="yearly">
+            <span class="plan-option-box">
+              <span class="plan-option-name">Yearly <span class="plan-save-badge">SAVE 14%</span></span>
+              <span class="plan-option-price">$299 <span class="plan-option-per">/ year</span></span>
+            </span>
+          </label>
+        </div>
+        <p class="upgrade-secure-note">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:4px">
+            <rect x="3" y="7" width="10" height="8" rx="1.5"/>
+            <path d="M5 7V5a3 3 0 0 1 6 0v2"/>
+          </svg>
+          Secure payment via Lemon Squeezy. Cancel anytime.
+        </p>
+      </div>
+
+      <!-- Enterprise panel -->
+      <div class="upgrade-plan-panel hidden" data-tab="enterprise">
+        <ul class="ent-feature-list">
+          <li>âœ“ 3 simultaneous users per license</li>
+          <li>âœ“ All PRO features included</li>
+          <li>âœ“ Shared company account</li>
+          <li>âœ“ Priority support</li>
+        </ul>
+        <div class="ent-price-row">
+          <span class="ent-price">$699</span>
+          <span class="ent-price-sub">/ year</span>
+        </div>
+        <p class="upgrade-secure-note">Contact us and we'll set up your team account.</p>
+      </div>
+    </div>
+    <div class="modal-footer" style="flex-direction:column;gap:8px;">
+      <button id="btn-subscribe" class="btn btn-primary btn-full">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             style="display:inline-block;vertical-align:middle;margin-right:6px">
+          <rect x="1" y="4" width="14" height="10" rx="1.5"/>
+          <path d="M1 8h14"/>
+          <line x1="4" y1="12" x2="6" y2="12"/>
+        </svg>
+        Subscribe Now
+      </button>
+      <button id="btn-contact-enterprise" class="btn btn-primary btn-full hidden"
+              style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
+        Contact Us for Enterprise
+      </button>
+      <button id="btn-upgrade-dismiss" class="btn btn-ghost btn-full">Maybe later</button>
+    </div>
+  </div>
+</div>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• GRACE PERIOD MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="grace-modal" class="modal-overlay hidden">
+  <div class="modal-box grace-box">
+    <div class="modal-header">
+      <div class="modal-title grace-title">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 2L14.5 13H1.5Z"/>
+          <line x1="8" y1="6" x2="8" y2="10"/>
+          <circle cx="8" cy="12.5" r="0.6" fill="currentColor" stroke="none"/>
+        </svg>
+        License Verification Required
+      </div>
+      <button id="btn-grace-close" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="upgrade-body">
+      <p class="grace-msg" id="grace-msg"></p>
+      <p class="upgrade-contact">
+        Please connect to the internet and<br>
+        <strong>restart the app</strong> to re-verify your subscription.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button id="btn-grace-dismiss" class="btn btn-primary btn-full">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• LOGIN OVERLAY â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="auth-overlay" class="auth-overlay">
+  <div class="auth-brand-panel">
+    <div class="auth-brand-logo">
+      <svg width="56" height="56" viewBox="0 0 36 36" fill="none">
+        <rect x="2"  y="14" width="9"  height="20" rx="1.5" fill="#3b82f6"/>
+        <rect x="14" y="7"  width="9"  height="27" rx="1.5" fill="#60a5fa"/>
+        <rect x="26" y="18" width="8"  height="16" rx="1.5" fill="#93c5fd"/>
+        <rect x="0"  y="33" width="36" height="2.5" rx="1.25" fill="#3b82f6" opacity="0.8"/>
+      </svg>
+    </div>
+    <h1 class="auth-brand-name">StructIQ</h1>
+    <p class="auth-brand-tagline">Professional Structural Analysis Dashboard</p>
+    <ul class="auth-feature-list">
+      <li>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"><polyline points="2,8 6,12 14,4"/></svg>
+        Story drift extraction &amp; charts
+      </li>
+      <li>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"><polyline points="2,8 6,12 14,4"/></svg>
+        Torsional irregularity checks
+      </li>
+      <li>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"><polyline points="2,8 6,12 14,4"/></svg>
+        Base &amp; joint reaction maps
+      </li>
+      <li>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"><polyline points="2,8 6,12 14,4"/></svg>
+        Load combination generator
+      </li>
+    </ul>
+  </div>
+
+  <div class="auth-form-panel">
+    <div class="auth-card">
+
+      <!-- Tab switcher -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login">Sign In</button>
+        <button class="auth-tab" id="tab-register">Create Account</button>
+      </div>
+
+      <!-- Login form -->
+      <form id="form-login" class="auth-form">
+        <div class="auth-field">
+          <label class="auth-label">Email</label>
+          <input id="login-email" type="email" class="auth-input" placeholder="you@example.com" autocomplete="email" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">Password</label>
+          <input id="login-password" type="password" class="auth-input" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" autocomplete="current-password" />
+        </div>
+        <div id="login-error" class="auth-error hidden"></div>
+        <button type="submit" class="auth-submit-btn">Sign In</button>
+      </form>
+
+      <!-- Register form -->
+      <form id="form-register" class="auth-form hidden">
+        <div class="auth-field">
+          <label class="auth-label">Full Name</label>
+          <input id="reg-name" type="text" class="auth-input" placeholder="Jane Smith" autocomplete="name" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">Email</label>
+          <input id="reg-email" type="email" class="auth-input" placeholder="you@example.com" autocomplete="email" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">Password <span class="auth-hint">(min 8 characters)</span></label>
+          <input id="reg-password" type="password" class="auth-input" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" autocomplete="new-password" />
+        </div>
+        <div id="reg-error" class="auth-error hidden"></div>
+        <button type="submit" class="auth-submit-btn">Create Account</button>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• RC COLUMN â€” IMPORT SECTION PICKER â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="rcc-import-modal" class="modal-overlay hidden">
+  <div class="modal-box rcc-import-box">
+
+    <div class="modal-header" style="padding:16px 20px 14px">
+      <div>
+        <div class="modal-title">Import Column Sections from ETABS</div>
+        <div class="rcc-import-subtitle" id="rcc-import-subtitle">Loadingâ€¦</div>
+      </div>
+      <button id="rcc-import-close" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="rcc-import-toolbar">
+      <input id="rcc-import-search" type="search" class="rcc-import-search"
+             placeholder="Search sectionsâ€¦" autocomplete="off"/>
+      <button id="rcc-import-all"    class="btn btn-ghost btn-xs">All</button>
+      <button id="rcc-import-none"   class="btn btn-ghost btn-xs">None</button>
+      <button id="rcc-import-invert" class="btn btn-ghost btn-xs">Invert</button>
+    </div>
+
+    <div class="rcc-import-list" id="rcc-import-list"></div>
+
+    <div class="rcc-import-footer">
+      <span class="rcc-import-count" id="rcc-import-count">0 selected</span>
+      <div style="display:flex;gap:8px">
+        <button id="rcc-import-cancel"  class="btn btn-ghost">Cancel</button>
+        <button id="rcc-import-confirm" class="btn btn-primary">Import Selected</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• RC COLUMN â€” ADD COLUMN MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="rcc-addcol-modal" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title">Add Column Section</div>
+      <button id="rcc-addcol-close" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/>
+          <line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="upgrade-body" style="padding:20px 24px">
+      <div class="rcb-gen-grid">
+
+        <div class="rcb-gen-row">
+          <label class="rcb-gen-label">Property Name</label>
+          <input id="rcc-gen-name" type="text" class="rcb-gen-input"
+                 placeholder="Auto â€” e.g. C-500x500" autocomplete="off"/>
+        </div>
+
+        <div class="rcb-gen-row">
+          <label class="rcb-gen-label">Concrete Strength</label>
+          <select id="rcc-gen-conc" class="rcb-gen-input">
+            <option value="">â€” select material â€”</option>
+          </select>
+        </div>
+
+        <div class="rcb-gen-row">
+          <label class="rcb-gen-label">Fy (Main)</label>
+          <select id="rcc-gen-fym" class="rcb-gen-input">
+            <option value="">â€” select material â€”</option>
+          </select>
+        </div>
+
+        <div class="rcb-gen-row">
+          <label class="rcb-gen-label">Fy (Ties)</label>
+          <select id="rcc-gen-fyt" class="rcb-gen-input">
+            <option value="">â€” select material â€”</option>
+          </select>
+        </div>
+
+        <div class="rcb-gen-2col">
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Depth (mm)</label>
+            <input id="rcc-gen-depth" type="number" class="rcb-gen-input" value="500" min="1"/>
+          </div>
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Width (mm)</label>
+            <input id="rcc-gen-width" type="number" class="rcb-gen-input" value="500" min="1"/>
+          </div>
+        </div>
+
+        <div class="rcb-gen-2col">
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Cover (mm)</label>
+            <input id="rcc-gen-cover" type="number" class="rcb-gen-input" value="40" min="0"/>
+          </div>
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Rebar Size</label>
+            <select id="rcc-gen-rebar" class="rcb-gen-input">
+              <option>10</option><option>12</option><option>16</option>
+              <option>20</option><option>25</option><option selected>28</option>
+              <option>32</option><option>36</option><option>40</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="rcb-gen-2col">
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">NBars(3)</label>
+            <input id="rcc-gen-nb3" type="number" class="rcb-gen-input" value="3" min="2"/>
+          </div>
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">NBars(2)</label>
+            <input id="rcc-gen-nb2" type="number" class="rcb-gen-input" value="3" min="2"/>
+          </div>
+        </div>
+
+        <div class="rcb-gen-2col">
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Tie Size</label>
+            <select id="rcc-gen-tie" class="rcb-gen-input">
+              <option>10</option><option selected>12</option><option>16</option><option>20</option>
+            </select>
+          </div>
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Tie Spacing (mm)</label>
+            <input id="rcc-gen-spacing" type="number" class="rcb-gen-input" value="150" min="1"/>
+          </div>
+        </div>
+
+        <div class="rcb-gen-2col">
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">Torsion Mod</label>
+            <input id="rcc-gen-torsion" type="number" class="rcb-gen-input" value="0.01" step="0.001" min="0"/>
+          </div>
+          <div class="rcb-gen-row">
+            <label class="rcb-gen-label">I22 Modifier</label>
+            <input id="rcc-gen-i22" type="number" class="rcb-gen-input" value="0.70" step="0.01" min="0"/>
+          </div>
+        </div>
+
+        <div class="rcb-gen-row">
+          <label class="rcb-gen-label">I33 Modifier</label>
+          <input id="rcc-gen-i33" type="number" class="rcb-gen-input" value="0.70" step="0.01" min="0"/>
+        </div>
+
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="rcc-addcol-confirm" class="btn btn-primary">Add Section</button>
+      <button id="rcc-addcol-cancel" class="btn btn-ghost">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• RC COLUMN â€” VIEW SECTIONS MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="rcc-view-modal" class="modal-overlay hidden">
+  <div class="modal-box rcc-view-box">
+
+    <!-- Header with selector -->
+    <div class="modal-header" style="padding:14px 20px 12px;gap:12px">
+      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+        <div class="modal-title" style="white-space:nowrap">View Section</div>
+        <select id="rcc-view-sel" class="rcc-view-sel-ctrl"></select>
+      </div>
+      <button id="rcc-view-close" class="modal-close-btn" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Body: SVG left + properties right -->
+    <div class="rcc-view-body">
+
+      <!-- Left: cross-section drawing -->
+      <div class="rcc-view-left">
+        <div class="rcc-view-label" id="rcc-view-label">â€”</div>
+        <div class="rcc-view-canvas" id="rcc-view-canvas">
+          <svg id="rcc-view-svg" width="260" height="340" viewBox="0 0 260 340">
+            <text x="130" y="170" text-anchor="middle" fill="#94a3b8" font-size="12">
+              Select a section above
+            </text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Right: properties panel -->
+      <div class="rcc-view-right">
+
+        <div class="rcc-view-group">
+          <div class="rcc-view-group-title">Material Properties</div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Concrete Strength (f'c)</span>
+            <span class="rcc-view-prop-val" id="rvp-conc">â€”</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Main Bars (fy)</span>
+            <span class="rcc-view-prop-val" id="rvp-fym">â€”</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Confinement Bars (fys)</span>
+            <span class="rcc-view-prop-val" id="rvp-fyt">â€”</span>
+          </div>
+        </div>
+
+        <div class="rcc-view-group">
+          <div class="rcc-view-group-title">Section Dimensions</div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Depth (mm)</span>
+            <span class="rcc-view-prop-val" id="rvp-depth">â€”</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Width (mm)</span>
+            <span class="rcc-view-prop-val" id="rvp-width">â€”</span>
+          </div>
+        </div>
+
+        <div class="rcc-view-group">
+          <div class="rcc-view-group-title">Longitudinal Reinforcement</div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Main Bar Diameter</span>
+            <span class="rcc-view-prop-val" id="rvp-bardia">â€”</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Clear Cover</span>
+            <span class="rcc-view-prop-val" id="rvp-cover">â€”</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">NBars (3)</span>
+            <span class="rcc-view-prop-val" id="rvp-nb3">â€”</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">NBars (2)</span>
+            <span class="rcc-view-prop-val" id="rvp-nb2">â€”</span>
+          </div>
+        </div>
+
+        <div class="rcc-view-group">
+          <div class="rcc-view-group-title">Confinement Bars</div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Confinement Bar Diameter</span>
+            <span class="rcc-view-prop-val" id="rvp-tiesize">â€”</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Spacing</span>
+            <span class="rcc-view-prop-val" id="rvp-spacing">â€”</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Conf. bars (3)</span>
+            <span class="rcc-view-prop-val" id="rvp-ntie3">â€”</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Conf. bars (2)</span>
+            <span class="rcc-view-prop-val" id="rvp-ntie2">â€”</span>
+          </div>
+        </div>
+
+        <div class="rcc-view-group">
+          <div class="rcc-view-group-title">Stiffness Modifiers</div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Torsion Constant</span>
+            <span class="rcc-view-prop-val" id="rvp-torsion">â€”</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Moment of Inertia I22</span>
+            <span class="rcc-view-prop-val" id="rvp-i22">â€”</span>
+          </div>
+          <div class="rcc-view-prop">
+            <span class="rcc-view-prop-label">Moment of Inertia I33</span>
+            <span class="rcc-view-prop-val" id="rvp-i33">â€”</span>
+          </div>
+        </div>
+
+      </div><!-- /.rcc-view-right -->
+    </div><!-- /.rcc-view-body -->
+
+    <!-- Footer -->
+    <div class="rcc-import-footer" style="border-top:1px solid var(--bdr);margin-top:0">
+      <span class="rcc-view-barcount" id="rcc-view-barcount"></span>
+      <div style="display:flex;gap:8px">
+        <button id="rcc-view-prev" class="btn btn-ghost btn-xs">â—€ Prev</button>
+        <button id="rcc-view-next" class="btn btn-ghost btn-xs">Next â–¶</button>
+        <button id="rcc-view-close2" class="btn btn-ghost">Close</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• PMM BATCH CHECK MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="pmm-batch-modal" class="modal-overlay hidden">
+  <div class="modal-box" style="width:1500px;max-width:98vw;max-height:96vh;display:flex;flex-direction:column;padding:0;overflow:hidden">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--bdr);flex-shrink:0">
+      <div>
+        <div style="font-size:15px;font-weight:700">âš¡ Batch Column Check â€” ETABS</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px">Checks all RC column sections against selected load combinations</div>
+      </div>
+      <button onclick="pmmBatchClose()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--t2);line-height:1">Ã—</button>
+    </div>
+
+    <!-- Step 1: Combo selection -->
+    <div id="pmm-batch-step1" style="flex:1;overflow:hidden;display:flex;flex-direction:column;padding:16px 20px;gap:10px">
+      <div style="font-size:12px;font-weight:600;color:var(--t2)">SELECT LOAD COMBINATIONS</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <label style="font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer">
+          <input type="radio" name="pmm-batch-type" value="combo" checked> Combinations
+        </label>
+        <label style="font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer">
+          <input type="radio" name="pmm-batch-type" value="case"> Load Cases
+        </label>
+        <button class="btn btn-ghost btn-sm" onclick="pmmBatchFetchCombos()" style="margin-left:auto">â†» Refresh from ETABS</button>
+      </div>
+      <div class="pmm-etabs-search-row">
+        <input type="text" id="pmm-batch-search" class="pmm-etabs-search"
+               placeholder="Filter combinationsâ€¦" oninput="pmmBatchFilter()"/>
+        <span id="pmm-batch-count" class="pmm-etabs-count"></span>
+      </div>
+      <div id="pmm-batch-combos-wrap" class="pmm-etabs-combos-wrap" style="flex:1;overflow-y:auto;min-height:120px">
+        <div class="pmm-etabs-combo-hint">Click â†» Refresh to load combinations from ETABS</div>
+      </div>
+      <div class="pmm-etabs-actions">
+        <button class="pmm-etabs-selall" onclick="pmmBatchSelectAll(true)">Select All</button>
+        <button class="pmm-etabs-selall" onclick="pmmBatchSelectAll(false)">Clear All</button>
+        <button class="pmm-etabs-selall" onclick="pmmBatchSelectFiltered(true)">Select Filtered</button>
+      </div>
+      <div id="pmm-batch-note" style="font-size:11px;color:var(--t3);min-height:16px"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px">
+        <button class="btn btn-ghost" onclick="pmmBatchClose()">Cancel</button>
+        <button class="btn btn-primary" id="btn-pmm-batch-run" onclick="pmmBatchRun()">âš¡ Run Batch Check</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Progress -->
+    <div id="pmm-batch-step2" class="hidden" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:40px">
+      <div style="font-size:28px">â³</div>
+      <div id="pmm-batch-progress-text" style="font-size:14px;font-weight:600">Running batch checkâ€¦</div>
+      <div style="font-size:12px;color:var(--t3)">Fetching forces and computing PMM surfaces for all column sections.</div>
+      <div id="pmm-batch-timer" style="font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--accent,#6366f1);letter-spacing:1px">0.0s</div>
+    </div>
+
+    <!-- Step 3: Results -->
+    <div id="pmm-batch-step3" class="hidden" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+      <div style="padding:12px 20px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:14px;flex-shrink:0">
+        <div id="pmm-batch-summary-text" style="font-size:13px;font-weight:600;flex:1"></div>
+        <button class="btn btn-ghost btn-sm" onclick="pmmBatchExportCSV()">â¬‡ Export CSV</button>
+        <button class="btn btn-ghost btn-sm" onclick="pmmBatchReset()">â† Back</button>
+        <button onclick="pmmBatchClose()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--t2);line-height:1">Ã—</button>
+      </div>
+      <div style="overflow:auto;flex:1;padding:0 4px 8px 4px">
+        <div id="pmm-batch-story-wrap"></div>
+        <table id="pmm-batch-table" style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:var(--bg2);position:sticky;top:0;z-index:1">
+              <th class="pmm-batch-th" style="text-align:left;padding:8px 10px">Section</th>
+              <th class="pmm-batch-th">bÃ—h (mm)</th>
+              <th class="pmm-batch-th">Bars</th>
+              <th class="pmm-batch-th">Ï (%)</th>
+              <th class="pmm-batch-th">Ï†Pn,max (kN)</th>
+              <th class="pmm-batch-th">Frames</th>
+              <th class="pmm-batch-th">Story</th>
+              <th class="pmm-batch-th">Column ID</th>
+              <th class="pmm-batch-th">Worst Combo</th>
+              <th class="pmm-batch-th">Loc</th>
+              <th class="pmm-batch-th">P (kN)</th>
+              <th class="pmm-batch-th">Mx (kNÂ·m)</th>
+              <th class="pmm-batch-th">My (kNÂ·m)</th>
+              <th class="pmm-batch-th">Max DCR</th>
+              <th class="pmm-batch-th">Status</th>
+              <th class="pmm-batch-th"></th>
+            </tr>
+          </thead>
+          <tbody id="pmm-batch-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="/app/app.js?v=156"></script>
+</body>
+</html>
