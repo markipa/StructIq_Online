@@ -194,15 +194,15 @@ async function _checkBridgeStatus() {
     const railRes = await authFetch('/api/bridge/status');
     if (!railRes.ok) { _setBridgeUI('needs_token'); return; }
     const data = await railRes.json();
-    if (data.connected) {
-      _setBridgeUI('connected');
-    } else {
-      // Bridge running but not connected — push our session token to it
-      await _pushTokenToBridge();
-    }
+    _setBridgeUI(data.connected ? 'connected' : 'needs_token');
   } catch {
     _setBridgeUI('offline');
   }
+}
+
+async function connectBridge() {
+  _setBridgeUI('connecting');
+  await _pushTokenToBridge();
 }
 
 async function _pushTokenToBridge() {
@@ -258,17 +258,23 @@ function _setBridgeUI(state) {
     loginBox      && loginBox.classList.add('hidden');
     pathBox       && pathBox.classList.add('hidden');
     disconnectBtn && disconnectBtn.classList.add('hidden');
+    const cb = document.getElementById('bridge-connect-btn');
+    cb && cb.classList.add('hidden');
   } else if (state === 'needs_token') {
+    // Bridge running but not connected — user must click Connect manually
     dot.classList.add('bridge-dot--off');
-    label.textContent = 'Bridge: not signed in';
+    label.textContent = 'Bridge ready — click Connect';
     link          && link.classList.add('hidden');
     launchBtn     && launchBtn.classList.add('hidden');
     loginBox      && loginBox.classList.add('hidden');
-    pathBox       && pathBox.classList.add('hidden');
+    pathBox       && pathBox.classList.remove('hidden');
     disconnectBtn && disconnectBtn.classList.add('hidden');
-    _clearEtabsConnection();
+    const cb = document.getElementById('bridge-connect-btn');
+    cb && cb.classList.remove('hidden');
+    const lb = document.getElementById('bridge-launch-in-path');
+    lb && lb.classList.add('hidden');
   } else if (state === 'offline') {
-    // bridge not running — show path input + launch button
+    // Bridge not running — show path input + launch button
     dot.classList.add('bridge-dot--off');
     label.textContent = 'Bridge offline';
     link          && link.classList.remove('hidden');
@@ -276,6 +282,10 @@ function _setBridgeUI(state) {
     loginBox      && loginBox.classList.add('hidden');
     pathBox       && pathBox.classList.remove('hidden');
     disconnectBtn && disconnectBtn.classList.add('hidden');
+    const cb = document.getElementById('bridge-connect-btn');
+    cb && cb.classList.add('hidden');
+    const lb = document.getElementById('bridge-launch-in-path');
+    lb && lb.classList.remove('hidden');
     _clearEtabsConnection();
   }
 }

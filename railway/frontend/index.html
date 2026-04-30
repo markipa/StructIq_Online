@@ -185,8 +185,7 @@
         <span id="bridge-dot" class="bridge-dot bridge-dot--off"></span>
         <span id="bridge-label" class="bridge-status-label">Bridge offline</span>
         <button id="bridge-launch-btn" class="bridge-launch-btn hidden"
-                onclick="launchBridge()" title="Launch StructIQ Bridge on this machine">
-          ▶ Launch Bridge
+                onclick="launchBridge()" title="Launch StructIQ Bridge on this machine" style="display:none">
         </button>
         <button id="bridge-disconnect-btn" class="bridge-disconnect-btn hidden"
                 onclick="bridgeDisconnect()" title="Disconnect bridge">
@@ -196,12 +195,16 @@
            id="bridge-install-link" class="bridge-install-link hidden"
            target="_blank">Install</a>
       </div>
-      <!-- Bridge path box (shown when bridge is offline) -->
+      <!-- Bridge path box (offline: launch | running: connect) -->
       <div id="bridge-path-box" class="bridge-login-box hidden">
         <span style="font-size:11px;color:#94a3b8;">Bridge .exe location</span>
         <input id="bridge-path-input" type="text" placeholder="C:\...\StructIQ-Bridge.exe"
                class="bridge-login-input"
                oninput="localStorage.setItem('bridge_exe_path', this.value)">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button id="bridge-launch-in-path" class="bridge-launch-btn" onclick="launchBridge()">▶ Launch</button>
+          <button id="bridge-connect-btn" class="bridge-launch-btn hidden" onclick="connectBridge()">⚡ Connect</button>
+        </div>
         <div id="bridge-manual-hint" class="bridge-manual-hint hidden">
           <span>Bridge didn't start. Run manually:</span>
           <div class="bridge-hint-row">
