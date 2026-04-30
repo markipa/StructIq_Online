@@ -92,6 +92,9 @@ def _clear_token():
         pass
 
 
+# ── Disconnect signal ─────────────────────────────────────────────
+_disconnect_requested = False
+
 # ── Tray state ────────────────────────────────────────────────────
 _tray_icon = None
 _tray_status = "starting"   # "starting" | "connected" | "disconnected" | "no_token"
@@ -265,6 +268,13 @@ async def _bridge_client(token: str):
 
                 async with httpx.AsyncClient(timeout=90.0) as http:
                     async for raw in ws:
+                        global _disconnect_requested
+                        if _disconnect_requested:
+                            _disconnect_requested = False
+                            _log("Disconnect requested — closing bridge connection.")
+                            _update_tray("no_token")
+                            await ws.close()
+                            return
                         try:
                             msg = json.loads(raw)
                         except Exception:
@@ -405,6 +415,15 @@ def _add_setup_to_server(app, token_holder: list):
         except Exception as e:
             from fastapi import HTTPException
             raise HTTPException(401, f"Login failed: {e}")
+
+    @app.post("/bridge-disconnect")
+    def bridge_disconnect():
+        global _disconnect_requested
+        _clear_token()
+        _disconnect_requested = True
+        _update_tray("no_token")
+        _log("Bridge disconnected by user.")
+        return {"ok": True}
 
 
 # ── Main entry point ──────────────────────────────────────────────

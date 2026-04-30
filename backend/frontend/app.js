@@ -210,25 +210,29 @@ function _setBridgeUI(state) {
   bar.classList.remove('hidden');
   dot.classList.remove('bridge-dot--on', 'bridge-dot--off', 'bridge-dot--spin');
 
+  const disconnectBtn = document.getElementById('bridge-disconnect-btn');
   if (state === 'connected') {
     dot.classList.add('bridge-dot--on');
     label.textContent = 'ETABS bridge connected';
-    link      && link.classList.add('hidden');
-    launchBtn && launchBtn.classList.add('hidden');
-    loginBox  && loginBox.classList.add('hidden');
+    link          && link.classList.add('hidden');
+    launchBtn     && launchBtn.classList.add('hidden');
+    loginBox      && loginBox.classList.add('hidden');
+    disconnectBtn && disconnectBtn.classList.remove('hidden');
   } else if (state === 'needs_login') {
     dot.classList.add('bridge-dot--off');
     label.textContent = 'Bridge: sign in';
-    link      && link.classList.add('hidden');
-    launchBtn && launchBtn.classList.add('hidden');
-    loginBox  && loginBox.classList.remove('hidden');
+    link          && link.classList.add('hidden');
+    launchBtn     && launchBtn.classList.add('hidden');
+    loginBox      && loginBox.classList.remove('hidden');
+    disconnectBtn && disconnectBtn.classList.add('hidden');
   } else {
     // offline — bridge not running
     dot.classList.add('bridge-dot--off');
     label.textContent = 'Bridge offline';
-    link      && link.classList.remove('hidden');
-    launchBtn && launchBtn.classList.remove('hidden');
-    loginBox  && loginBox.classList.add('hidden');
+    link          && link.classList.remove('hidden');
+    launchBtn     && launchBtn.classList.remove('hidden');
+    loginBox      && loginBox.classList.add('hidden');
+    disconnectBtn && disconnectBtn.classList.add('hidden');
   }
 }
 
@@ -258,6 +262,13 @@ async function bridgeSignIn() {
 
 function launchBridge() {
   window.location.href = 'structiq://connect';
+}
+
+async function bridgeDisconnect() {
+  try {
+    await fetch(`${BRIDGE_LOCAL}/bridge-disconnect`, { method: 'POST' });
+  } catch {}
+  _setBridgeUI('offline');
 }
 
 function initBridgeStatus() {
