@@ -2317,55 +2317,174 @@ def debug_rc_column_raw(section_name: str):
             "GetRectangle": rect_out, "GetRebarColumn": rebar_out}
 
 
+def _siq_write_log(path: str, msg: str) -> None:
+    try:
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(msg + "\n")
+    except Exception:
+        pass
+
+
+def _fill_cases_from_db(SapModel, combo_map: dict, log_path: str) -> None:
+    """
+    Fallback: read ETABS database table to populate combo_map with case lists.
+    Tries several known table names — stops at the first that returns data.
+    Mutates combo_map in place.
+    """
+    CANDIDATE_TABLES = [
+        "Response Combination Definitions",
+        "Response Combination Load Cases",
+        "Load Combination Definitions - Response Load Cases",
+        "Response Combo - Load Case Factors",
+    ]
+
+    def _fi(fields, *names):
+        clean = [f.lower().replace(" ", "").replace("_", "") for f in fields]
+        for nm in names:
+            c = nm.lower().replace(" ", "").replace("_", "")
+            if c in clean:
+                return clean.index(c)
+        return -1
+
+    for tname in CANDIDATE_TABLES:
+        try:
+            tbl = SapModel.DatabaseTables.GetTableForDisplayArray(
+                tname, [], "All", 1, [], 0, []
+            )
+            if not (tbl and len(tbl) >= 6 and int(tbl[5]) == 0 and int(tbl[3]) > 0):
+                continue
+
+            fields = list(tbl[2])
+            n_rec  = int(tbl[3])
+            data   = list(tbl[4])
+            n_flds = len(fields)
+
+            _siq_write_log(log_path, f"  Table '{tname}': {n_rec} rows, fields={fields}")
+
+            i_name = _fi(fields, "Name", "ComboName", "Combination", "CombinationName")
+            i_case = _fi(fields, "LoadCase", "Case", "CaseName", "LoadCaseName")
+            i_type = _fi(fields, "CaseType", "Type", "ItemType", "LoadCaseType")
+            i_sf   = _fi(fields, "ScaleFactor", "SF", "Factor", "Scale", "F")
+
+            if i_name < 0 or i_case < 0:
+                continue
+
+            def cell(row, col):
+                idx = row * n_flds + col
+                return str(data[idx]) if 0 <= col < n_flds and idx < len(data) else ""
+
+            for r in range(n_rec):
+                cname = cell(r, i_name)
+                if cname not in combo_map:
+                    continue
+                case_nm = cell(r, i_case)
+                if not case_nm:
+                    continue
+                item_type = 0
+                if i_type >= 0:
+                    t = cell(r, i_type).lower()
+                    item_type = 1 if ("combo" in t or "combination" in t or t == "1") else 0
+                sf = 1.0
+                if i_sf >= 0:
+                    try:
+                        sf = float(cell(r, i_sf))
+                    except ValueError:
+                        pass
+                combo_map[cname]["cases"].append({
+                    "name": case_nm, "item_type": item_type, "factor": sf,
+                })
+
+            if any(v["cases"] for v in combo_map.values()):
+                _siq_write_log(log_path, f"  DB fallback succeeded via '{tname}'.")
+                return
+        except Exception as e:
+            _siq_write_log(log_path, f"  Table '{tname}' exception: {e}")
+
+    _siq_write_log(log_path, "DB fallback: all table attempts failed.")
+
+
 def get_etabs_combo_details(source: str = "etabs"):
     """
     Return all load combinations with their constituent case lists and scale factors.
 
-    Response shape:
-      {"combinations": [{"name": str, "cases": [{"name": str, "item_type": int, "factor": float}]}]}
+    Response: {"combinations": [{"name": str, "cases": [{"name", "item_type", "factor"}]}]}
+    item_type: 0 = Load Case, 1 = Load Combination reference
 
-    item_type: 0 = Load Case, 1 = Load Combination (nested combo reference)
+    Strategy:
+      1. Primary  — RespCombo.GetCaseList() per combination
+      2. Fallback — DatabaseTables batch call if primary returns 0 (ETABS only)
 
-    source: "etabs" | "safe" — currently only ETABS is supported; "safe" falls
-            back to ETABS with a note in the response.
+    source: "etabs" | "safe"
     """
-    SapModel = get_active_etabs()
-    if not SapModel:
-        return {"error": "ETABS is not currently running."}
+    import tempfile
+    _log = os.path.join(tempfile.gettempdir(), "siq_lc_import_debug.txt")
+
+    if source == "safe":
+        try:
+            SapModel = get_active_safe()
+        except Exception:
+            SapModel = None
+        if not SapModel:
+            return {"error": "SAFE is not currently running or no model is open."}
+    else:
+        SapModel = get_active_etabs()
+        if not SapModel:
+            return {"error": "ETABS is not currently running."}
 
     try:
-        ret = SapModel.RespCombo.GetNameList()
-        combo_names = list(ret[1]) if ret and int(ret[-1]) == 0 else []
+        name_ret  = SapModel.RespCombo.GetNameList()
+        all_names = [n for n in list(name_ret[1]) if not str(n).startswith("~")] \
+                    if name_ret and int(name_ret[-1]) == 0 else []
+
+        _siq_write_log(_log, f"Source: {source.upper()}  Combos: {len(all_names)}")
+
+        combo_map = {n: {"name": n, "cases": []} for n in all_names}
+
+        # -- Primary: GetCaseList per combo ----------------------------------
+        # CONFIRMED format (verified 2026-04-24):
+        #   cr = (NumberItems, (ItemType[int]...), (CaseName[str]...), (SF[float]...), retcode)
+        # cr[4] is retcode — use explicit index, NOT cr[-1] (tuple may have extra elements).
+        # ItemType (cr[1]) PRECEDES CaseName (cr[2]).
+        for name in all_names:
+            try:
+                cr = SapModel.RespCombo.GetCaseList(name)
+                if not cr or len(cr) < 5:
+                    continue
+
+                count = int(cr[0]) if cr[0] is not None else 0
+                rc    = int(cr[4]) if cr[4] is not None else -1
+
+                if rc != 0 or count == 0:
+                    continue
+
+                item_types = list(cr[1]) if cr[1] is not None else []
+                cnames     = list(cr[2]) if cr[2] is not None else []
+                csfs       = list(cr[3]) if cr[3] is not None else []
+
+                for i in range(min(count, len(cnames))):
+                    item_type = int(item_types[i]) if i < len(item_types) else 0
+                    sf        = float(csfs[i])      if i < len(csfs)       else 1.0
+                    combo_map[name]["cases"].append({
+                        "name":      str(cnames[i]),
+                        "item_type": item_type,
+                        "factor":    sf,
+                    })
+            except Exception as e:
+                _siq_write_log(_log, f"  {name}: GetCaseList exception: {e}")
+
+        # -- Fallback: DB table (ETABS only) ---------------------------------
+        total_primary = sum(len(v["cases"]) for v in combo_map.values())
+        _siq_write_log(_log, f"Primary total cases: {total_primary}")
+
+        if total_primary == 0 and all_names and source == "etabs":
+            _siq_write_log(_log, "Primary=0 — trying DB table fallback.")
+            _fill_cases_from_db(SapModel, combo_map, _log)
+
+        return {"combinations": list(combo_map.values())}
+
     except Exception as e:
-        return {"error": f"Failed to get combination list: {e}"}
-
-    combinations = []
-    for name in combo_names:
-        try:
-            # GetCaseList returns [count, (names...), (types...), (factors...), retcode]
-            cl = SapModel.RespCombo.GetCaseList(name)
-            if cl and int(cl[-1]) == 0 and int(cl[0]) > 0:
-                # GetCaseList field order (confirmed from ETABS/SAFE debug):
-                #   cl[0]=count, cl[1]=ItemType[], cl[2]=CaseName[], cl[3]=SF[], cl[4]=retcode
-                cases = [
-                    {
-                        "name":      cl[2][i],        # CaseName
-                        "item_type": int(cl[1][i]),   # 0=Load Case, 1=Load Combo
-                        "factor":    float(cl[3][i]),
-                    }
-                    for i in range(int(cl[0]))
-                ]
-            else:
-                cases = []
-        except Exception:
-            cases = []
-
-        combinations.append({"name": name, "cases": cases})
-
-    result = {"combinations": combinations}
-    if source == "safe":
-        result["source_note"] = "SAFE connection not available — showing ETABS combinations."
-    return result
+        _siq_write_log(_log, f"FATAL: {e}")
+        return {"error": str(e)}
 
 
 def create_load_envelope(name: str, combo_names: list, targets: list):
