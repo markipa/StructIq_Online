@@ -8511,6 +8511,229 @@ document.querySelectorAll('input[name="pmm-batch-type"]').forEach(r => {
 });
 
 // ================================================================
+//  LOAD COMBINATIONS — SUB-TABS + ENVELOPE
+// ================================================================
+
+let _lcEnvCombos = [];   // combo names loaded from ETABS for envelope tab
+
+function lcSubTab(tab) {
+  const pCombo = document.getElementById('lc-pane-combos');
+  const pEnv   = document.getElementById('lc-pane-envelope');
+  if (pCombo) pCombo.style.display = tab === 'combos'   ? '' : 'none';
+  if (pEnv)   pEnv.style.display   = tab === 'envelope' ? '' : 'none';
+
+  const hCombo = document.getElementById('lc-hdr-combos');
+  const hEnv   = document.getElementById('lc-hdr-envelope');
+  if (hCombo) hCombo.style.display = tab === 'combos'   ? '' : 'none';
+  if (hEnv)   hEnv.style.display   = tab === 'envelope' ? '' : 'none';
+
+  document.getElementById('lc-tab-combos')?.classList.toggle('active',   tab === 'combos');
+  document.getElementById('lc-tab-envelope')?.classList.toggle('active', tab === 'envelope');
+
+  // Auto-fetch on first open
+  if (tab === 'envelope' && _lcEnvCombos.length === 0) {
+    lcEnvFetchCombos();
+  }
+}
+
+async function lcEnvFetchCombos() {
+  const btn    = document.getElementById('btn-env-fetch');
+  const status = document.getElementById('env-fetch-status');
+  if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+  if (status) { status.textContent = ''; status.style.color = ''; }
+  try {
+    const res = await authFetch('/api/load-combinations');
+    if (!res.ok) throw new Error((await res.json()).detail || `HTTP ${res.status}`);
+    const data = await res.json();
+    _lcEnvCombos = data.combinations || [];
+    _lcEnvRefreshAvailable();
+    _lcEnvUpdateCounts();
+    if (status) status.textContent = `${_lcEnvCombos.length} combination(s) loaded`;
+  } catch (err) {
+    if (status) { status.textContent = `Error: ${err.message}`; status.style.color = 'var(--red,#ef4444)'; }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 15 15" fill="none"
+        stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="1.5,7.5 3.5,5 3.5,10"/>
+        <path d="M3.5,7.5 C3.5,4.5 7,2 10,3.5 C12.5,4.7 13.5,7 13.5,7.5 C13.5,10.5 11,13 8,13 C5.5,12.2 3.5,10 3.5,7.5"/>
+      </svg> Fetch from ETABS`;
+    }
+  }
+}
+
+function _lcEnvRefreshAvailable() {
+  const avail   = document.getElementById('env-available');
+  const selEl   = document.getElementById('env-selected');
+  const filterQ = (document.getElementById('env-filter-input')?.value || '').toLowerCase();
+  if (!avail) return;
+
+  const alreadySel = new Set([...(selEl?.options || [])].map(o => o.value));
+
+  avail.innerHTML = '';
+  for (const cn of _lcEnvCombos) {
+    if (alreadySel.has(cn)) continue;
+    if (filterQ && !cn.toLowerCase().includes(filterQ)) continue;
+    const opt = document.createElement('option');
+    opt.value = cn;
+    opt.textContent = cn;
+    avail.appendChild(opt);
+  }
+}
+
+function _lcEnvUpdateCounts() {
+  const avail = document.getElementById('env-available');
+  const sel   = document.getElementById('env-selected');
+  const ac    = document.getElementById('env-avail-count');
+  const sc    = document.getElementById('env-sel-count');
+  if (ac && avail) ac.textContent = avail.options.length ? avail.options.length : '';
+  if (sc && sel)   sc.textContent = sel.options.length   ? sel.options.length   : '';
+}
+
+function lcEnvApplyFilter() {
+  _lcEnvRefreshAvailable();
+  _lcEnvUpdateCounts();
+  const q   = document.getElementById('env-filter-input')?.value || '';
+  const btn = document.getElementById('btn-env-filter-clear');
+  if (btn) btn.classList.toggle('hidden', !q);
+}
+
+function lcEnvClearFilter() {
+  const inp = document.getElementById('env-filter-input');
+  if (inp) inp.value = '';
+  lcEnvApplyFilter();
+}
+
+function lcEnvMoveRight() {
+  const avail = document.getElementById('env-available');
+  const sel   = document.getElementById('env-selected');
+  if (!avail || !sel) return;
+  [...avail.selectedOptions].forEach(opt => {
+    avail.removeChild(opt);
+    opt.selected = false;
+    sel.appendChild(opt);
+  });
+  _lcEnvUpdateCounts();
+}
+
+function lcEnvMoveLeft() {
+  const avail = document.getElementById('env-available');
+  const sel   = document.getElementById('env-selected');
+  if (!avail || !sel) return;
+  [...sel.selectedOptions].forEach(opt => {
+    sel.removeChild(opt);
+    opt.selected = false;
+    _lcEnvInsertInOrder(avail, opt);
+  });
+  _lcEnvUpdateCounts();
+}
+
+function lcEnvMoveAllRight() {
+  const avail = document.getElementById('env-available');
+  const sel   = document.getElementById('env-selected');
+  if (!avail || !sel) return;
+  [...avail.options].forEach(opt => {
+    avail.removeChild(opt);
+    opt.selected = false;
+    sel.appendChild(opt);
+  });
+  _lcEnvUpdateCounts();
+}
+
+function lcEnvMoveAllLeft() {
+  const avail = document.getElementById('env-available');
+  const sel   = document.getElementById('env-selected');
+  if (!avail || !sel) return;
+  [...sel.options].forEach(opt => {
+    sel.removeChild(opt);
+    opt.selected = false;
+    _lcEnvInsertInOrder(avail, opt);
+  });
+  _lcEnvUpdateCounts();
+}
+
+function _lcEnvInsertInOrder(selectEl, opt) {
+  const rank  = _lcEnvCombos.indexOf(opt.value);
+  const opts  = [...selectEl.options];
+  const after = opts.find(o => _lcEnvCombos.indexOf(o.value) > rank);
+  if (after) selectEl.insertBefore(opt, after);
+  else        selectEl.appendChild(opt);
+}
+
+async function lcEnvCreate() {
+  const nameEl   = document.getElementById('env-name-input');
+  const statusEl = document.getElementById('env-create-status');
+  const resultsEl = document.getElementById('env-results');
+  const btn      = document.getElementById('btn-env-create');
+
+  const envName = nameEl?.value?.trim();
+  if (!envName) {
+    _lcEnvSetStatus(statusEl, 'Enter an envelope name.', 'err');
+    nameEl?.focus();
+    return;
+  }
+
+  const selEl    = document.getElementById('env-selected');
+  const selected = selEl ? [...selEl.options].map(o => o.value) : [];
+  if (!selected.length) {
+    _lcEnvSetStatus(statusEl, 'Move at least one combination to the Selected list.', 'err');
+    return;
+  }
+
+  const targets = [];
+  if (document.getElementById('env-target-etabs')?.checked) targets.push('etabs');
+  if (document.getElementById('env-target-safe')?.checked)  targets.push('safe');
+  if (!targets.length) {
+    _lcEnvSetStatus(statusEl, 'Select at least one target (ETABS or SAFE).', 'err');
+    return;
+  }
+
+  btn.disabled = true;
+  _lcEnvSetStatus(statusEl, 'Creating…', 'info');
+  if (resultsEl) resultsEl.classList.add('hidden');
+
+  try {
+    const res = await authFetch('/api/load-combinations/create-envelope', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ name: envName, combo_names: selected, targets }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+
+    const results = data.results || {};
+    const rows = Object.entries(results).map(([tgt, r]) => {
+      const icon  = r.status === 'success' ? '✅' : r.status === 'warning' ? '⚠️' : '❌';
+      const color = r.status === 'success' ? 'var(--green,#22c55e)'
+                  : r.status === 'warning' ? '#ea6c00'
+                  : 'var(--red,#ef4444)';
+      return `<div class="env-result-row">
+        <span class="env-result-target">${tgt.toUpperCase()}</span>
+        <span>${icon}</span>
+        <span style="color:${color};font-size:13px">${_lcEscHtml(r.message || r.error || '')}</span>
+      </div>`;
+    }).join('');
+
+    if (resultsEl) { resultsEl.innerHTML = rows; resultsEl.classList.remove('hidden'); }
+    const allOk = Object.values(results).every(r => r.status === 'success' || r.status === 'warning');
+    _lcEnvSetStatus(statusEl, allOk ? 'Done!' : 'Completed with errors.', allOk ? 'ok' : 'err');
+  } catch (err) {
+    _lcEnvSetStatus(statusEl, `Error: ${err.message}`, 'err');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function _lcEnvSetStatus(el, msg, type) {
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = type === 'ok'   ? 'var(--green,#22c55e)'
+                 : type === 'err'  ? 'var(--red,#ef4444)'
+                 : 'var(--t2,#475569)';
+}
+
+// ================================================================
 //  IMPORT LOAD COMBINATIONS FROM ETABS / SAFE
 // ================================================================
 

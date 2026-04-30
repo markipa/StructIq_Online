@@ -879,60 +879,198 @@
           <span id="lc-gen-status" class="status-chip hidden"></span>
           <span id="lc-gen-status-safe" class="status-chip hidden"></span>
         </div>
-      </div>
-
-      <!-- Load cases chip bar -->
-      <div class="lc-cases-bar">
-        <span class="lc-cases-label">LOAD CASES</span>
-        <ul id="lc-cases-list" class="lc-cases-ul"></ul>
-        <span id="lc-cases-empty" class="lc-cases-empty">Click Get Load Cases to populate</span>
-      </div>
-
-      <!-- Spreadsheet card (fills remaining height) -->
-      <div class="lc-card">
-        <div class="lc-table-scroll">
-          <table id="lc-table" class="lc-sheet">
-            <thead>
-              <tr id="lc-thead-row">
-                <th class="lc-th-rownum">#</th>
-                <th class="lc-th-name">Name</th>
-              </tr>
-            </thead>
-            <tbody id="lc-tbody">
-              <tr id="lc-empty-row">
-                <td colspan="2" class="lc-empty-cell">
-                  <div class="lc-empty-state">
-                    <svg width="52" height="52" viewBox="0 0 52 52" fill="none"
-                         stroke="currentColor" stroke-width="1.3"
-                         stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="4" y="8" width="44" height="36" rx="2"/>
-                      <line x1="4"  y1="18" x2="48" y2="18"/>
-                      <line x1="4"  y1="28" x2="48" y2="28"/>
-                      <line x1="4"  y1="38" x2="48" y2="38"/>
-                      <line x1="16" y1="8"  x2="16" y2="44"/>
-                      <line x1="28" y1="8"  x2="28" y2="44"/>
-                    </svg>
-                    <p>Click <strong>Get Load Cases</strong> to build columns,<br>
-                       then add rows and define factors.</p>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="lc-statusbar">
-          <button id="btn-add-lc-row" class="lc-add-row-btn">
-            <svg width="11" height="11" viewBox="0 0 14 14" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <line x1="7" y1="2" x2="7" y2="12"/>
-              <line x1="2" y1="7" x2="12" y2="7"/>
+        <!-- Controls for Load Envelope tab (hidden by default) -->
+        <div id="lc-hdr-envelope" class="header-controls" style="display:none">
+          <button class="btn btn-ghost" onclick="lcEnvFetchCombos()">
+            <svg width="14" height="14" viewBox="0 0 15 15" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                 stroke-linejoin="round">
+              <polyline points="1.5,7.5 3.5,5 3.5,10"/>
+              <path d="M3.5,7.5 C3.5,4.5 7,2 10,3.5 C12.5,4.7 13.5,7 13.5,7.5 C13.5,10.5 11,13 8,13 C5.5,12.2 3.5,10 3.5,7.5"/>
             </svg>
-            Add Row
+            Refresh Combinations
           </button>
-          <span id="lc-row-count" class="lc-row-count">0 rows</span>
         </div>
       </div>
+
+      <!-- Sub-tab bar -->
+      <div class="tab-bar lc-tab-bar">
+        <button id="lc-tab-combos" class="tab-btn active" onclick="lcSubTab('combos')">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="2" width="14" height="12" rx="1.5"/>
+            <line x1="1" y1="6.5" x2="15" y2="6.5"/>
+            <line x1="5.5" y1="6.5" x2="5.5" y2="14"/>
+          </svg>
+          Load Combinations
+        </button>
+        <button id="lc-tab-envelope" class="tab-btn" onclick="lcSubTab('envelope')">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="2" width="14" height="12" rx="1.5"/>
+            <line x1="1" y1="7" x2="15" y2="7"/>
+            <line x1="5" y1="2" x2="5" y2="14"/>
+            <line x1="11" y1="2" x2="11" y2="14"/>
+          </svg>
+          Load Envelope
+        </button>
+      </div>
+
+      <!-- ── Pane 1: Load Combinations ── -->
+      <div id="lc-pane-combos" class="lc-pane">
+
+        <!-- Load cases chip bar -->
+        <div class="lc-cases-bar">
+          <span class="lc-cases-label">LOAD CASES</span>
+          <ul id="lc-cases-list" class="lc-cases-ul"></ul>
+          <span id="lc-cases-empty" class="lc-cases-empty">Click Get Load Cases to populate</span>
+        </div>
+
+        <!-- Spreadsheet card (fills remaining height) -->
+        <div class="lc-card">
+          <div class="lc-table-scroll">
+            <table id="lc-table" class="lc-sheet">
+              <thead>
+                <tr id="lc-thead-row">
+                  <th class="lc-th-rownum">#</th>
+                  <th class="lc-th-name">Name</th>
+                </tr>
+              </thead>
+              <tbody id="lc-tbody">
+                <tr id="lc-empty-row">
+                  <td colspan="2" class="lc-empty-cell">
+                    <div class="lc-empty-state">
+                      <svg width="52" height="52" viewBox="0 0 52 52" fill="none"
+                           stroke="currentColor" stroke-width="1.3"
+                           stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="4" y="8" width="44" height="36" rx="2"/>
+                        <line x1="4"  y1="18" x2="48" y2="18"/>
+                        <line x1="4"  y1="28" x2="48" y2="28"/>
+                        <line x1="4"  y1="38" x2="48" y2="38"/>
+                        <line x1="16" y1="8"  x2="16" y2="44"/>
+                        <line x1="28" y1="8"  x2="28" y2="44"/>
+                      </svg>
+                      <p>Click <strong>Get Load Cases</strong> to build columns,<br>
+                         then add rows and define factors.</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="lc-statusbar">
+            <button id="btn-add-lc-row" class="lc-add-row-btn">
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="7" y1="2" x2="7" y2="12"/>
+                <line x1="2" y1="7" x2="12" y2="7"/>
+              </svg>
+              Add Row
+            </button>
+            <span id="lc-row-count" class="lc-row-count">0 rows</span>
+          </div>
+        </div>
+
+      </div><!-- /lc-pane-combos -->
+
+      <!-- ── Pane 2: Load Envelope ── -->
+      <div id="lc-pane-envelope" class="lc-pane lc-pane-env" style="display:none">
+
+        <!-- Config bar: name + fetch -->
+        <div class="env-topbar">
+          <span class="env-field-label">Envelope Name</span>
+          <input id="env-name-input" class="env-name-input" type="text"
+                 placeholder="e.g. ENV_ALL" autocomplete="off" spellcheck="false"/>
+          <div class="env-topbar-spacer"></div>
+          <button id="btn-env-fetch" class="btn btn-secondary" onclick="lcEnvFetchCombos()">
+            <svg width="13" height="13" viewBox="0 0 15 15" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                 stroke-linejoin="round">
+              <polyline points="1.5,7.5 3.5,5 3.5,10"/>
+              <path d="M3.5,7.5 C3.5,4.5 7,2 10,3.5 C12.5,4.7 13.5,7 13.5,7.5 C13.5,10.5 11,13 8,13 C5.5,12.2 3.5,10 3.5,7.5"/>
+            </svg>
+            Fetch from ETABS
+          </button>
+          <span id="env-fetch-status" class="env-fetch-status"></span>
+        </div>
+
+        <!-- Transfer: Available | Arrows | Selected -->
+        <div class="env-transfer-widget">
+
+          <!-- Available panel -->
+          <div class="env-panel">
+            <div class="env-panel-hdr">
+              <span class="env-panel-title">Available Combinations</span>
+              <span id="env-avail-count" class="env-count-pill"></span>
+            </div>
+            <div class="env-filter-row">
+              <svg width="11" height="11" viewBox="0 0 15 15" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="6.5" cy="6.5" r="4.5"/>
+                <line x1="10" y1="10" x2="13.5" y2="13.5"/>
+              </svg>
+              <input id="env-filter-input" class="env-filter-input" type="text"
+                     placeholder="Filter combinations…"
+                     oninput="lcEnvApplyFilter()" autocomplete="off" spellcheck="false"/>
+              <button class="env-filter-clear hidden" id="btn-env-filter-clear"
+                      onclick="lcEnvClearFilter()" title="Clear filter">✕</button>
+            </div>
+            <select id="env-available" class="env-listbox" multiple
+                    ondblclick="lcEnvMoveRight()"></select>
+          </div>
+
+          <!-- Arrow column -->
+          <div class="env-arrow-col">
+            <button class="env-arrow-btn" onclick="lcEnvMoveAllRight()" title="Add all">»</button>
+            <button class="env-arrow-btn" onclick="lcEnvMoveRight()"    title="Add selected">›</button>
+            <button class="env-arrow-btn" onclick="lcEnvMoveLeft()"     title="Remove selected">‹</button>
+            <button class="env-arrow-btn" onclick="lcEnvMoveAllLeft()"  title="Remove all">«</button>
+          </div>
+
+          <!-- Selected panel -->
+          <div class="env-panel">
+            <div class="env-panel-hdr">
+              <span class="env-panel-title">Selected for Envelope</span>
+              <span id="env-sel-count" class="env-count-pill"></span>
+            </div>
+            <div class="env-filter-row env-filter-row--ghost"></div>
+            <select id="env-selected" class="env-listbox" multiple
+                    ondblclick="lcEnvMoveLeft()"></select>
+          </div>
+
+        </div><!-- /env-transfer-widget -->
+
+        <!-- Bottom bar: targets + create -->
+        <div class="env-bottombar">
+          <div class="env-send-to">
+            <span class="env-field-label">Send To</span>
+            <label class="env-check-label">
+              <input type="checkbox" id="env-target-etabs" checked>
+              <span>ETABS</span>
+            </label>
+            <label class="env-check-label">
+              <input type="checkbox" id="env-target-safe">
+              <span>SAFE</span>
+            </label>
+          </div>
+          <div class="env-create-row">
+            <button id="btn-env-create" class="btn btn-green" onclick="lcEnvCreate()">
+              <svg width="13" height="13" viewBox="0 0 15 15" fill="none"
+                   stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="3,2 13,7.5 3,13" fill="currentColor" stroke="none"/>
+              </svg>
+              Create Envelope
+            </button>
+            <span id="env-create-status" class="env-create-status"></span>
+          </div>
+        </div>
+
+        <!-- Results card (shown after create) -->
+        <div id="env-results" class="env-results-card hidden"></div>
+
+      </div><!-- /lc-pane-envelope -->
 
     </section>
 
