@@ -162,6 +162,36 @@ def generate_combinations_batch(request: BatchGenerateRequest):
     return res
 
 
+@app.get("/api/load-combinations/import-details")
+def get_combo_import_details(source: str = Query(default="etabs")):
+    """Return all load combinations with case lists and scale factors from ETABS or SAFE."""
+    _require_actions()
+    res = actions.get_etabs_combo_details(source=source)
+    if "error" in res:
+        raise HTTPException(503, res["error"])
+    return res
+
+
+class EnvelopeRequest(BaseModel):
+    name: str
+    combo_names: list
+    targets: list
+
+
+@app.post("/api/load-combinations/create-envelope")
+def create_load_envelope(request: EnvelopeRequest):
+    """Create an Envelope-type load combination from selected existing combos."""
+    _require_actions()
+    res = actions.create_load_envelope(
+        name=request.name,
+        combo_names=request.combo_names,
+        targets=request.targets,
+    )
+    if "error" in res:
+        raise HTTPException(400, res["error"])
+    return res
+
+
 # ═══════════════════════════════════════════════════════════════════
 #  RESULTS
 # ═══════════════════════════════════════════════════════════════════

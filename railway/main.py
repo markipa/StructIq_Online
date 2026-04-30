@@ -431,6 +431,43 @@ def get_billing_portal_by_email(email: str, key: str):
     return {"portal_url": _fetch_portal_url(sub_id)}
 
 
+class AuthCheckoutRequest(BaseModel):
+    interval: str   # "monthly" | "yearly"
+
+@app.post("/api/stripe/checkout")
+def api_stripe_checkout(body: AuthCheckoutRequest, request: Request):
+    """
+    Authenticated checkout — web app calls this with Bearer token.
+    Extracts email from session and delegates to the Lemon Squeezy handler.
+    """
+    auth  = request.headers.get("Authorization", "")
+    token = auth[7:] if auth.startswith("Bearer ") else ""
+    user  = database.get_user_by_token(token)
+    if not user:
+        raise HTTPException(401, "Invalid or expired session")
+    # Reuse the same logic as /stripe/create-checkout
+    return create_checkout(CreateCheckoutRequest(email=user["email"], interval=body.interval))
+
+
+@app.get("/api/cloud/sync")
+def cloud_sync(request: Request):
+    """
+    Called by frontend on boot to sync plan from DB and validate session.
+    Returns {plan, source, synced, session_valid}.
+    """
+    auth  = request.headers.get("Authorization", "")
+    token = auth[7:] if auth.startswith("Bearer ") else ""
+    user  = database.get_user_by_token(token)
+    if not user:
+        raise HTTPException(401, "Invalid or expired session")
+    return {
+        "plan":          user.get("plan", "free"),
+        "source":        "cloud",
+        "synced":        True,
+        "session_valid": True,
+    }
+
+
 @app.get("/stripe/success", response_class=HTMLResponse)
 def stripe_success():
     return """<!DOCTYPE html>
@@ -1349,6 +1386,16 @@ async def proxy_gen_combos(request: Request):
 async def proxy_gen_combos_batch(request: Request):
     body = await request.json()
     return await _proxy(request, "POST", "/api/load-combinations/generate-batch", body=body)
+
+@app.get("/api/load-combinations/import-details")
+async def proxy_lc_import_details(request: Request):
+    params = dict(request.query_params)
+    return await _proxy(request, "GET", "/api/load-combinations/import-details", params=params)
+
+@app.post("/api/load-combinations/create-envelope")
+async def proxy_lc_create_envelope(request: Request):
+    body = await request.json()
+    return await _proxy(request, "POST", "/api/load-combinations/create-envelope", body=body)
 
 # ── Drift / torsion / reactions ───────────────────────────────────
 
