@@ -2345,10 +2345,12 @@ def get_etabs_combo_details(source: str = "etabs"):
             # GetCaseList returns [count, (names...), (types...), (factors...), retcode]
             cl = SapModel.RespCombo.GetCaseList(name)
             if cl and int(cl[-1]) == 0 and int(cl[0]) > 0:
+                # GetCaseList field order (confirmed from ETABS/SAFE debug):
+                #   cl[0]=count, cl[1]=ItemType[], cl[2]=CaseName[], cl[3]=SF[], cl[4]=retcode
                 cases = [
                     {
-                        "name":      cl[1][i],
-                        "item_type": int(cl[2][i]),   # 0=Load Case, 1=Load Combo
+                        "name":      cl[2][i],        # CaseName
+                        "item_type": int(cl[1][i]),   # 0=Load Case, 1=Load Combo
                         "factor":    float(cl[3][i]),
                     }
                     for i in range(int(cl[0]))
