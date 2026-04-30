@@ -225,6 +225,7 @@ function _setBridgeUI(state) {
     launchBtn     && launchBtn.classList.add('hidden');
     loginBox      && loginBox.classList.remove('hidden');
     disconnectBtn && disconnectBtn.classList.add('hidden');
+    _clearEtabsConnection();
   } else {
     // offline — bridge not running
     dot.classList.add('bridge-dot--off');
@@ -233,6 +234,7 @@ function _setBridgeUI(state) {
     launchBtn     && launchBtn.classList.remove('hidden');
     loginBox      && loginBox.classList.add('hidden');
     disconnectBtn && disconnectBtn.classList.add('hidden');
+    _clearEtabsConnection();
   }
 }
 
@@ -262,6 +264,16 @@ async function bridgeSignIn() {
 
 function launchBridge() {
   window.location.href = 'structiq://connect';
+}
+
+function _clearEtabsConnection() {
+  isConnected = false;
+  const pill = document.getElementById('conn-pill');
+  const dot  = document.getElementById('conn-dot');
+  const text = document.getElementById('connection-status');
+  if (pill) pill.classList.remove('connected');
+  if (dot)  dot.classList.remove('connected');
+  if (text) text.textContent = 'Disconnected';
 }
 
 async function bridgeDisconnect() {
