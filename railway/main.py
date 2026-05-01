@@ -1283,12 +1283,25 @@ async def bridge_ws(ws: WebSocket):
         msg = await asyncio.wait_for(ws.receive_json(), timeout=15)
         if msg.get("type") != "auth":
             await ws.send_json({"type": "auth_fail", "reason": "first message must be auth"})
+            await ws.close(1008)
             return
         token = msg.get("token", "")
-        user = database.get_user_by_token(token)
+
+        # Wrap DB lookup so any exception sends auth_fail instead of silent drop
+        try:
+            user = database.get_user_by_token(token)
+        except Exception as db_exc:
+            import traceback
+            print(f"[bridge_ws] DB error during token lookup: {db_exc}\n{traceback.format_exc()}", flush=True)
+            await ws.send_json({"type": "auth_fail", "reason": f"server_error: {db_exc}"})
+            await ws.close(1011)
+            return
+
         if not user:
             await ws.send_json({"type": "auth_fail", "reason": "invalid token"})
+            await ws.close(1008)
             return
+
         user_id = user["id"]
         bridge_registry.register(user_id, ws)
         await ws.send_json({"type": "auth_ok", "user_id": user_id, "name": user.get("name", "")})
@@ -1304,12 +1317,25 @@ async def bridge_ws(ws: WebSocket):
         pass
     except asyncio.TimeoutError:
         pass
-    except Exception:
-        pass
+    except Exception as e:
+        import traceback
+        print(f"[bridge_ws] Unhandled exception: {e}\n{traceback.format_exc()}", flush=True)
     finally:
         if user_id is not None:
             bridge_registry.unregister(user_id)
 
+
+# ─── Bridge debug (temporary — remove after diagnosis) ────────────
+
+@app.get("/api/bridge/db-test")
+def bridge_db_test():
+    """Temporary: test that the token DB query runs without crashing."""
+    try:
+        result = database.get_user_by_token("__test_invalid_token__")
+        return {"ok": True, "user": result}
+    except Exception as e:
+        import traceback
+        return {"ok": False, "error": str(e), "trace": traceback.format_exc()}
 
 # ─── Bridge status ────────────────────────────────────────────────
 
