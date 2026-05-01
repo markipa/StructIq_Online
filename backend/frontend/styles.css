@@ -1015,6 +1015,20 @@ body {
 }
 #joint-table-tab .table-card .data-table { min-width: max-content; }
 
+/* Toolbar above joint reactions table */
+.table-toolbar {
+  display:        flex;
+  align-items:    center;
+  justify-content: flex-end;
+  padding:        6px 12px;
+  gap:            8px;
+  border-bottom:  1px solid var(--bdr-xs);
+  background:     var(--bg-card);
+  border-radius:  var(--r-lg) var(--r-lg) 0 0;
+  border:         1px solid var(--bdr-sm);
+  border-bottom:  none;
+}
+
 /* ── Bubble tab: chart fills all remaining height ── */
 #joint-bubble-tab.tab-panel.active {
   flex:       1;

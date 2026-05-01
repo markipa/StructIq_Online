@@ -802,6 +802,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Joint reactions: main button ──
   document.getElementById('btn-get-joint-reactions').addEventListener('click', getJointReactions);
 
+  // ── Joint reactions: export CSV ──
+  document.getElementById('btn-export-joint-csv').addEventListener('click', exportJointReactionsCSV);
+
   // ── Joint reactions: source type toggle ──
   document.querySelectorAll('.joint-type-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1959,6 +1962,45 @@ function renderJointTable(data) {
       <td class="val-moment">${fmtF(r.MZ)}</td>`;
     tbody.appendChild(tr);
   });
+}
+
+// ── CSV export for joint reactions ──
+function exportJointReactionsCSV() {
+  const data = jointGetFiltered();   // respect active filter
+  if (!data.length) { showToast('No data to export.'); return; }
+
+  const headers = ['Joint','Combo/Case','Step','X (m)','Y (m)','Z (m)',
+                   'FX (kN)','FY (kN)','FZ (kN)','MX (kN·m)','MY (kN·m)','MZ (kN·m)'];
+
+  const rows = data.map(r => [
+    r.joint,
+    r.combo,
+    r.step_type || '',
+    r.x.toFixed(3),
+    r.y.toFixed(3),
+    r.z.toFixed(3),
+    r.FX.toFixed(3),
+    r.FY.toFixed(3),
+    r.FZ.toFixed(3),
+    r.MX.toFixed(3),
+    r.MY.toFixed(3),
+    r.MZ.toFixed(3),
+  ]);
+
+  const csv = [headers, ...rows]
+    .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    .join('\r\n');
+
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `joint_reactions_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(`Exported ${data.length} rows to CSV.`);
 }
 
 // ── Bubble plot rendering ──
