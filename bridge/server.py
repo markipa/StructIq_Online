@@ -242,7 +242,9 @@ def get_joint_reactions(
     helper = getattr(actions, "get_joint_reactions", None)
     if not callable(helper):
         raise HTTPException(503, "get_joint_reactions not available.")
-    res = helper(names, load_type)
+    # names arrives as comma-separated string — split to list for actions function
+    name_list = [n.strip() for n in names.split(",") if n.strip()] if names else None
+    res = helper(name_list, load_type)
     if "error" in res:
         raise HTTPException(500, res["error"])
     return res
@@ -257,7 +259,8 @@ def get_reactions(
     helper = getattr(actions, "get_joint_reactions", None) or getattr(actions, "get_reactions", None)
     if not callable(helper):
         raise HTTPException(503, "reactions not available.")
-    res = helper(names, load_type)
+    name_list = [n.strip() for n in names.split(",") if n.strip()] if names else None
+    res = helper(name_list, load_type)
     if "error" in res:
         raise HTTPException(500, res["error"])
     return res
