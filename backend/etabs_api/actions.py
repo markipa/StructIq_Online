@@ -1057,16 +1057,36 @@ def get_rc_beam_sections():
             except Exception:
                 pass
 
+            # Read beam rebar assignment from ETABS section definition
+            # GetRebarBeam returns: ['', MatRebar, MatRebarShr, CoverTop, CoverBot, ..., retcode]
+            fy_main, fy_ties = "", ""
+            top_cc, bot_cc   = 40, 40
+            bar_dia          = 25
+            try:
+                rr = SapModel.PropFrame.GetRebarBeam(name)
+                if rr and int(rr[-1]) == 0 and len(rr) >= 5:
+                    str_vals   = [v for v in rr[:-1] if isinstance(v, str) and v]
+                    float_vals = [v for v in rr[:-1] if isinstance(v, float)]
+                    if str_vals:
+                        fy_main = str_vals[0]
+                    if len(str_vals) >= 2:
+                        fy_ties = str_vals[1]
+                    if len(float_vals) >= 2:
+                        top_cc = max(1, round(to_mm(float_vals[0])))
+                        bot_cc = max(1, round(to_mm(float_vals[1])))
+            except Exception:
+                pass
+
             sections.append({
                 "prop_name":         name,
                 "depth":             h_mm,
                 "width":             b_mm,
                 "concrete_strength": conc_mat,
-                "fy_main":           "",
-                "fy_ties":           "",
-                "bar_dia":           25,
-                "top_cc":            40,
-                "bot_cc":            40,
+                "fy_main":           fy_main,
+                "fy_ties":           fy_ties,
+                "bar_dia":           bar_dia,
+                "top_cc":            top_cc,
+                "bot_cc":            bot_cc,
                 "nbar_top_i":        0,
                 "nbar_top_j":        0,
                 "nbar_bot_i":        0,
