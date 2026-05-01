@@ -936,6 +936,11 @@ def get_frame_materials():
         return {"error": f"Failed to get materials: {str(e)}"}
 
 
+# Bridge aliases — server.py calls these names
+get_rc_beam_materials    = get_frame_materials
+get_rc_column_materials  = get_frame_materials
+
+
 def get_rc_beam_sections():
     """
     Return all rectangular beam (horizontal) sections from the active ETABS model,
