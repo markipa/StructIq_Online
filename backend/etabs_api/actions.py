@@ -339,6 +339,17 @@ def get_joint_reactions(names: Optional[List[str]] = None, load_type: str = "com
     SapModel = get_active_etabs()
     if not SapModel:
         return {"error": "ETABS is not currently running."}
+
+    _KN_M = 6   # ETABS unit code: kN, m, kN·m
+    try:
+        orig_units = SapModel.GetPresentUnits()
+    except Exception:
+        orig_units = _KN_M
+    try:
+        SapModel.SetPresentUnits(_KN_M)   # forces → kN, moments → kN·m
+    except Exception:
+        pass
+
     try:
         # ── Step 1: Set display selection in DatabaseTables ──
         # Call BOTH set-functions with the target names (matching the VBA pattern).
@@ -384,6 +395,7 @@ def get_joint_reactions(names: Optional[List[str]] = None, load_type: str = "com
         fields   = [str(f).lower() for f in ret[-4]]  # column names (lower-cased)
 
         if retcode != 0:
+            _restore_units(SapModel, orig_units)
             return {
                 "error": (
                     f"GetTableForDisplayArray returned error {retcode}. "
@@ -397,9 +409,11 @@ def get_joint_reactions(names: Optional[List[str]] = None, load_type: str = "com
             if load_type == "case":
                 available = [c for c in SapModel.LoadCases.GetNameList()[1]
                              if not c.startswith("~")]
+                _restore_units(SapModel, orig_units)
                 return {"status": "success", "data": [], "available_cases": available}
             else:
                 all_combos = list(SapModel.RespCombo.GetNameList()[1])
+                _restore_units(SapModel, orig_units)
                 return {"status": "success", "data": [], "available_combos": all_combos}
 
         n_flds = len(fields)
@@ -424,6 +438,7 @@ def get_joint_reactions(names: Optional[List[str]] = None, load_type: str = "com
         idx_m3    = find_col(fmap, "m3", "mz")
 
         if idx_joint is None or idx_case is None or idx_f3 is None:
+            _restore_units(SapModel, orig_units)
             return {
                 "error": (
                     f"Unexpected 'Joint Reactions' table schema. "
@@ -468,12 +483,18 @@ def get_joint_reactions(names: Optional[List[str]] = None, load_type: str = "com
         if load_type == "case":
             available = [c for c in SapModel.LoadCases.GetNameList()[1]
                          if not c.startswith("~")]
+            _restore_units(SapModel, orig_units)
             return {"status": "success", "data": data, "available_cases": available}
         else:
             all_combos = list(SapModel.RespCombo.GetNameList()[1])
+            _restore_units(SapModel, orig_units)
             return {"status": "success", "data": data, "available_combos": all_combos}
 
     except Exception as e:
+        try:
+            _restore_units(SapModel, orig_units)
+        except Exception:
+            pass
         return {"error": f"Failed to retrieve joint reactions: {str(e)}"}
 
 
