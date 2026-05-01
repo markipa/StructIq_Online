@@ -331,10 +331,11 @@ def rc_beam_sections():
 @app.post("/api/rc-beam/write")
 def rc_beam_write(body: dict):
     _require_actions()
-    helper = getattr(actions, "write_rc_beam", None)
+    helper = getattr(actions, "write_rc_beam_sections", None)
     if not callable(helper):
         raise HTTPException(503, "not available")
-    return helper(body)
+    sections = body.get("sections", [])
+    return helper(sections)
 
 
 @app.get("/api/rc-column/materials")
@@ -358,10 +359,11 @@ def rc_col_sections():
 @app.post("/api/rc-column/write")
 def rc_col_write(body: dict):
     _require_actions()
-    helper = getattr(actions, "write_rc_column", None)
+    helper = getattr(actions, "write_rc_column_sections", None)
     if not callable(helper):
         raise HTTPException(503, "not available")
-    return helper(body)
+    sections = body.get("sections", [])
+    return helper(sections)
 
 
 @app.get("/api/rc-column/debug/{section_name}")
