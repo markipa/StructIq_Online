@@ -1279,6 +1279,13 @@ def write_rc_beam_sections(sections_list: list):
         except Exception:
             unit_code = 6
 
+    # Unlock model if locked (required to modify section properties)
+    try:
+        if SapModel.GetModelIsLocked():
+            SapModel.SetModelIsLocked(False)
+    except Exception:
+        pass
+
     success_count = 0
     error_count   = 0
     errors        = []
@@ -1295,7 +1302,7 @@ def write_rc_beam_sections(sections_list: list):
         try:
             t3 = _mm_to_model_length(depth, unit_code)
             t2 = _mm_to_model_length(width, unit_code)
-            ret = SapModel.PropFrame.SetRectangle(name, conc, t3, t2)
+            ret = SapModel.PropFrame.SetRectangle(name, conc, t3, t2, -1, "", "")
             if int(ret) != 0:
                 raise RuntimeError(f"SetRectangle returned {ret}")
             # Set rebar materials and cover
@@ -1315,12 +1322,12 @@ def write_rc_beam_sections(sections_list: list):
                     )
                 except Exception:
                     pass  # geometry written; rebar best-effort
-            # Apply modifiers if provided
+            # Apply modifiers — ETABS order: [Area, V2, V3, Torsion(J), I22, I33, Mass, Weight]
             torsion = float(s.get("torsion") or 0.35)
             i22     = float(s.get("i22")     or 0.35)
             i33     = float(s.get("i33")     or 0.35)
             try:
-                SapModel.PropFrame.SetModifiers(name, [1,1,torsion,i22,i33,1,1,1])
+                SapModel.PropFrame.SetModifiers(name, [1, 1, 1, torsion, i22, i33, 1, 1])
             except Exception:
                 pass
             success_count += 1
@@ -1345,6 +1352,13 @@ def write_rc_column_sections(sections_list: list):
         except Exception:
             unit_code = 6
 
+    # Unlock model if locked (required to modify section properties)
+    try:
+        if SapModel.GetModelIsLocked():
+            SapModel.SetModelIsLocked(False)
+    except Exception:
+        pass
+
     def to_model(mm):
         return _mm_to_model_length(float(mm), unit_code)
 
@@ -1364,7 +1378,7 @@ def write_rc_column_sections(sections_list: list):
         try:
             t3 = to_model(depth)
             t2 = to_model(width)
-            ret = SapModel.PropFrame.SetRectangle(name, conc, t3, t2)
+            ret = SapModel.PropFrame.SetRectangle(name, conc, t3, t2, -1, "", "")
             if int(ret) != 0:
                 raise RuntimeError(f"SetRectangle returned {ret}")
 
@@ -1407,7 +1421,8 @@ def write_rc_column_sections(sections_list: list):
             i22     = float(s.get("i22")     or 0.70)
             i33     = float(s.get("i33")     or 0.70)
             try:
-                SapModel.PropFrame.SetModifiers(name, [1,1,torsion,i22,i33,1,1,1])
+                # ETABS order: [Area, V2, V3, Torsion(J), I22, I33, Mass, Weight]
+                SapModel.PropFrame.SetModifiers(name, [1, 1, 1, torsion, i22, i33, 1, 1])
             except Exception:
                 pass
 
