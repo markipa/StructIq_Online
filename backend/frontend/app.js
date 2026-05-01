@@ -3005,6 +3005,7 @@ function rcbConfirmImport() {
 }
 
 async function rcbWriteToETABS() {
+  if (!requireBridge('RC Beam Write')) return;
   if (!rcbSections.length) {
     showToast('No sections to write. Add or import sections first.', 'error');
     return;
@@ -3026,10 +3027,16 @@ async function rcbWriteToETABS() {
       return;
     }
     const data = await res.json();
+    if (data.error) {
+      showToast(data.error, 'error');
+      return;
+    }
     const ok  = data.success_count || 0;
     const bad = data.error_count   || 0;
     if (bad > 0) {
       showToast(`Written: ${ok} ✓  Errors: ${bad} ✗ — check section names & materials`, 'error');
+    } else if (ok === 0) {
+      showToast('Nothing written — check ETABS is open and sections have valid data', 'error');
     } else {
       showToast(`${ok} section(s) written to ETABS successfully`, 'success');
     }
@@ -3661,6 +3668,7 @@ async function rccImportSections() {
 }
 
 async function rccWriteToETABS() {
+  if (!requireBridge('RC Column Write')) return;
   if (!rccSections.length) {
     showToast('No sections to write. Add or import sections first.', 'error');
     return;
@@ -3681,10 +3689,16 @@ async function rccWriteToETABS() {
       return;
     }
     const data = await res.json();
+    if (data.error) {
+      showToast(data.error, 'error');
+      return;
+    }
     const ok  = data.success_count || 0;
     const bad = data.error_count   || 0;
     if (bad > 0) {
       showToast(`Written: ${ok} ✓  Errors: ${bad} ✗ — check section names & materials`, 'error');
+    } else if (ok === 0) {
+      showToast('Nothing written — check ETABS is open and sections have valid data', 'error');
     } else {
       showToast(`${ok} column section(s) written to ETABS successfully`, 'success');
     }
