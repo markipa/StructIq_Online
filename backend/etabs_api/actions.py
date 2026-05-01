@@ -918,7 +918,12 @@ def _dia_to_bar_label(dia_mm: int) -> str:
 
 
 def get_frame_materials():
-    """Return all material names defined in the active ETABS model."""
+    """
+    Return all material names defined in the active ETABS model, classified by type.
+    ETABS MatType codes: 1=Steel, 2=Concrete, 3=NoDesign, 4=Aluminum,
+                         5=ColdFormed, 6=Rebar, 7=Tendon, 8=Masonry
+    Returns: {status, materials (all names), steel_materials (type 1+6), concrete_materials (type 2)}
+    """
     SapModel = get_active_etabs()
     if not SapModel:
         return {"error": "ETABS is not currently running."}
@@ -931,7 +936,30 @@ def get_frame_materials():
             if hasattr(item, '__iter__') and not isinstance(item, str):
                 materials = list(item)
                 break
-        return {"status": "success", "materials": materials}
+
+        steel_materials    = []
+        concrete_materials = []
+        for name in materials:
+            try:
+                mr = SapModel.PropMaterial.GetMaterial(name)
+                # tuple: (MatType, Color, Notes, GUID, retcode) — retcode last
+                rc = int(mr[-1]) if hasattr(mr, '__len__') else int(mr)
+                if rc != 0:
+                    continue
+                mat_type = int(mr[0])
+                if mat_type in (1, 6):   # Steel or Rebar
+                    steel_materials.append(name)
+                elif mat_type == 2:       # Concrete
+                    concrete_materials.append(name)
+            except Exception:
+                pass  # leave unclassified
+
+        return {
+            "status":             "success",
+            "materials":          materials,
+            "steel_materials":    steel_materials,
+            "concrete_materials": concrete_materials,
+        }
     except Exception as e:
         return {"error": f"Failed to get materials: {str(e)}"}
 

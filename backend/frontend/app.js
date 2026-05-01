@@ -2632,6 +2632,7 @@ function lcApplyTemplate(template, rowEl) {
 // ═══════════════════════════════════════════════════════════════════
 
 let rcbMaterials        = [];   // all material names from ETABS
+let rcbSteelMaterials   = [];   // steel/rebar materials (type 1 or 6) — used for FY dropdowns
 let rcbSections         = [];   // working rows  [{...}]
 let rcbNextNum          = 1;    // auto-increment row number
 let rcbSelectedIdx      = -1;   // currently selected row index (-1 = none)
@@ -2643,6 +2644,15 @@ function rcbBuildMatOptions(selected = '') {
   if (!rcbMaterials.length) return '<option value="">— no materials —</option>';
   return '<option value="">—</option>' +
     rcbMaterials.map(m =>
+      `<option value="${m}" ${m === selected ? 'selected' : ''}>${m}</option>`
+    ).join('');
+}
+
+function rcbBuildFyOptions(selected = '') {
+  const list = rcbSteelMaterials.length ? rcbSteelMaterials : rcbMaterials;
+  if (!list.length) return '<option value="">— import materials —</option>';
+  return '<option value="">—</option>' +
+    list.map(m =>
       `<option value="${m}" ${m === selected ? 'selected' : ''}>${m}</option>`
     ).join('');
 }
@@ -2693,12 +2703,12 @@ function rcbRenderTable() {
       </td>
       <td>
         <select class="rcb-sel" data-field="fy_main" data-idx="${idx}">
-          ${rcbBuildMatOptions(s.fy_main)}
+          ${rcbBuildFyOptions(s.fy_main)}
         </select>
       </td>
       <td>
         <select class="rcb-sel" data-field="fy_ties" data-idx="${idx}">
-          ${rcbBuildMatOptions(s.fy_ties)}
+          ${rcbBuildFyOptions(s.fy_ties)}
         </select>
       </td>
       <td><input class="rcb-inp rcb-num" type="number" value="${s.depth}"       data-field="depth"       data-idx="${idx}" min="1"/></td>
@@ -2868,7 +2878,8 @@ async function rcbImportMaterials() {
       return;
     }
     const data = await res.json();
-    rcbMaterials = data.materials || [];
+    rcbMaterials      = data.materials       || [];
+    rcbSteelMaterials = data.steel_materials || [];
     rcbRenderMaterials();
     rcbPopulateGenDropdowns();
     // refresh dropdowns in existing rows
@@ -2974,10 +2985,16 @@ function rcbConfirmImport() {
     showToast('No sections selected', 'warn');
     return;
   }
-  // Keep only sections that are checked; re-number from 1
+  // Auto-fill fy_main / fy_ties with first steel material if not already set
+  const defaultFy = rcbSteelMaterials[0] || '';
   const imported = rcbImportCandidates
     .filter(s => checked.has(s.prop_name))
-    .map((s, i) => ({ ...s, num: i + 1 }));
+    .map((s, i) => ({
+      ...s,
+      num:     i + 1,
+      fy_main: s.fy_main || defaultFy,
+      fy_ties: s.fy_ties || defaultFy,
+    }));
 
   rcbSections    = imported;
   rcbNextNum     = imported.length + 1;
@@ -3344,6 +3361,7 @@ document.addEventListener('DOMContentLoaded', initRcBeam);
 // ═══════════════════════════════════════════════════════════════════
 
 let rccMaterials        = [];   // all material names from ETABS
+let rccSteelMaterials   = [];   // steel/rebar materials — used for FY dropdowns
 let rccSections         = [];   // working rows  [{...}]
 let rccNextNum          = 1;    // auto-increment row number
 let rccSelectedIdx      = -1;   // currently selected row index (-1 = none)
@@ -3356,6 +3374,15 @@ function rccBuildMatOptions(selected = '') {
   if (!rccMaterials.length) return '<option value="">— no materials —</option>';
   return '<option value="">—</option>' +
     rccMaterials.map(m =>
+      `<option value="${m}" ${m === selected ? 'selected' : ''}>${m}</option>`
+    ).join('');
+}
+
+function rccBuildFyOptions(selected = '') {
+  const list = rccSteelMaterials.length ? rccSteelMaterials : rccMaterials;
+  if (!list.length) return '<option value="">— import materials —</option>';
+  return '<option value="">—</option>' +
+    list.map(m =>
       `<option value="${m}" ${m === selected ? 'selected' : ''}>${m}</option>`
     ).join('');
 }
@@ -3406,12 +3433,12 @@ function rccRenderTable() {
       </td>
       <td>
         <select class="rcc-sel" data-field="fy_main" data-idx="${idx}">
-          ${rccBuildMatOptions(s.fy_main)}
+          ${rccBuildFyOptions(s.fy_main)}
         </select>
       </td>
       <td>
         <select class="rcc-sel" data-field="fy_ties" data-idx="${idx}">
-          ${rccBuildMatOptions(s.fy_ties)}
+          ${rccBuildFyOptions(s.fy_ties)}
         </select>
       </td>
       <td><input class="rcc-inp rcc-num" type="number" value="${s.depth}"        data-field="depth"        data-idx="${idx}" min="1"/></td>
@@ -3584,7 +3611,8 @@ async function rccImportMaterials() {
       return;
     }
     const data = await res.json();
-    rccMaterials = data.materials || [];
+    rccMaterials      = data.materials       || [];
+    rccSteelMaterials = data.steel_materials || [];
     rccRenderMaterials();
     rccPopulateGenDropdowns();
     if (rccSections.length) rccRenderTable();
@@ -3752,9 +3780,15 @@ function rccConfirmImport() {
     showToast('No sections selected', 'warn');
     return;
   }
+  const defaultFy = rccSteelMaterials[0] || '';
   const imported = rccImportCandidates
     .filter(s => checked.has(s.prop_name))
-    .map((s, i) => ({ ...s, num: i + 1 }));
+    .map((s, i) => ({
+      ...s,
+      num:     i + 1,
+      fy_main: s.fy_main || defaultFy,
+      fy_ties: s.fy_ties || defaultFy,
+    }));
 
   rccSections    = imported;
   rccNextNum     = imported.length + 1;
