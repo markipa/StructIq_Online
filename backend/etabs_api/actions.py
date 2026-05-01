@@ -967,8 +967,8 @@ def get_frame_materials():
 # Bridge aliases — server.py calls these names
 get_rc_beam_materials    = get_frame_materials
 get_rc_column_materials  = get_frame_materials
-write_rc_beam            = write_rc_beam_sections
-write_rc_column          = write_rc_column_sections
+# NOTE: write_rc_beam_sections / write_rc_column_sections are used directly
+# by server.py — do NOT add forward-reference aliases here (NameError at load)
 
 
 def get_rc_beam_sections():
