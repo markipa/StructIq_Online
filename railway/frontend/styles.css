@@ -2378,7 +2378,7 @@ body {
 
 /* ── RC Beam data table ── */
 .rcb-table {
-  min-width: 1320px;
+  min-width: 1600px;
   width: 100%;
   border-collapse: collapse;
   font-size: var(--fs-sm);
@@ -2400,6 +2400,7 @@ body {
 
 .rcb-th-num  { min-width: 36px; }
 .rcb-th-name { min-width: 140px; text-align: left; padding-left: 8px; }
+.rcb-th-fy   { width: 150px; min-width: 150px; }
 .rcb-th-del  { width: 30px; }
 
 .rcb-table tbody tr { border-bottom: 1px solid var(--bdr-row, #f1f5f9); cursor: pointer; }
@@ -2444,6 +2445,15 @@ body {
 }
 
 .rcb-inp.rcb-num  { text-align: right; }
+
+/* ── FY columns — wide enough for material name + chevron ── */
+.rcb-th-fy {
+  min-width: 140px;
+}
+.rcb-sel[data-field="fy_main"],
+.rcb-sel[data-field="fy_ties"] {
+  min-width: 130px;
+}
 
 /* ── Delete row button ── */
 .rcb-del-btn {
@@ -2802,7 +2812,7 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--fs-sm);
-  min-width: 1280px;
+  min-width: 1600px;
 }
 .rcc-table thead th {
   position: sticky;
@@ -2821,6 +2831,7 @@ body {
 }
 .rcc-th-num  { min-width: 36px; }
 .rcc-th-name { min-width: 140px; text-align: left; padding-left: 8px; }
+.rcc-th-fy   { width: 150px; min-width: 150px; }
 .rcc-th-del  { width: 30px; }
 
 .rcc-table tbody tr { border-bottom: 1px solid var(--bdr-row, #f1f5f9); cursor: pointer; }
@@ -2863,6 +2874,16 @@ body {
   background: var(--blue-tint);
 }
 .rcc-inp.rcc-num  { text-align: right; }
+
+/* ── FY columns — wide enough for material name + chevron ── */
+.rcc-th-fy {
+  min-width: 140px;
+}
+.rcc-sel[data-field="fy_main"],
+.rcc-sel[data-field="fy_ties"] {
+  min-width: 130px;
+}
+
 .rcc-chk {
   accent-color: var(--blue);
   width: 15px;
