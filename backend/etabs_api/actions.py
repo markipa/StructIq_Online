@@ -1296,13 +1296,28 @@ def write_rc_beam_sections(sections_list: list):
             ret = SapModel.PropFrame.SetRectangle(name, conc, t3, t2)
             if int(ret) != 0:
                 raise RuntimeError(f"SetRectangle returned {ret}")
+            # Set rebar materials and cover
+            fy_main = str(s.get("fy_main", "") or "").strip()
+            fy_ties = str(s.get("fy_ties", "") or fy_main).strip()
+            if fy_main or fy_ties:
+                try:
+                    rebar_mat = fy_main or fy_ties
+                    tie_mat   = fy_ties or fy_main
+                    top_cov   = _mm_to_model_length(float(s.get("top_cc") or 40), unit_code)
+                    bot_cov   = _mm_to_model_length(float(s.get("bot_cc") or 40), unit_code)
+                    # SetRebarBeam(Name, MatRebar, MatRebarShr, CoverTop, CoverBot,
+                    #              AreaTop_I, AreaTop_J, AreaBot_I, AreaBot_J)
+                    SapModel.PropFrame.SetRebarBeam(
+                        name, rebar_mat, tie_mat, top_cov, bot_cov,
+                        0.0, 0.0, 0.0, 0.0
+                    )
+                except Exception:
+                    pass  # geometry written; rebar best-effort
             # Apply modifiers if provided
             torsion = float(s.get("torsion") or 0.35)
             i22     = float(s.get("i22")     or 0.35)
             i33     = float(s.get("i33")     or 0.35)
             try:
-                # Modifiers order: (A, AS2, AS3, I22, I33, J, M22, M33, W, Mass, Weight)
-                # Most common: index 2=J(torsion), 3=I22, 4=I33
                 SapModel.PropFrame.SetModifiers(name, [1,1,torsion,i22,i33,1,1,1])
             except Exception:
                 pass
