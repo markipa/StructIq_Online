@@ -903,6 +903,8 @@ body {
   border-radius: 0 0 var(--r-lg) var(--r-lg);
   overflow: hidden;
   box-shadow: var(--s-sm);
+  display: flex;
+  flex-direction: column;
 }
 
 /* Force type toggle pills */
@@ -943,7 +945,8 @@ body {
 
 /* Plotly chart wrappers */
 .reactions-chart-wrap {
-  height: 420px;
+  flex: 1;
+  min-height: 0;
   position: relative;
 }
 .reactions-chart-empty {
@@ -956,10 +959,35 @@ body {
 .reactions-chart-empty p { font-size: var(--fs-base); color: var(--t2); line-height: 1.65; }
 .reactions-chart-empty strong { color: var(--t1); }
 
+/* ── Reactions panel viewport-lock (same pattern as drifts/joint) ── */
+#reactions-panel.panel.active {
+  height:   calc(100vh - 80px);
+  overflow: hidden;
+  gap:      0;
+}
+#reactions-panel .panel-header { flex-shrink: 0; padding-bottom: 20px; }
+#reactions-panel .tab-bar      { flex-shrink: 0; }
+
+#reactions-table-tab.tab-panel.active {
+  flex:       1;
+  min-height: 0;
+  overflow:   hidden;
+}
+#reactions-chart-tab.tab-panel.active {
+  flex:           1;
+  min-height:     0;
+  overflow:       hidden;
+  display:        flex;
+  flex-direction: column;
+}
+
 /* table-card gets rounded bottom corners when used standalone (table tab) */
 #reactions-table-tab .table-card {
+  flex:          1;
+  min-height:    0;
+  overflow-y:    auto;
   border-radius: 0 0 var(--r-lg) var(--r-lg);
-  box-shadow: var(--s-sm);
+  box-shadow:    var(--s-sm);
 }
 
 /* ================================================================
