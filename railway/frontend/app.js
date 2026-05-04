@@ -1696,8 +1696,20 @@ function renderReactionsChart(data) {
   div.style.display     = 'block';
   reactionsChartHasData = true;
 
-  // X-axis labels = unique combo names (preserving order)
-  const labels = [...new Set(data.map(r => r.combo))];
+  // Build one X-axis label per row, incorporating step info so step-by-step
+  // cases (e.g. Wind0 steps 1-12) appear as distinct bars rather than collapsing.
+  // Label format: "Wind0 [1]", "Wind0 [2]" … or just "DL" for single-step cases.
+  const labels = data.map(r => {
+    let lbl = r.combo;
+    if (r.step_num !== '' && r.step_num !== null && r.step_num !== undefined) {
+      lbl += ` [${r.step_num}]`;
+    } else if (r.step_type && r.step_type.toLowerCase() === 'max') {
+      lbl += ' [Max]';
+    } else if (r.step_type && r.step_type.toLowerCase() === 'min') {
+      lbl += ' [Min]';
+    }
+    return lbl;
+  });
 
   const traces = ['FX','FY','FZ','MX','MY','MZ']
     .filter(f => reactionsActiveForces.has(f))
@@ -1705,10 +1717,7 @@ function renderReactionsChart(data) {
       const isMoment = ['MX','MY','MZ'].includes(force);
       return {
         x:    labels,
-        y:    labels.map(combo => {
-          const row = data.find(r => r.combo === combo);
-          return row ? row[force] : 0;
-        }),
+        y:    data.map(r => r[force] ?? 0),
         name: force,
         type: 'bar',
         marker:        { color: FORCE_COLORS[force], opacity: 0.85 },
