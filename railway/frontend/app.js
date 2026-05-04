@@ -656,6 +656,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-reconnect').addEventListener('click', checkStatus);
   document.getElementById('btn-get-torsion').addEventListener('click', getTorsion);
   document.getElementById('btn-get-reactions').addEventListener('click', getReactions);
+  document.getElementById('btn-export-reactions-csv').addEventListener('click', exportBaseReactionsCSV);
 
   // Drift panel buttons
   document.getElementById('btn-get-drift-sources').addEventListener('click', driftGetSources);
@@ -2009,6 +2010,43 @@ function exportJointReactionsCSV() {
   const a    = document.createElement('a');
   a.href     = url;
   a.download = `joint_reactions_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(`Exported ${data.length} rows to CSV.`);
+}
+
+// ── CSV export for base reactions ──
+function exportBaseReactionsCSV() {
+  const data = reactionsGetFiltered();
+  if (!data.length) { showToast('No data to export.'); return; }
+
+  const headers = ['Output Case','Case Type','Step Type','Step Number',
+                   'FX (kN)','FY (kN)','FZ (kN)','MX (kN·m)','MY (kN·m)','MZ (kN·m)'];
+
+  const rows = data.map(r => [
+    r.combo,
+    r.case_type  || '',
+    r.step_type  || '',
+    r.step_num   !== null && r.step_num !== undefined && r.step_num !== '' ? r.step_num : '',
+    r.FX.toFixed(3),
+    r.FY.toFixed(3),
+    r.FZ.toFixed(3),
+    r.MX.toFixed(3),
+    r.MY.toFixed(3),
+    r.MZ.toFixed(3),
+  ]);
+
+  const csv = [headers, ...rows]
+    .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    .join('\r\n');
+
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `base_reactions_${new Date().toISOString().slice(0,10)}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

@@ -514,6 +514,18 @@
 
       <!-- ── Tab 1: Results Table ── -->
       <div id="reactions-table-tab" class="tab-panel active">
+        <div class="table-toolbar">
+          <button id="btn-export-reactions-csv" class="btn btn-secondary btn-sm" title="Export visible rows to CSV">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 2h7l3 3v9H3z"/>
+              <polyline points="9,2 9,5 12,5"/>
+              <line x1="8" y1="8" x2="8" y2="13"/>
+              <polyline points="5,11 8,14 11,11"/>
+            </svg>
+            Export CSV
+          </button>
+        </div>
         <div class="table-card">
           <table class="data-table">
             <thead>
@@ -3370,6 +3382,6 @@
   </div>
 </div>
 
-<script src="/app/app.js?v=161"></script>
+<script src="/app/app.js?v=162"></script>
 </body>
 </html>
