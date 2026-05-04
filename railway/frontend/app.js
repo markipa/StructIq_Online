@@ -1612,8 +1612,8 @@ function updateComboPickerLabel() {
 }
 
 function reactionsGetFiltered() {
-  if (reactionsSelectedCombos.size === 0)                          return [];
-  if (reactionsSelectedCombos.size === reactionsAllCombos.length)  return reactionsData;
+  if (reactionsSelectedCombos.size === 0) return [];
+  // Always filter — size shortcut was fragile when picker labels ≠ data combo labels.
   return reactionsData.filter(r => reactionsSelectedCombos.has(r.combo));
 }
 
@@ -1647,10 +1647,10 @@ async function getReactions() {
     const res = await apiCall(`/api/results/reactions?load_type=${reactionsLoadType}`);
     if (res.status === 'success') {
       reactionsData = res.data;
-      const available = reactionsLoadType === 'case'
-        ? (res.available_cases || [])
-        : (res.available_combos || []);
-      populateComboPickerFromList(available);
+      // Build picker from actual data combo labels — guarantees names match r.combo exactly.
+      // (available_combos list may differ from BaseReact() labels, e.g. [Max]/[Min] suffixes.)
+      const dataLabels = [...new Set(reactionsData.map(r => r.combo))];
+      populateComboPickerFromList(dataLabels);
       applyReactionsFilter();
       const typeLabel = reactionsLoadType === 'case' ? 'load cases' : 'combinations';
       showToast(`Base reactions loaded — ${reactionsData.length} row${reactionsData.length === 1 ? '' : 's'} (${typeLabel}).`);
