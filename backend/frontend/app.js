@@ -1774,6 +1774,7 @@ function renderReactionsChart(data) {
 
   const hasMoments = ['MX','MY','MZ'].some(f => reactionsActiveForces.has(f));
   const hasForces  = ['FX','FY','FZ'].some(f => reactionsActiveForces.has(f));
+  const yLabel = hasForces && hasMoments ? 'kN / kN·m' : hasForces ? 'kN' : 'kN·m';
 
   const traces = ['FX','FY','FZ','MX','MY','MZ']
     .filter(f => reactionsActiveForces.has(f))
@@ -1784,22 +1785,16 @@ function renderReactionsChart(data) {
         y:    data.map(r => r[force] ?? 0),
         name: force,
         type: 'bar',
-        yaxis: isMoment ? 'y2' : 'y',
         marker:        { color: FORCE_COLORS[force], opacity: 0.85 },
         hovertemplate: `<b>%{x}</b><br>${force}: %{y:.1f} ${isMoment ? 'kN·m' : 'kN'}<extra></extra>`,
       };
     });
 
-  const axisBase = {
-    gridcolor:     'rgba(148,163,184,0.12)',
-    zerolinecolor: 'rgba(148,163,184,0.3)',
-    color:         '#64748b',
-  };
   const layout = {
     barmode:       'group',
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor:  'rgba(0,0,0,0)',
-    margin: { l: 64, r: hasMoments && hasForces ? 64 : 24, t: 24, b: 80 },
+    margin: { l: 64, r: 24, t: 24, b: 80 },
     font:   { family: 'Inter, sans-serif', color: '#64748b', size: 11 },
     xaxis: {
       gridcolor: 'rgba(148,163,184,0.08)',
@@ -1807,19 +1802,10 @@ function renderReactionsChart(data) {
       tickangle: -30,
     },
     yaxis: {
-      ...axisBase,
-      title:    hasForces ? { text: 'kN', font: { size: 12, color: '#64748b' }, standoff: 8 } : undefined,
-      side:     'left',
-      visible:  hasForces,
-    },
-    yaxis2: {
-      ...axisBase,
-      title:     hasMoments ? { text: 'kN·m', font: { size: 12, color: '#8b5cf6' }, standoff: 8 } : undefined,
-      overlaying: 'y',
-      side:       'right',
-      showgrid:   false,
-      visible:    hasMoments,
-      color:      '#8b5cf6',
+      title:       { text: yLabel, font: { size: 12, color: '#64748b' }, standoff: 8 },
+      gridcolor:   'rgba(148,163,184,0.12)',
+      zerolinecolor: 'rgba(148,163,184,0.3)',
+      color:       '#64748b',
     },
     legend: {
       bgcolor:     'rgba(0,0,0,0)',
