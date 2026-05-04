@@ -963,9 +963,9 @@ body {
 #reactions-panel.panel.active {
   height:   calc(100vh - 80px);
   overflow: hidden;
-  gap:      0;
+  gap:      12px;
 }
-#reactions-panel .panel-header { flex-shrink: 0; padding-bottom: 20px; }
+#reactions-panel .panel-header { flex-shrink: 0; }
 #reactions-panel .tab-bar      { flex-shrink: 0; }
 
 #reactions-table-tab.tab-panel.active {
@@ -977,6 +977,12 @@ body {
   flex:           1;
   min-height:     0;
   overflow:       hidden;
+  display:        flex;
+  flex-direction: column;
+}
+#reactions-chart-tab .reactions-chart-card {
+  flex:           1;
+  min-height:     0;
   display:        flex;
   flex-direction: column;
 }
