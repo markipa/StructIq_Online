@@ -240,7 +240,6 @@ async def _bridge_client(token: str):
     the response back through the WebSocket.
     """
     import websockets
-    import httpx
 
     _log(f"Connecting to Railway bridge at {BRIDGE_WS_URL}")
     reconnect_delay = 5
@@ -272,26 +271,25 @@ async def _bridge_client(token: str):
                 _update_tray("connected")
                 reconnect_delay = 5
 
-                async with httpx.AsyncClient(timeout=90.0) as http:
-                    async for raw in ws:
-                        global _disconnect_requested
-                        if _disconnect_requested:
-                            _disconnect_requested = False
-                            _log("Disconnect requested — closing bridge connection.")
-                            _update_tray("no_token")
-                            await ws.close()
-                            return
-                        try:
-                            msg = json.loads(raw)
-                        except Exception:
-                            continue
+                async for raw in ws:
+                    global _disconnect_requested
+                    if _disconnect_requested:
+                        _disconnect_requested = False
+                        _log("Disconnect requested — closing bridge connection.")
+                        _update_tray("no_token")
+                        await ws.close()
+                        return
+                    try:
+                        msg = json.loads(raw)
+                    except Exception:
+                        continue
 
-                        if msg.get("type") == "pong":
-                            continue
-                        if msg.get("type") != "request":
-                            continue
+                    if msg.get("type") == "pong":
+                        continue
+                    if msg.get("type") != "request":
+                        continue
 
-                        asyncio.create_task(_forward(ws, http, msg))
+                    asyncio.create_task(_forward(ws, msg))
 
         except Exception as e:
             _log(f"Bridge connection lost: {e} — retrying in {reconnect_delay}s")
@@ -300,32 +298,56 @@ async def _bridge_client(token: str):
             reconnect_delay = min(reconnect_delay * 2, 60)
 
 
-async def _forward(ws, http, msg: dict):
-    """Forward one ETABS request from Railway to localhost and send back the response."""
+async def _forward(ws, msg: dict):
+    """Forward one ETABS request from Railway to localhost and send back the response.
+    Uses stdlib urllib so no third-party HTTP client is required in the bundle."""
+    import urllib.request
+    import urllib.parse
+    import urllib.error
+
     rid    = msg.get("request_id", "?")
     method = msg.get("method", "GET").upper()
     path   = msg.get("path", "/")
     body   = msg.get("body")
     params = msg.get("params") or {}
 
-    url = f"http://localhost:{LOCAL_PORT}{path}"
-    try:
-        if method == "GET":
-            r = await http.get(url, params=params)
-        elif method == "POST":
-            r = await http.post(url, json=body, params=params)
-        else:
-            r = await http.request(method, url, json=body, params=params)
+    # Build URL with query params
+    base_url = f"http://localhost:{LOCAL_PORT}{path}"
+    if params:
+        base_url += "?" + urllib.parse.urlencode(params)
 
-        try:
-            resp_body = r.json()
-        except Exception:
-            resp_body = {"detail": r.text}
+    try:
+        loop = asyncio.get_running_loop()
+
+        def _do_request():
+            if method in ("GET", "DELETE") or body is None:
+                data = None
+                headers = {}
+            else:
+                data = json.dumps(body).encode("utf-8")
+                headers = {"Content-Type": "application/json"}
+
+            req = urllib.request.Request(base_url, data=data, headers=headers, method=method)
+            try:
+                with urllib.request.urlopen(req, timeout=90) as resp:
+                    status  = resp.status
+                    content = resp.read()
+            except urllib.error.HTTPError as e:
+                status  = e.code
+                content = e.read()
+            try:
+                resp_body = json.loads(content)
+            except Exception:
+                resp_body = {"detail": content.decode("utf-8", errors="replace")}
+            return status, resp_body
+
+        # Run blocking urllib call in a thread so we don't block the event loop
+        status, resp_body = await loop.run_in_executor(None, _do_request)
 
         await ws.send(json.dumps({
             "type":       "response",
             "request_id": rid,
-            "status":     r.status_code,
+            "status":     status,
             "body":       resp_body,
         }))
     except Exception as e:
@@ -513,10 +535,15 @@ def main():
 
             _client_task = asyncio.create_task(_bridge_client(token))
             _client_task_global = _client_task
+            _log(f"Bridge client task created — connecting…")
             try:
                 await _client_task
             except asyncio.CancelledError:
                 _log("Bridge task cancelled.")
+            except Exception as e:
+                import traceback as _tb
+                _log(f"Bridge client CRASHED: {type(e).__name__}: {e}")
+                _log(_tb.format_exc())
             # If task returned (auth failure / disconnect), wait before retry
             await asyncio.sleep(2)
 

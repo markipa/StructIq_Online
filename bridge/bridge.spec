@@ -35,8 +35,7 @@ a = Analysis(
         'h11', 'anyio', 'anyio.abc', 'starlette',
         # WebSockets
         'websockets', 'websockets.legacy', 'websockets.legacy.client',
-        # HTTP client
-        'httpx', 'httpcore',
+        # HTTP forwarding uses stdlib urllib — no extra imports needed
         # Windows COM for ETABS
         'comtypes', 'comtypes.client',
         # Tray icon
