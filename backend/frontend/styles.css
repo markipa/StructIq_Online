@@ -995,6 +995,46 @@ body {
   border-radius: 0 0 var(--r-lg) var(--r-lg);
   box-shadow:    var(--s-sm);
 }
+/* Sticky header inside scrolling card */
+#reactions-table-tab .data-table thead tr:first-child th,
+#reactions-table-tab .data-table thead tr:last-child th {
+  position: sticky;
+  z-index:  2;
+  background: var(--bg-header);
+}
+#reactions-table-tab .data-table thead tr:first-child th {
+  top: 0;
+  background: var(--blue-tint);
+}
+#reactions-table-tab .data-table thead tr:last-child th {
+  top: 37px; /* height of first header row */
+}
+
+/* Sortable column headers */
+#reactions-table-tab thead th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+#reactions-table-tab thead th.sortable:hover {
+  background: #dbeafe !important;
+  color: var(--blue);
+}
+#reactions-table-tab thead th.sort-asc,
+#reactions-table-tab thead th.sort-desc {
+  color: var(--blue);
+}
+.sort-arrow {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+/* Row count badge in toolbar */
+.row-count-badge {
+  font-size:   var(--fs-xs);
+  color:       var(--t3);
+  margin-right: auto;
+  padding-left: 4px;
+}
 
 /* ================================================================
    JOINT / SPRING REACTIONS — BUBBLE CHART

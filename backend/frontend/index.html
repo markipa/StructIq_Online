@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml"  href="/app/favicon.svg">
   <link rel="icon" type="image/x-icon"   href="/favicon.ico">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/app/styles.css?v=107" />
+  <link rel="stylesheet" href="/app/styles.css?v=108" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
 <body>
@@ -515,6 +515,7 @@
       <!-- ── Tab 1: Results Table ── -->
       <div id="reactions-table-tab" class="tab-panel active">
         <div class="table-toolbar">
+          <span id="reactions-row-count" class="row-count-badge"></span>
           <button id="btn-export-reactions-csv" class="btn btn-secondary btn-sm" title="Export visible rows to CSV">
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
                  stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -530,20 +531,20 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th rowspan="2" class="th-combo">Output Case</th>
+                <th rowspan="2" class="th-combo sortable" data-sort="combo">Output Case <span class="sort-arrow"></span></th>
                 <th rowspan="2" class="th-case-type">Case Type</th>
                 <th rowspan="2" class="th-step-type">Step Type</th>
-                <th rowspan="2" class="th-step-num">Step<br>Number</th>
+                <th rowspan="2" class="th-step-num sortable" data-sort="step_num">Step<br>Number <span class="sort-arrow"></span></th>
                 <th colspan="3" class="th-group-header">Forces</th>
                 <th colspan="3" class="th-group-header">Moments</th>
               </tr>
               <tr>
-                <th>FX <span class="unit">kN</span></th>
-                <th>FY <span class="unit">kN</span></th>
-                <th>FZ <span class="unit">kN</span></th>
-                <th>MX <span class="unit">kN·m</span></th>
-                <th>MY <span class="unit">kN·m</span></th>
-                <th>MZ <span class="unit">kN·m</span></th>
+                <th class="sortable" data-sort="FX">FX <span class="unit">kN</span> <span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort="FY">FY <span class="unit">kN</span> <span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort="FZ">FZ <span class="unit">kN</span> <span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort="MX">MX <span class="unit">kN·m</span> <span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort="MY">MY <span class="unit">kN·m</span> <span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort="MZ">MZ <span class="unit">kN·m</span> <span class="sort-arrow"></span></th>
               </tr>
             </thead>
             <tbody id="reactions-tbody">
@@ -564,13 +565,22 @@
           <!-- Force type toggles -->
           <div class="force-toggle-bar">
             <span class="force-toggle-label">Show:</span>
-            <button class="force-toggle active" data-force="FX">FX</button>
-            <button class="force-toggle active" data-force="FY">FY</button>
+            <button class="force-toggle" data-force="FX">FX</button>
+            <button class="force-toggle" data-force="FY">FY</button>
             <button class="force-toggle active" data-force="FZ">FZ</button>
-            <button class="force-toggle active" data-force="MX">MX</button>
-            <button class="force-toggle active" data-force="MY">MY</button>
-            <button class="force-toggle active" data-force="MZ">MZ</button>
+            <button class="force-toggle" data-force="MX">MX</button>
+            <button class="force-toggle" data-force="MY">MY</button>
+            <button class="force-toggle" data-force="MZ">MZ</button>
             <span class="force-unit-note">kN · kN·m</span>
+            <button id="btn-export-reactions-png" class="btn btn-secondary btn-sm" style="margin-left:auto" title="Export chart as PNG">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+                   stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="1" y="1" width="14" height="14" rx="2"/>
+                <path d="M1 11l4-4 3 3 3-4 4 5"/>
+                <circle cx="11.5" cy="5" r="1.2"/>
+              </svg>
+              PNG
+            </button>
           </div>
 
           <!-- Chart area -->
@@ -3382,6 +3392,6 @@
   </div>
 </div>
 
-<script src="/app/app.js?v=162"></script>
+<script src="/app/app.js?v=163"></script>
 </body>
 </html>

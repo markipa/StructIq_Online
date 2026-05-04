@@ -406,7 +406,9 @@ let jointAxisY       = { min: null, max: null };  // null = autorange
 let jointColorMin    = null;           // color scale min  (null = auto = data min)
 let jointColorMax    = null;           // color scale max  (null = auto = data max)
 let jointColorPalette = 'Plasma';     // active Plotly named colorscale
-let reactionsActiveForces = new Set(['FX','FY','FZ','MX','MY','MZ']);
+let reactionsActiveForces = new Set(['FZ']);
+let reactionsSortState      = { col: null, dir: 1 }; // column key + direction (1=asc, -1=desc)
+let reactionsChartDirty     = false;      // true when filter changed while chart tab not visible
 let reactionsAllCombos      = [];         // master list of available picker names
 let reactionsSelectedCombos = new Set();  // which items are checked (empty = all)
 let reactionsLoadType       = 'combo';    // 'combo' | 'case'
@@ -657,6 +659,21 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-get-torsion').addEventListener('click', getTorsion);
   document.getElementById('btn-get-reactions').addEventListener('click', getReactions);
   document.getElementById('btn-export-reactions-csv').addEventListener('click', exportBaseReactionsCSV);
+  document.getElementById('btn-export-reactions-png').addEventListener('click', exportReactionsPNG);
+
+  // ── Reactions table: sortable column headers ──
+  document.querySelectorAll('#reactions-table-tab thead th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if (reactionsSortState.col === col) {
+        reactionsSortState.dir *= -1;
+      } else {
+        reactionsSortState.col = col;
+        reactionsSortState.dir = 1;
+      }
+      renderReactionsTableDOM(reactionsGetFiltered());
+    });
+  });
 
   // Drift panel buttons
   document.getElementById('btn-get-drift-sources').addEventListener('click', driftGetSources);
@@ -739,9 +756,10 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.classList.add('active');
       const panel = document.getElementById(btn.dataset.tab);
       if (panel) panel.classList.add('active');
-      // Auto-render chart when switching to chart tab
+      // Auto-render chart when switching to chart tab (always refresh — may be stale from filter change)
       if (btn.dataset.tab === 'reactions-chart-tab' && reactionsData.length) {
-        renderReactionsChart(reactionsGetFiltered()); // Plotly.react handles both create & update
+        renderReactionsChart(reactionsGetFiltered());
+        reactionsChartDirty = false;
       }
     });
   });
@@ -1624,6 +1642,9 @@ function applyReactionsFilter() {
   const chartPanel = document.getElementById('reactions-chart-tab');
   if (chartPanel && chartPanel.classList.contains('active')) {
     renderReactionsChart(filtered);
+    reactionsChartDirty = false;
+  } else {
+    reactionsChartDirty = true;
   }
 }
 
@@ -1663,27 +1684,66 @@ async function getReactions() {
   }
 }
 
+// ── Sort helpers ──
+const REACTIONS_SORT_FN = {
+  combo:    r => r.combo.toLowerCase(),
+  step_num: r => (r.step_num === '' || r.step_num === null || r.step_num === undefined) ? -Infinity : Number(r.step_num),
+  FX: r => r.FX, FY: r => r.FY, FZ: r => r.FZ,
+  MX: r => r.MX, MY: r => r.MY, MZ: r => r.MZ,
+};
+function reactionsGetSorted(data) {
+  const { col, dir } = reactionsSortState;
+  if (!col || !REACTIONS_SORT_FN[col]) return data;
+  const fn = REACTIONS_SORT_FN[col];
+  return [...data].sort((a, b) => {
+    const va = fn(a), vb = fn(b);
+    if (va < vb) return -dir;
+    if (va > vb) return  dir;
+    return 0;
+  });
+}
+function updateReactionsSortIndicators() {
+  document.querySelectorAll('#reactions-table-tab thead th[data-sort]').forEach(th => {
+    const arrow = th.querySelector('.sort-arrow');
+    if (!arrow) return;
+    th.classList.remove('sort-asc', 'sort-desc');
+    arrow.textContent = '';
+    if (th.dataset.sort === reactionsSortState.col) {
+      if (reactionsSortState.dir === 1) { th.classList.add('sort-asc');  arrow.textContent = ' ↑'; }
+      else                              { th.classList.add('sort-desc'); arrow.textContent = ' ↓'; }
+    }
+  });
+}
+
 function renderReactionsTableDOM(data) {
+  const sorted = reactionsGetSorted(data);
+  updateReactionsSortIndicators();
+
+  // Row count badge
+  const badge = document.getElementById('reactions-row-count');
+  if (badge) badge.textContent = sorted.length ? `${sorted.length} row${sorted.length === 1 ? '' : 's'}` : '';
+
   const tbody = document.getElementById('reactions-tbody');
   tbody.innerHTML = '';
-  if (!data.length) {
+  if (!sorted.length) {
     tbody.innerHTML = '<tr><td colspan="10" class="td-empty"><div class="empty-placeholder">No results for selected combination(s).</div></td></tr>';
     return;
   }
-  data.forEach(r => {
+  sorted.forEach(r => {
     const tr = document.createElement('tr');
     const stepNum = (r.step_num !== undefined && r.step_num !== null && r.step_num !== '') ? r.step_num : '';
+    const cls = v => v < 0 ? 'val-neg' : '';
     tr.innerHTML = `
       <td><strong>${r.combo}</strong></td>
       <td class="val-meta">${r.case_type || ''}</td>
       <td class="val-meta">${r.step_type || ''}</td>
       <td class="val-meta td-center">${stepNum}</td>
-      <td class="${r.FX < 0 ? 'val-neg' : ''}">${fmtF(r.FX)}</td>
-      <td class="${r.FY < 0 ? 'val-neg' : ''}">${fmtF(r.FY)}</td>
-      <td class="val-fz">${fmtF(r.FZ)}</td>
-      <td class="val-moment">${fmtF(r.MX)}</td>
-      <td class="val-moment">${fmtF(r.MY)}</td>
-      <td class="val-moment">${fmtF(r.MZ)}</td>`;
+      <td class="${cls(r.FX)}">${fmtF(r.FX)}</td>
+      <td class="${cls(r.FY)}">${fmtF(r.FY)}</td>
+      <td class="${r.FZ < 0 ? 'val-neg' : 'val-fz'}">${fmtF(r.FZ)}</td>
+      <td class="${r.MX < 0 ? 'val-neg' : 'val-moment'}">${fmtF(r.MX)}</td>
+      <td class="${r.MY < 0 ? 'val-neg' : 'val-moment'}">${fmtF(r.MY)}</td>
+      <td class="${r.MZ < 0 ? 'val-neg' : 'val-moment'}">${fmtF(r.MZ)}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -1712,6 +1772,9 @@ function renderReactionsChart(data) {
     return lbl;
   });
 
+  const hasMoments = ['MX','MY','MZ'].some(f => reactionsActiveForces.has(f));
+  const hasForces  = ['FX','FY','FZ'].some(f => reactionsActiveForces.has(f));
+
   const traces = ['FX','FY','FZ','MX','MY','MZ']
     .filter(f => reactionsActiveForces.has(f))
     .map(force => {
@@ -1721,16 +1784,22 @@ function renderReactionsChart(data) {
         y:    data.map(r => r[force] ?? 0),
         name: force,
         type: 'bar',
+        yaxis: isMoment ? 'y2' : 'y',
         marker:        { color: FORCE_COLORS[force], opacity: 0.85 },
         hovertemplate: `<b>%{x}</b><br>${force}: %{y:.1f} ${isMoment ? 'kN·m' : 'kN'}<extra></extra>`,
       };
     });
 
+  const axisBase = {
+    gridcolor:     'rgba(148,163,184,0.12)',
+    zerolinecolor: 'rgba(148,163,184,0.3)',
+    color:         '#64748b',
+  };
   const layout = {
     barmode:       'group',
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor:  'rgba(0,0,0,0)',
-    margin: { l: 64, r: 24, t: 24, b: 80 },
+    margin: { l: 64, r: hasMoments && hasForces ? 64 : 24, t: 24, b: 80 },
     font:   { family: 'Inter, sans-serif', color: '#64748b', size: 11 },
     xaxis: {
       gridcolor: 'rgba(148,163,184,0.08)',
@@ -1738,10 +1807,19 @@ function renderReactionsChart(data) {
       tickangle: -30,
     },
     yaxis: {
-      title:       { text: 'kN / kN·m', font: { size: 12, color: '#64748b' }, standoff: 8 },
-      gridcolor:   'rgba(148,163,184,0.12)',
-      zerolinecolor: 'rgba(148,163,184,0.3)',
-      color:       '#64748b',
+      ...axisBase,
+      title:    hasForces ? { text: 'kN', font: { size: 12, color: '#64748b' }, standoff: 8 } : undefined,
+      side:     'left',
+      visible:  hasForces,
+    },
+    yaxis2: {
+      ...axisBase,
+      title:     hasMoments ? { text: 'kN·m', font: { size: 12, color: '#8b5cf6' }, standoff: 8 } : undefined,
+      overlaying: 'y',
+      side:       'right',
+      showgrid:   false,
+      visible:    hasMoments,
+      color:      '#8b5cf6',
     },
     legend: {
       bgcolor:     'rgba(0,0,0,0)',
@@ -1758,7 +1836,8 @@ function renderReactionsChart(data) {
   };
 
   const config = { responsive: true, displayModeBar: true, displaylogo: false,
-    modeBarButtonsToRemove: ['lasso2d', 'select2d', 'toImage'] };
+    modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+    toImageButtonOptions: { format: 'png', filename: `base_reactions_${new Date().toISOString().slice(0,10)}`, scale: 2 } };
 
   Plotly.react('reactionsChart', traces, layout, config);
 }
@@ -2052,6 +2131,18 @@ function exportBaseReactionsCSV() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   showToast(`Exported ${data.length} rows to CSV.`);
+}
+
+// ── PNG export for base reactions chart ──
+function exportReactionsPNG() {
+  if (!reactionsChartHasData) { showToast('No chart to export — fetch data first.'); return; }
+  Plotly.downloadImage('reactionsChart', {
+    format:   'png',
+    filename: `base_reactions_${new Date().toISOString().slice(0,10)}`,
+    width:    1400,
+    height:   600,
+    scale:    2,
+  });
 }
 
 // ── Bubble plot rendering ──
