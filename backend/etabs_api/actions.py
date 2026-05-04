@@ -700,10 +700,17 @@ def get_base_reactions(combo_name: Optional[str] = None, load_type: str = "combo
         for i in range(num):
             cname     = str(case_names[i]).strip()
             step_type = str(step_types[i]).strip() if step_types else ""
-            # Step number: only meaningful for Step-by-Step; blank otherwise
+            # Show step number whenever ETABS returns a non-zero value.
+            # Covers Step-by-Step (time history), nonlinear stages, resp-spectrum modes.
+            # LinStatic single-step returns 0 → blank.
             try:
-                snum_raw = step_nums[i]
-                step_num = int(snum_raw) if step_type.lower() == "step by step" else ""
+                snum_f = float(step_nums[i])
+                if snum_f == 0:
+                    step_num = ""
+                elif snum_f == int(snum_f):
+                    step_num = int(snum_f)
+                else:
+                    step_num = round(snum_f, 4)
             except (ValueError, TypeError, IndexError):
                 step_num = ""
 
