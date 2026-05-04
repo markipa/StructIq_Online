@@ -580,94 +580,136 @@ def add_rectangular_section(name: str, material: str, b: float, h: float):
 
 def get_base_reactions(combo_name: Optional[str] = None, load_type: str = "combo"):
     """
-    Returns real base reactions from ETABS.
+    Returns base reactions from ETABS using DatabaseTables API (kN·m).
 
-    BaseReact() returns a list:
-      [0]  int   num_results
-      [1]  tuple LoadCase
-      [2]  tuple StepType
-      [3]  tuple StepNum
-      [4]  tuple FX
-      [5]  tuple FY
-      [6]  tuple FZ
-      [7]  tuple MX
-      [8]  tuple MY
-      [9]  tuple MZ
-      [10] float gx  (global X accel - scalar)
-      [11] float gy
-      [12] float gz
-      [13] int   retcode  (0 = success)
+    Uses 'Base Reactions' table — more reliable than BaseReact() COM method.
+    Units are forced to kN·m before query and restored after.
 
-    load_type: 'combo' (default) targets load combinations;
-               'case'  targets load cases.
-    combo_name filters to a single named item of the selected type.
+    load_type: 'combo' (default) — load combinations
+               'case'            — individual load cases
+    combo_name: optional filter to a single named item.
+
+    Envelope combos produce Max/Min rows — labelled 'Name [Max]' / 'Name [Min]'.
     """
     SapModel = get_active_etabs()
     if not SapModel:
         return {"error": "ETABS is not currently running."}
+
+    _KN_M = 6
     try:
+        orig_units = SapModel.GetPresentUnits()
+    except Exception:
+        orig_units = _KN_M
+    try:
+        SapModel.SetPresentUnits(_KN_M)
+    except Exception:
+        pass
+
+    try:
+        # ── 1. Select cases/combos for output ──────────────────────────
         SapModel.Results.Setup.DeselectAllCasesAndCombosForOutput()
 
         if combo_name:
-            # Single-item filter
             if load_type == "case":
                 SapModel.Results.Setup.SetCaseSelectedForOutput(combo_name, True)
             else:
                 SapModel.Results.Setup.SetComboSelectedForOutput(combo_name, True)
         else:
-            # Select all of the requested type
             if load_type == "case":
-                try:
-                    case_names = SapModel.LoadCases.GetNameList()[1]
-                    for name in case_names:
-                        if not name.startswith("~"):
-                            SapModel.Results.Setup.SetCaseSelectedForOutput(name, True)
-                except Exception:
-                    pass
+                nr = SapModel.LoadCases.GetNameList()
+                if nr and int(nr[-1]) == 0:
+                    for n in list(nr[1]):
+                        if not str(n).startswith("~"):
+                            SapModel.Results.Setup.SetCaseSelectedForOutput(str(n), True)
             else:
-                try:
-                    combo_names = SapModel.RespCombo.GetNameList()[1]
-                    for name in combo_names:
-                        SapModel.Results.Setup.SetComboSelectedForOutput(name, True)
-                except Exception:
-                    pass
+                nr = SapModel.RespCombo.GetNameList()
+                if nr and int(nr[-1]) == 0:
+                    for n in list(nr[1]):
+                        if not str(n).startswith("~"):
+                            SapModel.Results.Setup.SetComboSelectedForOutput(str(n), True)
 
-        ret = SapModel.Results.BaseReact()
+        # ── 2. Fetch 'Base Reactions' database table ────────────────────
+        tbl = SapModel.DatabaseTables.GetTableForDisplayArray(
+            "Base Reactions", [], "All", 1, [], 0, []
+        )
 
-        retcode = ret[13]
-        if retcode != 0:
-            return {"error": f"ETABS returned error code {retcode} for BaseReact. Ensure the model has been analyzed."}
+        if not tbl or int(tbl[5]) != 0:
+            _restore_units(SapModel, orig_units)
+            return {"error": "Base Reactions table not available — ensure model has been analyzed."}
 
-        num        = ret[0]
-        load_cases = ret[1]
-        FX_list    = ret[4]
-        FY_list    = ret[5]
-        FZ_list    = ret[6]
-        MX_list    = ret[7]
-        MY_list    = ret[8]
-        MZ_list    = ret[9]
+        fields = [str(f).strip() for f in list(tbl[2])]
+        n_rec  = int(tbl[3])
+        raw    = tbl[4]
+        nf     = len(fields)
 
+        if n_rec == 0:
+            _restore_units(SapModel, orig_units)
+            return {"error": "No base reaction results found. Run analysis first."}
+
+        # ── 3. Locate column indices (case-insensitive) ─────────────────
+        fl = [f.lower() for f in fields]
+        def _col(*keys):
+            for k in keys:
+                try: return fl.index(k.lower())
+                except ValueError: pass
+            return -1
+
+        case_i = _col("outputcase", "casename", "loadcase", "case")
+        step_i = _col("steptype", "step type")
+        fx_i   = _col("fx")
+        fy_i   = _col("fy")
+        fz_i   = _col("fz")
+        mx_i   = _col("mx")
+        my_i   = _col("my")
+        mz_i   = _col("mz")
+
+        missing = [k for k, v in {"OutputCase": case_i, "FX": fx_i, "FY": fy_i,
+                                   "FZ": fz_i, "MX": mx_i, "MY": my_i, "MZ": mz_i}.items() if v < 0]
+        if missing:
+            _restore_units(SapModel, orig_units)
+            return {"error": f"Unexpected table columns (missing: {missing}). Fields found: {fields}"}
+
+        # ── 4. Build result rows ────────────────────────────────────────
         data = []
-        for i in range(num):
-            data.append({
-                "combo": load_cases[i],
-                "FX":    round(float(FX_list[i]), 2),
-                "FY":    round(float(FY_list[i]), 2),
-                "FZ":    round(float(FZ_list[i]), 2),
-                "MX":    round(float(MX_list[i]), 2),
-                "MY":    round(float(MY_list[i]), 2),
-                "MZ":    round(float(MZ_list[i]), 2),
-            })
+        for r in range(n_rec):
+            b     = r * nf
+            cname = str(raw[b + case_i]).strip()
+            step  = str(raw[b + step_i]).strip() if step_i >= 0 else ""
 
-        # Return the available picker list matching the selected type
+            # Envelope combos produce Max/Min rows — append to label so
+            # frontend treats them as distinct rows in the table/chart.
+            label = f"{cname} [{step}]" if step.lower() in ("max", "min") else cname
+
+            try:
+                data.append({
+                    "combo": label,
+                    "FX":    round(float(raw[b + fx_i]), 2),
+                    "FY":    round(float(raw[b + fy_i]), 2),
+                    "FZ":    round(float(raw[b + fz_i]), 2),
+                    "MX":    round(float(raw[b + mx_i]), 2),
+                    "MY":    round(float(raw[b + my_i]), 2),
+                    "MZ":    round(float(raw[b + mz_i]), 2),
+                })
+            except (ValueError, TypeError, IndexError):
+                continue
+
+        # ── 5. Available picker list ────────────────────────────────────
+        _restore_units(SapModel, orig_units)
+
         if load_type == "case":
-            available = [c for c in SapModel.LoadCases.GetNameList()[1] if not c.startswith("~")]
+            nr = SapModel.LoadCases.GetNameList()
+            available = [str(n) for n in list(nr[1]) if not str(n).startswith("~")] \
+                        if nr and int(nr[-1]) == 0 else []
             return {"status": "success", "data": data, "available_cases": available}
         else:
-            all_combos = list(SapModel.RespCombo.GetNameList()[1])
-            return {"status": "success", "data": data, "available_combos": all_combos}
+            nr = SapModel.RespCombo.GetNameList()
+            available = [str(n) for n in list(nr[1]) if not str(n).startswith("~")] \
+                        if nr and int(nr[-1]) == 0 else []
+            return {"status": "success", "data": data, "available_combos": available}
 
     except Exception as e:
+        try: _restore_units(SapModel, orig_units)
+        except Exception: pass
         return {"error": f"Failed to retrieve base reactions: {str(e)}"}
 
 
