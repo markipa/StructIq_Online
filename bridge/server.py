@@ -252,15 +252,14 @@ def get_joint_reactions(
 
 @app.get("/api/results/reactions")
 def get_reactions(
-    names: str = Query(default=None),
+    combo_name: str = Query(default=None),
     load_type: str = Query(default="combo"),
 ):
     _require_actions()
-    helper = getattr(actions, "get_joint_reactions", None) or getattr(actions, "get_reactions", None)
+    helper = getattr(actions, "get_base_reactions", None)
     if not callable(helper):
-        raise HTTPException(503, "reactions not available.")
-    name_list = [n.strip() for n in names.split(",") if n.strip()] if names else None
-    res = helper(name_list, load_type)
+        raise HTTPException(503, "get_base_reactions not available.")
+    res = helper(combo_name, load_type)
     if "error" in res:
         raise HTTPException(500, res["error"])
     return res
