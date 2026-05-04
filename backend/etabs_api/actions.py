@@ -580,33 +580,24 @@ def add_rectangular_section(name: str, material: str, b: float, h: float):
 
 def get_base_reactions(combo_name: Optional[str] = None, load_type: str = "combo"):
     """
-    Returns TOTAL global base reactions from ETABS via Results.BaseReact() (kN·m).
+    Returns global base reactions from ETABS (kN·m), matching the ETABS
+    'Base Reactions' display table exactly — including step-by-step results.
 
-    BaseReact() returns the summed reaction for the whole structure — one row
-    per load case/combo. This matches the ETABS 'Base Reactions' display table.
-    Units are forced to kN·m (code 6) before the call and restored after.
+    Strategy:
+      PRIMARY  — DatabaseTables "Base Reactions" (per-joint rows).
+                 Group + sum over all joints for each (case, case_type, step_type,
+                 step_num) key → global total per step.  This is identical to what
+                 ETABS does internally for its own display.  Correctly returns
+                 Step-by-Step steps, RS Max rows, and single-step LinStatic rows.
+                 Rows with step_type == "Mode" (individual RS modal contributions,
+                 not the final CQC/SRSS result) are skipped.
 
-    Note: DatabaseTables 'Base Reactions' returns per-joint rows — NOT used here.
+      FALLBACK — Results.BaseReact() when table is empty or unavailable.
+                 BaseReact() returns envelope (Max/Min) for multi-step cases but
+                 is always correct for single-step LinStatic and RS combined results.
 
-    load_type: 'combo' (default) — load combinations
-               'case'            — individual load cases
-    combo_name: optional filter to a single named item.
-
-    BaseReact() tuple layout:
-      [0]  int    num_results
-      [1]  tuple  LoadCase names
-      [2]  tuple  StepType
-      [3]  tuple  StepNum
-      [4]  tuple  FX (kN)
-      [5]  tuple  FY (kN)
-      [6]  tuple  FZ (kN)
-      [7]  tuple  MX (kN·m)
-      [8]  tuple  MY (kN·m)
-      [9]  tuple  MZ (kN·m)
-      [10] float  gx (scalar)
-      [11] float  gy
-      [12] float  gz
-      [13] int    retcode  (0 = success)
+    load_type : 'combo' (default) | 'case'
+    combo_name: optional — filter to single named item.
     """
     SapModel = get_active_etabs()
     if not SapModel:
@@ -645,87 +636,154 @@ def get_base_reactions(combo_name: Optional[str] = None, load_type: str = "combo
                         if not str(n).startswith("~"):
                             SapModel.Results.Setup.SetComboSelectedForOutput(str(n), True)
 
-        # ── 2. Call BaseReact() — returns TOTAL global reactions ────────
-        ret = SapModel.Results.BaseReact()
-
-        rc = int(ret[-1]) if hasattr(ret, '__len__') else int(ret)
-        if rc != 0:
-            _restore_units(SapModel, orig_units)
-            return {"error": f"BaseReact() returned error code {rc}. Ensure model has been analyzed."}
-
-        num        = int(ret[0])
-        case_names = list(ret[1])
-        step_types = list(ret[2])
-        step_nums  = list(ret[3])
-        FX_list    = list(ret[4])
-        FY_list    = list(ret[5])
-        FZ_list    = list(ret[6])
-        MX_list    = list(ret[7])
-        MY_list    = list(ret[8])
-        MZ_list    = list(ret[9])
-
-        if num == 0:
-            _restore_units(SapModel, orig_units)
-            return {"error": "No base reaction results found. Run analysis first."}
-
-        # ── 3. Build case_type map from ETABS load case collections ─────
-        #   Keys are the string names returned by each collection's GetNameList().
-        #   Covers all common case types; unknowns fall back to "".
-        case_type_map = {}
-        _collection_types = [
-            ("StaticLinear",        "LinStatic"),
-            ("StaticNonlinear",     "NonlinStatic"),
-            ("ModalEigen",          "LinModal"),
-            ("ModalRitz",           "LinRitz"),
-            ("ResponseSpectrum",    "LinRespSpec"),
-            ("DirHistLinear",       "LinTimeHistory"),
-            ("DirHistNonlinear",    "NonlinTimeHistory"),
-            ("StaticLinearMultistep", "LinStaticMultistep"),
-            ("Hyperstatic",         "Hyperstatic"),
-        ]
-        for attr, type_str in _collection_types:
-            try:
-                coll = getattr(SapModel.LoadCases, attr, None)
-                if coll is None:
-                    continue
-                nr = coll.GetNameList()
-                if nr and int(nr[-1]) == 0:
-                    for n in list(nr[1]):
-                        case_type_map[str(n).strip()] = type_str
-            except Exception:
-                pass
-
-        # ── 4. Build result rows ────────────────────────────────────────
+        # ── 2. PRIMARY: DatabaseTables "Base Reactions" ─────────────────
+        #   Returns per-support-joint rows.  Sum over joints per unique key
+        #   to obtain the global structure total — same as ETABS display.
         data = []
-        for i in range(num):
-            cname     = str(case_names[i]).strip()
-            step_type = str(step_types[i]).strip() if step_types else ""
-            # Show step number whenever ETABS returns a non-zero value.
-            # Covers Step-by-Step (time history), nonlinear stages, resp-spectrum modes.
-            # LinStatic single-step returns 0 → blank.
-            try:
-                snum_f = float(step_nums[i])
-                if snum_f == 0:
-                    step_num = ""
-                elif snum_f == int(snum_f):
-                    step_num = int(snum_f)
-                else:
-                    step_num = round(snum_f, 4)
-            except (ValueError, TypeError, IndexError):
-                step_num = ""
+        tbl = SapModel.DatabaseTables.GetTableForDisplayArray(
+            "Base Reactions", [], "All", 1, [], 0, []
+        )
 
-            data.append({
-                "combo":     cname,           # plain case/combo name — no [Max]/[Min] suffix
-                "case_type": case_type_map.get(cname, ""),
-                "step_type": step_type,
-                "step_num":  step_num,
-                "FX":    round(float(FX_list[i]), 2),
-                "FY":    round(float(FY_list[i]), 2),
-                "FZ":    round(float(FZ_list[i]), 2),
-                "MX":    round(float(MX_list[i]), 2),
-                "MY":    round(float(MY_list[i]), 2),
-                "MZ":    round(float(MZ_list[i]), 2),
-            })
+        if tbl and int(tbl[5]) == 0 and int(tbl[3]) > 0:
+            fields = [str(f).strip() for f in list(tbl[2])]
+            n_rec  = int(tbl[3])
+            raw    = tbl[4]
+            nf     = len(fields)
+            fl     = [f.lower() for f in fields]
+
+            def _col(*keys):
+                for k in keys:
+                    try: return fl.index(k.lower())
+                    except ValueError: pass
+                return -1
+
+            case_i  = _col("outputcase", "casename")
+            ctype_i = _col("casetype")
+            step_i  = _col("steptype")
+            snum_i  = _col("stepnumber", "stepnum", "step number")
+            fx_i    = _col("fx")
+            fy_i    = _col("fy")
+            fz_i    = _col("fz")
+            mx_i    = _col("mx")
+            my_i    = _col("my")
+            mz_i    = _col("mz")
+
+            if all(i >= 0 for i in [case_i, fx_i, fy_i, fz_i, mx_i, my_i, mz_i]):
+                # Ordered dict preserves the ETABS table row order
+                from collections import OrderedDict
+                groups    = OrderedDict()
+                key_meta  = {}
+
+                for r in range(n_rec):
+                    b         = r * nf
+                    cname     = str(raw[b + case_i]).strip()
+                    case_type = str(raw[b + ctype_i]).strip() if ctype_i >= 0 else ""
+                    step_type = str(raw[b + step_i]).strip()  if step_i  >= 0 else ""
+
+                    # Skip individual RS modal contributions — not a meaningful result.
+                    # The combined (CQC/SRSS) result appears as step_type "Max".
+                    if step_type.lower() == "mode":
+                        continue
+
+                    # Step number
+                    try:
+                        snum_f = float(raw[b + snum_i]) if snum_i >= 0 else 0.0
+                        if snum_f == 0:
+                            step_num = ""
+                        elif snum_f == int(snum_f):
+                            step_num = int(snum_f)
+                        else:
+                            step_num = round(snum_f, 4)
+                    except (ValueError, TypeError):
+                        step_num = ""
+
+                    key = (cname, case_type, step_type, step_num)
+                    if key not in groups:
+                        groups[key]   = {"FX": 0.0, "FY": 0.0, "FZ": 0.0,
+                                         "MX": 0.0, "MY": 0.0, "MZ": 0.0}
+                        key_meta[key] = (cname, case_type, step_type, step_num)
+
+                    try:
+                        groups[key]["FX"] += float(raw[b + fx_i])
+                        groups[key]["FY"] += float(raw[b + fy_i])
+                        groups[key]["FZ"] += float(raw[b + fz_i])
+                        groups[key]["MX"] += float(raw[b + mx_i])
+                        groups[key]["MY"] += float(raw[b + my_i])
+                        groups[key]["MZ"] += float(raw[b + mz_i])
+                    except (ValueError, TypeError):
+                        continue
+
+                for key, s in groups.items():
+                    cname, case_type, step_type, step_num = key_meta[key]
+                    data.append({
+                        "combo":     cname,
+                        "case_type": case_type,
+                        "step_type": step_type,
+                        "step_num":  step_num,
+                        "FX": round(s["FX"], 2),
+                        "FY": round(s["FY"], 2),
+                        "FZ": round(s["FZ"], 2),
+                        "MX": round(s["MX"], 2),
+                        "MY": round(s["MY"], 2),
+                        "MZ": round(s["MZ"], 2),
+                    })
+
+        # ── 3. FALLBACK: BaseReact() when table is empty / unavailable ──
+        #   Returns envelope Max/Min for multi-step — no individual steps.
+        if not data:
+            ret = SapModel.Results.BaseReact()
+            rc  = int(ret[-1]) if hasattr(ret, '__len__') else int(ret)
+            if rc == 0 and int(ret[0]) > 0:
+                num        = int(ret[0])
+                case_names = list(ret[1])
+                step_types = list(ret[2])
+                step_nums  = list(ret[3])
+                FX_list    = list(ret[4])
+                FY_list    = list(ret[5])
+                FZ_list    = list(ret[6])
+                MX_list    = list(ret[7])
+                MY_list    = list(ret[8])
+                MZ_list    = list(ret[9])
+
+                # Build case_type map from collections (fallback only)
+                case_type_map = {}
+                for attr, ts in [("StaticLinear","LinStatic"),("StaticNonlinear","NonlinStatic"),
+                                  ("ModalEigen","LinModal"),("ResponseSpectrum","LinRespSpec"),
+                                  ("DirHistLinear","LinTimeHistory"),("DirHistNonlinear","NonlinTimeHistory")]:
+                    try:
+                        coll = getattr(SapModel.LoadCases, attr, None)
+                        if coll:
+                            nr2 = coll.GetNameList()
+                            if nr2 and int(nr2[-1]) == 0:
+                                for n in list(nr2[1]):
+                                    case_type_map[str(n).strip()] = ts
+                    except Exception:
+                        pass
+
+                for i in range(num):
+                    cname     = str(case_names[i]).strip()
+                    step_type = str(step_types[i]).strip() if step_types else ""
+                    try:
+                        snum_f   = float(step_nums[i])
+                        step_num = "" if snum_f == 0 else (int(snum_f) if snum_f == int(snum_f) else round(snum_f, 4))
+                    except (ValueError, TypeError, IndexError):
+                        step_num = ""
+                    data.append({
+                        "combo":     cname,
+                        "case_type": case_type_map.get(cname, ""),
+                        "step_type": step_type,
+                        "step_num":  step_num,
+                        "FX": round(float(FX_list[i]), 2),
+                        "FY": round(float(FY_list[i]), 2),
+                        "FZ": round(float(FZ_list[i]), 2),
+                        "MX": round(float(MX_list[i]), 2),
+                        "MY": round(float(MY_list[i]), 2),
+                        "MZ": round(float(MZ_list[i]), 2),
+                    })
+
+        if not data:
+            _restore_units(SapModel, orig_units)
+            return {"error": "No base reaction results. Ensure model has been analyzed."}
 
         # ── 4. Available picker list ────────────────────────────────────
         _restore_units(SapModel, orig_units)
