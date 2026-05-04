@@ -656,6 +656,7 @@ def get_base_reactions(combo_name: Optional[str] = None, load_type: str = "combo
         num        = int(ret[0])
         case_names = list(ret[1])
         step_types = list(ret[2])
+        step_nums  = list(ret[3])
         FX_list    = list(ret[4])
         FY_list    = list(ret[5])
         FZ_list    = list(ret[6])
@@ -667,15 +668,50 @@ def get_base_reactions(combo_name: Optional[str] = None, load_type: str = "combo
             _restore_units(SapModel, orig_units)
             return {"error": "No base reaction results found. Run analysis first."}
 
-        # ── 3. Build result rows ────────────────────────────────────────
+        # ── 3. Build case_type map from ETABS load case collections ─────
+        #   Keys are the string names returned by each collection's GetNameList().
+        #   Covers all common case types; unknowns fall back to "".
+        case_type_map = {}
+        _collection_types = [
+            ("StaticLinear",        "LinStatic"),
+            ("StaticNonlinear",     "NonlinStatic"),
+            ("ModalEigen",          "LinModal"),
+            ("ModalRitz",           "LinRitz"),
+            ("ResponseSpectrum",    "LinRespSpec"),
+            ("DirHistLinear",       "LinTimeHistory"),
+            ("DirHistNonlinear",    "NonlinTimeHistory"),
+            ("StaticLinearMultistep", "LinStaticMultistep"),
+            ("Hyperstatic",         "Hyperstatic"),
+        ]
+        for attr, type_str in _collection_types:
+            try:
+                coll = getattr(SapModel.LoadCases, attr, None)
+                if coll is None:
+                    continue
+                nr = coll.GetNameList()
+                if nr and int(nr[-1]) == 0:
+                    for n in list(nr[1]):
+                        case_type_map[str(n).strip()] = type_str
+            except Exception:
+                pass
+
+        # ── 4. Build result rows ────────────────────────────────────────
         data = []
         for i in range(num):
-            cname = str(case_names[i]).strip()
-            step  = str(step_types[i]).strip() if step_types else ""
-            # Envelope combos produce Max/Min rows — distinguish in label
-            label = f"{cname} [{step}]" if step.lower() in ("max", "min") else cname
+            cname     = str(case_names[i]).strip()
+            step_type = str(step_types[i]).strip() if step_types else ""
+            # Step number: only meaningful for Step-by-Step; blank otherwise
+            try:
+                snum_raw = step_nums[i]
+                step_num = int(snum_raw) if step_type.lower() == "step by step" else ""
+            except (ValueError, TypeError, IndexError):
+                step_num = ""
+
             data.append({
-                "combo": label,
+                "combo":     cname,           # plain case/combo name — no [Max]/[Min] suffix
+                "case_type": case_type_map.get(cname, ""),
+                "step_type": step_type,
+                "step_num":  step_num,
                 "FX":    round(float(FX_list[i]), 2),
                 "FY":    round(float(FY_list[i]), 2),
                 "FZ":    round(float(FZ_list[i]), 2),

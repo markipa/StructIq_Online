@@ -1321,8 +1321,13 @@ body {
   color: var(--t2); text-transform: uppercase; letter-spacing: 0.5px;
   border-bottom: 2px solid var(--bdr-md);
 }
-.th-combo { text-align: left !important; }
+.th-combo      { text-align: left !important; }
+.th-case-type  { text-align: left !important; min-width: 110px; }
+.th-step-type  { text-align: left !important; min-width: 110px; }
+.th-step-num   { text-align: center !important; min-width: 64px; }
 .th-group-header { border-left: 1px solid var(--blue-border); }
+.val-meta  { color: var(--t2); font-size: var(--fs-sm); }
+.td-center { text-align: center; }
 .unit { font-weight: 400; color: var(--t3); font-size: var(--fs-xs); text-transform: none; letter-spacing: 0; }
 
 .data-table tbody tr { border-bottom: 1px solid var(--bdr-xs); transition: background 0.1s; }

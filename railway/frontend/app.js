@@ -1666,13 +1666,17 @@ function renderReactionsTableDOM(data) {
   const tbody = document.getElementById('reactions-tbody');
   tbody.innerHTML = '';
   if (!data.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="td-empty"><div class="empty-placeholder">No results for selected combination(s).</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="td-empty"><div class="empty-placeholder">No results for selected combination(s).</div></td></tr>';
     return;
   }
   data.forEach(r => {
     const tr = document.createElement('tr');
+    const stepNum = (r.step_num !== undefined && r.step_num !== null && r.step_num !== '') ? r.step_num : '';
     tr.innerHTML = `
       <td><strong>${r.combo}</strong></td>
+      <td class="val-meta">${r.case_type || ''}</td>
+      <td class="val-meta">${r.step_type || ''}</td>
+      <td class="val-meta td-center">${stepNum}</td>
       <td class="${r.FX < 0 ? 'val-neg' : ''}">${fmtF(r.FX)}</td>
       <td class="${r.FY < 0 ? 'val-neg' : ''}">${fmtF(r.FY)}</td>
       <td class="val-fz">${fmtF(r.FZ)}</td>

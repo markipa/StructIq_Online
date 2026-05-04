@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml"  href="/app/favicon.svg">
   <link rel="icon" type="image/x-icon"   href="/favicon.ico">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/app/styles.css?v=106" />
+  <link rel="stylesheet" href="/app/styles.css?v=107" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
 <body>
@@ -518,7 +518,10 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th rowspan="2" class="th-combo">Combination</th>
+                <th rowspan="2" class="th-combo">Output Case</th>
+                <th rowspan="2" class="th-case-type">Case Type</th>
+                <th rowspan="2" class="th-step-type">Step Type</th>
+                <th rowspan="2" class="th-step-num">Step<br>Number</th>
                 <th colspan="3" class="th-group-header">Forces</th>
                 <th colspan="3" class="th-group-header">Moments</th>
               </tr>
@@ -533,7 +536,7 @@
             </thead>
             <tbody id="reactions-tbody">
               <tr>
-                <td colspan="7" class="td-empty">
+                <td colspan="10" class="td-empty">
                   <div class="empty-placeholder">Select a combination and click Fetch</div>
                 </td>
               </tr>
@@ -3367,6 +3370,6 @@
   </div>
 </div>
 
-<script src="/app/app.js?v=159"></script>
+<script src="/app/app.js?v=160"></script>
 </body>
 </html>
