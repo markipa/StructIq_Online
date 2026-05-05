@@ -340,7 +340,17 @@
           </svg>
           Drift Chart
         </button>
-        <button id="btn-export-drift-png" class="btn btn-secondary btn-sm" style="margin-left:auto;margin-right:4px;align-self:center" title="Export chart as PNG">
+        <button id="btn-export-drift-csv" class="btn btn-secondary btn-sm" style="margin-left:auto;margin-right:4px;align-self:center" title="Export results to CSV">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 2h7l3 3v9H3z"/>
+            <polyline points="9,2 9,5 12,5"/>
+            <line x1="8" y1="8" x2="8" y2="13"/>
+            <polyline points="5,11 8,14 11,11"/>
+          </svg>
+          Export CSV
+        </button>
+        <button id="btn-export-drift-png" class="btn btn-secondary btn-sm" style="margin-right:4px;align-self:center" title="Export chart as PNG">
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
                stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <rect x="1" y="1" width="14" height="14" rx="2"/>
@@ -355,16 +365,6 @@
       <div id="drift-table-tab" class="tab-panel active">
         <div class="table-toolbar">
           <span id="drift-row-count" class="row-count-badge"></span>
-          <button id="btn-export-drift-csv" class="btn btn-secondary btn-sm" title="Export results to CSV">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
-                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 2h7l3 3v9H3z"/>
-              <polyline points="9,2 9,5 12,5"/>
-              <line x1="8" y1="8" x2="8" y2="13"/>
-              <polyline points="5,11 8,14 11,11"/>
-            </svg>
-            Export CSV
-          </button>
         </div>
         <div id="drift-table-empty" class="reactions-chart-empty">
           <svg width="64" height="64" viewBox="0 0 64 64" fill="none"
@@ -3416,6 +3416,6 @@
   </div>
 </div>
 
-<script src="/app/app.js?v=167"></script>
+<script src="/app/app.js?v=168"></script>
 </body>
 </html>
