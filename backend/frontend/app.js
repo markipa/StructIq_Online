@@ -678,6 +678,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Drift panel buttons
   document.getElementById('btn-get-drift-sources').addEventListener('click', driftGetSources);
   document.getElementById('btn-extract-drift').addEventListener('click', driftExtract);
+  document.getElementById('btn-export-drift-csv').addEventListener('click', exportDriftCSV);
+  document.getElementById('btn-export-drift-png').addEventListener('click', exportDriftPNG);
 
   // ── Drift panel: tab switching (same pattern as reactions / joint) ──
   document.querySelectorAll('#drifts-panel .tab-btn').forEach(btn => {
@@ -1373,6 +1375,10 @@ function driftRenderTable(rawData, allowable, multiplier) {
 
   emptyEl.style.display = 'none';
   wrapEl.classList.remove('hidden');
+
+  // Row count badge
+  const badge = document.getElementById('drift-row-count');
+  if (badge) badge.textContent = `${sorted.length} row${sorted.length !== 1 ? 's' : ''}`;
 }
 
 function driftRenderChart(rawData, allowable, multiplier) {
@@ -1469,6 +1475,65 @@ function driftRenderChart(rawData, allowable, multiplier) {
   driftsChartHasData  = true;
 
   Plotly.react('driftsChart', traces, layout, config);
+}
+
+// ── CSV export for drift table ──
+function exportDriftCSV() {
+  if (!driftLastData.length) { showToast('No data to export — extract first.'); return; }
+
+  const allowable  = parseFloat(document.getElementById('drift-allowable').value)  || 0.002;
+  const multiplier = parseFloat(document.getElementById('drift-multiplier').value) || 1;
+
+  // Same sort as table: elevation descending, then case name
+  const sorted = [...driftLastData].sort((a, b) =>
+    b.elevation - a.elevation || a.case.localeCompare(b.case)
+  );
+
+  const headers = ['Story', 'Case', 'Direction', 'Elevation (m)',
+                   'Raw Drift Ratio', `Drift × ${multiplier}`, 'Allowable', 'Status'];
+
+  const rows = sorted.map(r => {
+    const driftAbs  = Math.abs(r.drift);
+    const driftMult = driftAbs * multiplier;
+    const pass      = driftMult <= allowable;
+    return [
+      r.story,
+      r.case,
+      r.dir || r.label || '',
+      (+r.elevation).toFixed(3),
+      driftAbs.toFixed(6),
+      driftMult.toFixed(6),
+      allowable,
+      pass ? 'Pass' : 'Fail',
+    ];
+  });
+
+  const csv = [headers, ...rows]
+    .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    .join('\r\n');
+
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `story_drifts_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(`Exported ${sorted.length} rows to CSV.`);
+}
+
+// ── PNG export for drift chart ──
+function exportDriftPNG() {
+  if (!driftsChartHasData) { showToast('No chart to export — extract first.'); return; }
+  Plotly.downloadImage('driftsChart', {
+    format:   'png',
+    filename: `story_drifts_${new Date().toISOString().slice(0, 10)}`,
+    width:    900,
+    height:   700,
+    scale:    2,
+  });
 }
 
 // ================================================================

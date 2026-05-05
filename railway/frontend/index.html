@@ -344,6 +344,19 @@
 
       <!-- ── Tab 1: Results Table ── -->
       <div id="drift-table-tab" class="tab-panel active">
+        <div class="table-toolbar">
+          <span id="drift-row-count" class="row-count-badge"></span>
+          <button id="btn-export-drift-csv" class="btn btn-secondary btn-sm" title="Export results to CSV">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 2h7l3 3v9H3z"/>
+              <polyline points="9,2 9,5 12,5"/>
+              <line x1="8" y1="8" x2="8" y2="13"/>
+              <polyline points="5,11 8,14 11,11"/>
+            </svg>
+            Export CSV
+          </button>
+        </div>
         <div id="drift-table-empty" class="reactions-chart-empty">
           <svg width="64" height="64" viewBox="0 0 64 64" fill="none"
                stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
@@ -378,6 +391,17 @@
 
       <!-- ── Tab 2: Drift Chart ── -->
       <div id="drift-chart-tab" class="tab-panel">
+        <div class="table-toolbar" style="padding:8px 12px 0">
+          <button id="btn-export-drift-png" class="btn btn-secondary btn-sm" style="margin-left:auto" title="Export chart as PNG">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="1" y="1" width="14" height="14" rx="2"/>
+              <path d="M1 11l4-4 3 3 3-4 4 5"/>
+              <circle cx="11.5" cy="5" r="1.2"/>
+            </svg>
+            PNG
+          </button>
+        </div>
         <div id="drift-chart-empty" class="reactions-chart-empty">
           <svg width="72" height="72" viewBox="0 0 72 72" fill="none"
                stroke="currentColor" stroke-width="1.2"
@@ -3392,6 +3416,6 @@
   </div>
 </div>
 
-<script src="/app/app.js?v=164"></script>
+<script src="/app/app.js?v=165"></script>
 </body>
 </html>
