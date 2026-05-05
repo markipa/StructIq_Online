@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml"  href="/app/favicon.svg">
   <link rel="icon" type="image/x-icon"   href="/favicon.ico">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/app/styles.css?v=108" />
+  <link rel="stylesheet" href="/app/styles.css?v=109" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
 <body>
@@ -391,8 +391,8 @@
 
       <!-- ── Tab 2: Drift Chart ── -->
       <div id="drift-chart-tab" class="tab-panel">
-        <div class="table-toolbar" style="padding:8px 12px 0">
-          <button id="btn-export-drift-png" class="btn btn-secondary btn-sm" style="margin-left:auto" title="Export chart as PNG">
+        <div class="drift-chart-toolbar">
+          <button id="btn-export-drift-png" class="btn btn-secondary btn-sm" title="Export chart as PNG">
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
                  stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <rect x="1" y="1" width="14" height="14" rx="2"/>
@@ -402,21 +402,23 @@
             PNG
           </button>
         </div>
-        <div id="drift-chart-empty" class="reactions-chart-empty">
-          <svg width="72" height="72" viewBox="0 0 72 72" fill="none"
-               stroke="currentColor" stroke-width="1.2"
-               stroke-linecap="round" stroke-linejoin="round">
-            <line x1="14" y1="8"  x2="14" y2="58" opacity="0.2"/>
-            <line x1="14" y1="58" x2="64" y2="58" opacity="0.2"/>
-            <polyline points="14,52 22,38 30,30 40,18 50,22 58,14"
-                      opacity="0.22" stroke="#2563eb"/>
-            <polyline points="14,54 22,44 30,36 40,26 50,30 58,20"
-                      opacity="0.22" stroke="#10b981"/>
-            <line x1="54" y1="10" x2="54" y2="58" opacity="0.22" stroke="#ef4444"/>
-          </svg>
-          <p>Select sources then click <strong>Extract</strong></p>
+        <div class="drift-chart-wrap">
+          <div id="drift-chart-empty" class="reactions-chart-empty">
+            <svg width="72" height="72" viewBox="0 0 72 72" fill="none"
+                 stroke="currentColor" stroke-width="1.2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <line x1="14" y1="8"  x2="14" y2="58" opacity="0.2"/>
+              <line x1="14" y1="58" x2="64" y2="58" opacity="0.2"/>
+              <polyline points="14,52 22,38 30,30 40,18 50,22 58,14"
+                        opacity="0.22" stroke="#2563eb"/>
+              <polyline points="14,54 22,44 30,36 40,26 50,30 58,20"
+                        opacity="0.22" stroke="#10b981"/>
+              <line x1="54" y1="10" x2="54" y2="58" opacity="0.22" stroke="#ef4444"/>
+            </svg>
+            <p>Select sources then click <strong>Extract</strong></p>
+          </div>
+          <div id="driftsChart" style="display:none; position:absolute; inset:0;"></div>
         </div>
-        <div id="driftsChart" style="display:none; position:absolute; inset:0;"></div>
       </div>
 
     </section>
@@ -3416,6 +3418,6 @@
   </div>
 </div>
 
-<script src="/app/app.js?v=165"></script>
+<script src="/app/app.js?v=166"></script>
 </body>
 </html>
