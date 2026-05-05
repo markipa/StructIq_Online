@@ -534,22 +534,31 @@
           </svg>
           Force Chart
         </button>
+        <button id="btn-export-reactions-csv" class="btn btn-secondary btn-sm" style="margin-left:auto;margin-right:4px;align-self:center" title="Export visible rows to CSV">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 2h7l3 3v9H3z"/>
+            <polyline points="9,2 9,5 12,5"/>
+            <line x1="8" y1="8" x2="8" y2="13"/>
+            <polyline points="5,11 8,14 11,11"/>
+          </svg>
+          Export CSV
+        </button>
+        <button id="btn-export-reactions-png" class="btn btn-secondary btn-sm" style="margin-right:4px;align-self:center" title="Export chart as PNG">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="1" width="14" height="14" rx="2"/>
+            <path d="M1 11l4-4 3 3 3-4 4 5"/>
+            <circle cx="11.5" cy="5" r="1.2"/>
+          </svg>
+          PNG
+        </button>
       </div>
 
       <!-- ── Tab 1: Results Table ── -->
       <div id="reactions-table-tab" class="tab-panel active">
         <div class="table-toolbar">
           <span id="reactions-row-count" class="row-count-badge"></span>
-          <button id="btn-export-reactions-csv" class="btn btn-secondary btn-sm" title="Export visible rows to CSV">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
-                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 2h7l3 3v9H3z"/>
-              <polyline points="9,2 9,5 12,5"/>
-              <line x1="8" y1="8" x2="8" y2="13"/>
-              <polyline points="5,11 8,14 11,11"/>
-            </svg>
-            Export CSV
-          </button>
         </div>
         <div class="table-card">
           <table class="data-table">
@@ -596,15 +605,6 @@
             <button class="force-toggle" data-force="MY">MY</button>
             <button class="force-toggle" data-force="MZ">MZ</button>
             <span class="force-unit-note">kN · kN·m</span>
-            <button id="btn-export-reactions-png" class="btn btn-secondary btn-sm" style="margin-left:auto" title="Export chart as PNG">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
-                   stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="1" y="1" width="14" height="14" rx="2"/>
-                <path d="M1 11l4-4 3 3 3-4 4 5"/>
-                <circle cx="11.5" cy="5" r="1.2"/>
-              </svg>
-              PNG
-            </button>
           </div>
 
           <!-- Chart area -->
@@ -3416,6 +3416,6 @@
   </div>
 </div>
 
-<script src="/app/app.js?v=168"></script>
+<script src="/app/app.js?v=169"></script>
 </body>
 </html>
