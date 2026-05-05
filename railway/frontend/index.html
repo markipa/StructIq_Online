@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml"  href="/app/favicon.svg">
   <link rel="icon" type="image/x-icon"   href="/favicon.ico">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/app/styles.css?v=109" />
+  <link rel="stylesheet" href="/app/styles.css?v=110" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
 <body>
@@ -340,6 +340,15 @@
           </svg>
           Drift Chart
         </button>
+        <button id="btn-export-drift-png" class="btn btn-secondary btn-sm" style="margin-left:auto;margin-right:4px;align-self:center" title="Export chart as PNG">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="1" width="14" height="14" rx="2"/>
+            <path d="M1 11l4-4 3 3 3-4 4 5"/>
+            <circle cx="11.5" cy="5" r="1.2"/>
+          </svg>
+          PNG
+        </button>
       </div>
 
       <!-- ── Tab 1: Results Table ── -->
@@ -391,17 +400,6 @@
 
       <!-- ── Tab 2: Drift Chart ── -->
       <div id="drift-chart-tab" class="tab-panel">
-        <div class="drift-chart-toolbar">
-          <button id="btn-export-drift-png" class="btn btn-secondary btn-sm" title="Export chart as PNG">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
-                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="1" y="1" width="14" height="14" rx="2"/>
-              <path d="M1 11l4-4 3 3 3-4 4 5"/>
-              <circle cx="11.5" cy="5" r="1.2"/>
-            </svg>
-            PNG
-          </button>
-        </div>
         <div class="drift-chart-wrap">
           <div id="drift-chart-empty" class="reactions-chart-empty">
             <svg width="72" height="72" viewBox="0 0 72 72" fill="none"
@@ -3418,6 +3416,6 @@
   </div>
 </div>
 
-<script src="/app/app.js?v=166"></script>
+<script src="/app/app.js?v=167"></script>
 </body>
 </html>

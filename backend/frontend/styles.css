@@ -512,32 +512,20 @@ body {
 }
 #drift-table-tab .table-card.hidden { display: none; }
 
-/* Chart tab: flex column — toolbar fixed, chart wrap fills rest */
+/* Chart tab: fill remaining height with Plotly div */
 #drift-chart-tab.tab-panel.active {
   flex:          1;
   min-height:    0;
-  display:       flex;
-  flex-direction: column;
+  position:      relative;
   background:    var(--bg-card);
   border:        1px solid var(--bdr-sm);
   border-radius: 0 0 var(--r-lg) var(--r-lg);
   overflow:      hidden;
   box-shadow:    var(--s-sm);
 }
-.drift-chart-toolbar {
-  flex-shrink:   0;
-  display:       flex;
-  align-items:   center;
-  justify-content: flex-end;
-  padding:       6px 12px;
-  border-bottom: 1px solid var(--bdr-sm);
-  background:    var(--bg-card);
-}
 .drift-chart-wrap {
-  flex:          1;
-  min-height:    0;
-  position:      relative;
-  overflow:      hidden;
+  position:      absolute;
+  inset:         0;
 }
 
 /* Group label inside the drift multi-picker dropdown */
