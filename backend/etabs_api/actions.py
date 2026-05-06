@@ -211,12 +211,14 @@ def get_story_drifts():
 
 def get_story_drifts_selected(names: list, load_type: str = "combo"):
     """
-    Returns story drift data for specified load cases or combinations.
-    Includes Z elevation for height-vs-drift plotting.
+    Returns story drift data for selected load cases or combinations,
+    including per-step results for step-by-step analyses.
 
-    StoryDrifts() index layout:
-      [0] num  [1] StoreName  [2] LoadCase  [3] StepType  [4] StepNum
-      [5] Direction  [6] Drift  [7] Label  [8] X  [9] Y  [10] Z  [-1] retcode
+    Strategy (mirrors base reactions):
+      PRIMARY  — DatabaseTables "Story Drifts": returns per-step rows so
+                 step-by-step cases show each step individually.
+      FALLBACK — Results.StoryDrifts(): returns envelope only (no steps),
+                 used when table is empty or unavailable.
 
     load_type: 'combo' | 'case'
     names: list of case/combo names to include
@@ -232,46 +234,125 @@ def get_story_drifts_selected(names: list, load_type: str = "combo"):
             else:
                 SapModel.Results.Setup.SetCaseSelectedForOutput(name, True)
 
-        ret = SapModel.Results.StoryDrifts()
-        retcode = ret[-1]
-        if retcode != 0:
-            return {"error": f"ETABS returned error code {retcode}. Ensure the model has been analyzed."}
-
-        num         = ret[0]
-        story_names = ret[1]
-        load_cases  = ret[2]
-        step_types  = ret[3]
-        step_nums   = ret[4]
-        directions  = ret[5]
-        drifts      = ret[6]
-        elevations  = ret[10]  # Z coordinate = floor elevation
-
+        names_set = set(str(n).strip() for n in names)
         data = []
-        for i in range(num):
-            # step_num: same pattern as base reactions —
-            # 0.0 means no step (LinStatic non-step), convert to ""
-            try:
-                snum_f = float(step_nums[i]) if step_nums[i] is not None else 0.0
-            except (TypeError, ValueError):
-                snum_f = 0.0
-            if snum_f == 0:
-                step_num = ""
-            elif snum_f == int(snum_f):
-                step_num = int(snum_f)
-            else:
-                step_num = round(snum_f, 4)
 
-            st = str(step_types[i]).strip() if step_types[i] else ""
+        # ── PRIMARY: DatabaseTables "Story Drifts" ──────────────────────
+        try:
+            tbl = SapModel.DatabaseTables.GetTableForDisplayArray(
+                "Story Drifts", [], "All", 1, [], 0, []
+            )
+            if tbl and int(tbl[5]) == 0 and int(tbl[3]) > 0:
+                fields = [str(f).strip() for f in list(tbl[2])]
+                n_rec  = int(tbl[3])
+                raw    = tbl[4]
+                nf     = len(fields)
+                fl     = [f.lower() for f in fields]
 
-            data.append({
-                "story":     story_names[i],
-                "case":      load_cases[i],
-                "step_type": st,
-                "step_num":  step_num,
-                "direction": directions[i],
-                "drift":     round(float(drifts[i]), 6),
-                "elevation": round(float(elevations[i]), 3),
-            })
+                def _col(*keys):
+                    for k in keys:
+                        try: return fl.index(k.lower())
+                        except ValueError: pass
+                    return -1
+
+                story_i = _col("story")
+                case_i  = _col("outputcase", "casename", "loadcase")
+                ctype_i = _col("casetype")
+                step_i  = _col("steptype")
+                snum_i  = _col("stepnumber", "stepnum", "step number")
+                dir_i   = _col("direction")
+                drift_i = _col("drift")
+                elev_i  = _col("z", "elevation", "zlevel", "z level")
+
+                if all(i >= 0 for i in [story_i, case_i, dir_i, drift_i]):
+                    for r in range(n_rec):
+                        b     = r * nf
+                        cname = str(raw[b + case_i]).strip()
+                        if cname not in names_set:
+                            continue
+
+                        step_type = str(raw[b + step_i]).strip() if step_i >= 0 else ""
+                        # Skip individual RS modal rows
+                        if step_type.lower() == "mode":
+                            continue
+
+                        try:
+                            snum_f = float(raw[b + snum_i]) if snum_i >= 0 else 0.0
+                            if snum_f == 0:
+                                step_num = ""
+                            elif snum_f == int(snum_f):
+                                step_num = int(snum_f)
+                            else:
+                                step_num = round(snum_f, 4)
+                        except (ValueError, TypeError):
+                            step_num = ""
+
+                        try:
+                            drift_v = round(float(raw[b + drift_i]), 6)
+                        except (ValueError, TypeError):
+                            continue
+
+                        try:
+                            elev_v = round(float(raw[b + elev_i]), 3) if elev_i >= 0 else 0.0
+                        except (ValueError, TypeError):
+                            elev_v = 0.0
+
+                        case_type = str(raw[b + ctype_i]).strip() if ctype_i >= 0 else ""
+                        direction = str(raw[b + dir_i]).strip()
+
+                        data.append({
+                            "story":     str(raw[b + story_i]).strip(),
+                            "case":      cname,
+                            "case_type": case_type,
+                            "step_type": step_type,
+                            "step_num":  step_num,
+                            "direction": direction,
+                            "drift":     drift_v,
+                            "elevation": elev_v,
+                        })
+        except Exception:
+            pass  # fall through to Results.StoryDrifts() fallback
+
+        # ── FALLBACK: Results.StoryDrifts() ─────────────────────────────
+        if not data:
+            ret     = SapModel.Results.StoryDrifts()
+            retcode = ret[-1]
+            if retcode != 0:
+                return {"error": f"ETABS returned error code {retcode}. Ensure model has been analyzed."}
+
+            num         = ret[0]
+            story_names = ret[1]
+            load_cases  = ret[2]
+            step_types  = ret[3]
+            step_nums   = ret[4]
+            directions  = ret[5]
+            drifts      = ret[6]
+            elevations  = ret[10]
+
+            for i in range(num):
+                if str(load_cases[i]).strip() not in names_set:
+                    continue
+                try:
+                    snum_f = float(step_nums[i]) if step_nums[i] is not None else 0.0
+                except (TypeError, ValueError):
+                    snum_f = 0.0
+                if snum_f == 0:
+                    step_num = ""
+                elif snum_f == int(snum_f):
+                    step_num = int(snum_f)
+                else:
+                    step_num = round(snum_f, 4)
+
+                data.append({
+                    "story":     story_names[i],
+                    "case":      load_cases[i],
+                    "case_type": "",
+                    "step_type": str(step_types[i]).strip() if step_types[i] else "",
+                    "step_num":  step_num,
+                    "direction": directions[i],
+                    "drift":     round(float(drifts[i]), 6),
+                    "elevation": round(float(elevations[i]), 3),
+                })
 
         return {"status": "success", "data": data}
     except Exception as e:
