@@ -215,8 +215,8 @@ def get_story_drifts_selected(names: list, load_type: str = "combo"):
     Includes Z elevation for height-vs-drift plotting.
 
     StoryDrifts() index layout:
-      [0] num  [1] StoreName  [2] LoadCase  [5] Direction
-      [6] Drift  [10] Z (elevation)  [-1] retcode
+      [0] num  [1] StoreName  [2] LoadCase  [3] StepType  [4] StepNum
+      [5] Direction  [6] Drift  [7] Label  [8] X  [9] Y  [10] Z  [-1] retcode
 
     load_type: 'combo' | 'case'
     names: list of case/combo names to include
@@ -240,15 +240,20 @@ def get_story_drifts_selected(names: list, load_type: str = "combo"):
         num         = ret[0]
         story_names = ret[1]
         load_cases  = ret[2]
+        step_types  = ret[3]
+        step_nums   = ret[4]
         directions  = ret[5]
         drifts      = ret[6]
         elevations  = ret[10]  # Z coordinate = floor elevation
 
         data = []
         for i in range(num):
+            sn = step_nums[i]
             data.append({
                 "story":     story_names[i],
                 "case":      load_cases[i],
+                "step_type": step_types[i] if step_types[i] else "",
+                "step_num":  int(sn) if sn is not None and str(sn).strip() not in ("", "None") else None,
                 "direction": directions[i],
                 "drift":     round(float(drifts[i]), 6),
                 "elevation": round(float(elevations[i]), 3),

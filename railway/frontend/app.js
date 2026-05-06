@@ -1333,6 +1333,27 @@ async function driftExtract() {
   }
 }
 
+function driftPivot(rawData) {
+  // Pivot X+Y direction rows into single row per (story, case, step_type, step_num, elevation)
+  const map = new Map();
+  rawData.forEach(r => {
+    const key = `${r.story}|||${r.case}|||${r.step_num ?? ''}|||${r.elevation}`;
+    if (!map.has(key)) {
+      map.set(key, {
+        story: r.story, case: r.case,
+        step_type: r.step_type || '', step_num: r.step_num,
+        elevation: r.elevation,
+        drift_x: null, drift_y: null,
+      });
+    }
+    const row = map.get(key);
+    const dir = (r.direction || '').toUpperCase();
+    if (dir === 'X') row.drift_x = r.drift;
+    else if (dir === 'Y') row.drift_y = r.drift;
+  });
+  return [...map.values()];
+}
+
 function driftRenderTable(rawData, allowable, multiplier) {
   const emptyEl = document.getElementById('drift-table-empty');
   const wrapEl  = document.getElementById('drift-table-wrap');
@@ -1344,27 +1365,34 @@ function driftRenderTable(rawData, allowable, multiplier) {
     return;
   }
 
-  // Sort: elevation descending (top story first), then by case name
-  const sorted = [...rawData].sort((a, b) =>
-    b.elevation - a.elevation || a.case.localeCompare(b.case)
+  // Pivot X+Y into one row, sort elevation desc then case then step
+  const pivoted = driftPivot(rawData).sort((a, b) =>
+    b.elevation - a.elevation ||
+    a.case.localeCompare(b.case) ||
+    (a.step_num ?? 0) - (b.step_num ?? 0)
   );
 
   tbody.innerHTML = '';
-  sorted.forEach(row => {
-    const driftAbs  = Math.abs(row.drift);
-    const driftMult = driftAbs * multiplier;
-    const pass      = driftMult <= allowable;
-    const dir       = row.dir || row.label || '—';
-    const exceedPct = pass ? '' : ` (${(((driftMult - allowable) / allowable) * 100).toFixed(1)}% over)`;
+  pivoted.forEach(row => {
+    const dx    = row.drift_x !== null ? Math.abs(row.drift_x) : null;
+    const dy    = row.drift_y !== null ? Math.abs(row.drift_y) : null;
+    const maxD  = Math.max(dx ?? 0, dy ?? 0);
+    const maxDm = maxD * multiplier;
+    const pass  = maxDm <= allowable;
+    const exceedPct = pass ? '' : ` (${(((maxDm - allowable) / allowable) * 100).toFixed(1)}% over)`;
+    const fmtD  = v => v !== null ? v.toFixed(6) : '—';
+    const clsX  = dx !== null && dx * multiplier > allowable ? 'val-neg' : '';
+    const clsY  = dy !== null && dy * multiplier > allowable ? 'val-neg' : '';
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${row.story}</td>
       <td>${row.case}</td>
-      <td>${dir}</td>
+      <td>${row.step_type || '—'}</td>
+      <td>${row.step_num !== null && row.step_num !== undefined ? row.step_num : '—'}</td>
       <td>${(+row.elevation).toFixed(2)}</td>
-      <td class="${driftMult > allowable ? 'val-neg' : ''}">${driftAbs.toFixed(5)}</td>
-      <td class="${driftMult > allowable ? 'val-neg' : ''}">${driftMult.toFixed(5)}</td>
+      <td class="${clsX}">${fmtD(dx)}</td>
+      <td class="${clsY}">${fmtD(dy)}</td>
       <td>
         <span class="${pass ? 'badge-ok' : 'badge-warn'}">
           ${pass ? '✓ Pass' : `✗ Fail${exceedPct}`}
@@ -1378,15 +1406,17 @@ function driftRenderTable(rawData, allowable, multiplier) {
 
   // Row count badge
   const badge = document.getElementById('drift-row-count');
-  if (badge) badge.textContent = `${sorted.length} row${sorted.length !== 1 ? 's' : ''}`;
+  if (badge) badge.textContent = `${pivoted.length} row${pivoted.length !== 1 ? 's' : ''}`;
 }
 
 function driftRenderChart(rawData, allowable, multiplier) {
-  // ── Group rows by case name ──
-  const byCase = {};
-  rawData.forEach(row => {
-    if (!byCase[row.case]) byCase[row.case] = [];
-    byCase[row.case].push(row);
+  // Group by (case, step_num) → one line per step for step-by-step cases
+  const byGroup = new Map();
+  rawData.forEach(r => {
+    const hasStep = r.step_num !== null && r.step_num !== undefined;
+    const label   = hasStep ? `${r.case} [${r.step_num}]` : r.case;
+    if (!byGroup.has(label)) byGroup.set(label, []);
+    byGroup.get(label).push(r);
   });
 
   const allElevations = rawData.map(r => r.elevation);
@@ -1396,8 +1426,8 @@ function driftRenderChart(rawData, allowable, multiplier) {
   const traces = [];
   let colorIdx = 0;
 
-  Object.entries(byCase).forEach(([caseName, rows]) => {
-    // Collapse X + Y: keep max |drift| per story
+  byGroup.forEach((rows, groupLabel) => {
+    // Collapse X + Y per story: keep max |drift|
     const byStory = {};
     rows.forEach(r => {
       if (!byStory[r.story] || Math.abs(r.drift) > Math.abs(byStory[r.story].drift)) {
@@ -1413,10 +1443,10 @@ function driftRenderChart(rawData, allowable, multiplier) {
       y:    sorted.map(r => r.elevation),
       mode: 'lines+markers',
       type: 'scatter',
-      name: caseName,
+      name: groupLabel,
       line:   { color, width: 2 },
-      marker: { color, size: 6, symbol: 'circle' },
-      hovertemplate: `<b>${caseName}</b><br>Drift: %{x:.5f}<br>Elev: %{y:.1f} m<extra></extra>`,
+      marker: { color, size: 5, symbol: 'circle' },
+      hovertemplate: `<b>${groupLabel}</b><br>Drift: %{x:.6f}<br>Elev: %{y:.1f} m<extra></extra>`,
     });
     colorIdx++;
   });
@@ -1484,25 +1514,33 @@ function exportDriftCSV() {
   const allowable  = parseFloat(document.getElementById('drift-allowable').value)  || 0.002;
   const multiplier = parseFloat(document.getElementById('drift-multiplier').value) || 1;
 
-  // Same sort as table: elevation descending, then case name
-  const sorted = [...driftLastData].sort((a, b) =>
-    b.elevation - a.elevation || a.case.localeCompare(b.case)
+  // Same pivot + sort as table
+  const pivoted = driftPivot(driftLastData).sort((a, b) =>
+    b.elevation - a.elevation ||
+    a.case.localeCompare(b.case) ||
+    (a.step_num ?? 0) - (b.step_num ?? 0)
   );
 
-  const headers = ['Story', 'Case', 'Direction', 'Elevation (m)',
-                   'Raw Drift Ratio', `Drift × ${multiplier}`, 'Allowable', 'Status'];
+  const headers = ['Story', 'Case', 'Step Type', 'Step Number', 'Elevation (m)',
+                   'Drift X (raw)', 'Drift Y (raw)',
+                   `Drift X × ${multiplier}`, `Drift Y × ${multiplier}`,
+                   'Allowable', 'Status'];
 
-  const rows = sorted.map(r => {
-    const driftAbs  = Math.abs(r.drift);
-    const driftMult = driftAbs * multiplier;
-    const pass      = driftMult <= allowable;
+  const rows = pivoted.map(r => {
+    const dx    = r.drift_x !== null ? Math.abs(r.drift_x) : null;
+    const dy    = r.drift_y !== null ? Math.abs(r.drift_y) : null;
+    const maxD  = Math.max(dx ?? 0, dy ?? 0);
+    const pass  = maxD * multiplier <= allowable;
     return [
       r.story,
       r.case,
-      r.dir || r.label || '',
+      r.step_type || '',
+      r.step_num !== null && r.step_num !== undefined ? r.step_num : '',
       (+r.elevation).toFixed(3),
-      driftAbs.toFixed(6),
-      driftMult.toFixed(6),
+      dx !== null ? dx.toFixed(6) : '',
+      dy !== null ? dy.toFixed(6) : '',
+      dx !== null ? (dx * multiplier).toFixed(6) : '',
+      dy !== null ? (dy * multiplier).toFixed(6) : '',
       allowable,
       pass ? 'Pass' : 'Fail',
     ];
@@ -1521,7 +1559,7 @@ function exportDriftCSV() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  showToast(`Exported ${sorted.length} rows to CSV.`);
+  showToast(`Exported ${pivoted.length} rows to CSV.`);
 }
 
 // ── PNG export for drift chart ──
