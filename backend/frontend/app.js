@@ -1335,13 +1335,15 @@ async function driftExtract() {
 
 function driftPivot(rawData) {
   // Pivot X+Y direction rows into single row per (story, case, step_type, step_num, elevation)
+  // step_num="" means no step (non-step-by-step case)
   const map = new Map();
   rawData.forEach(r => {
-    const key = `${r.story}|||${r.case}|||${r.step_num ?? ''}|||${r.elevation}`;
+    const sn  = (r.step_num !== null && r.step_num !== undefined) ? r.step_num : '';
+    const key = `${r.story}|||${r.case}|||${sn}|||${r.elevation}`;
     if (!map.has(key)) {
       map.set(key, {
         story: r.story, case: r.case,
-        step_type: r.step_type || '', step_num: r.step_num,
+        step_type: r.step_type || '', step_num: sn,
         elevation: r.elevation,
         drift_x: null, drift_y: null,
       });
@@ -1389,7 +1391,7 @@ function driftRenderTable(rawData, allowable, multiplier) {
       <td>${row.story}</td>
       <td>${row.case}</td>
       <td>${row.step_type || '—'}</td>
-      <td>${row.step_num !== null && row.step_num !== undefined ? row.step_num : '—'}</td>
+      <td>${row.step_num !== null && row.step_num !== undefined && row.step_num !== '' ? row.step_num : '—'}</td>
       <td>${(+row.elevation).toFixed(2)}</td>
       <td class="${clsX}">${fmtD(dx)}</td>
       <td class="${clsY}">${fmtD(dy)}</td>
@@ -1413,7 +1415,7 @@ function driftRenderChart(rawData, allowable, multiplier) {
   // Group by (case, step_num) → one line per step for step-by-step cases
   const byGroup = new Map();
   rawData.forEach(r => {
-    const hasStep = r.step_num !== null && r.step_num !== undefined;
+    const hasStep = r.step_num !== null && r.step_num !== undefined && r.step_num !== '';
     const label   = hasStep ? `${r.case} [${r.step_num}]` : r.case;
     if (!byGroup.has(label)) byGroup.set(label, []);
     byGroup.get(label).push(r);

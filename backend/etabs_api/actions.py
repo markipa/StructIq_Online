@@ -248,12 +248,26 @@ def get_story_drifts_selected(names: list, load_type: str = "combo"):
 
         data = []
         for i in range(num):
-            sn = step_nums[i]
+            # step_num: same pattern as base reactions —
+            # 0.0 means no step (LinStatic non-step), convert to ""
+            try:
+                snum_f = float(step_nums[i]) if step_nums[i] is not None else 0.0
+            except (TypeError, ValueError):
+                snum_f = 0.0
+            if snum_f == 0:
+                step_num = ""
+            elif snum_f == int(snum_f):
+                step_num = int(snum_f)
+            else:
+                step_num = round(snum_f, 4)
+
+            st = str(step_types[i]).strip() if step_types[i] else ""
+
             data.append({
                 "story":     story_names[i],
                 "case":      load_cases[i],
-                "step_type": step_types[i] if step_types[i] else "",
-                "step_num":  int(sn) if sn is not None and str(sn).strip() not in ("", "None") else None,
+                "step_type": st,
+                "step_num":  step_num,
                 "direction": directions[i],
                 "drift":     round(float(drifts[i]), 6),
                 "elevation": round(float(elevations[i]), 3),
