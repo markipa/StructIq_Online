@@ -706,22 +706,21 @@
           </svg>
           Bubble Plot
         </button>
+        <button id="btn-export-joint-csv" class="btn btn-secondary btn-sm" style="margin-left:auto;margin-right:4px;align-self:center" title="Export visible rows to CSV">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 2h7l3 3v9H3z"/>
+            <polyline points="9,2 9,5 12,5"/>
+            <line x1="8" y1="8" x2="8" y2="13"/>
+            <polyline points="5,11 8,14 11,11"/>
+          </svg>
+          Export CSV
+        </button>
       </div>
 
       <!-- ── Tab 1: Results Table ── -->
       <div id="joint-table-tab" class="tab-panel active">
         <div class="table-toolbar">
-          <button id="btn-export-joint-csv" class="btn btn-secondary btn-sm" title="Export visible rows to CSV">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
-                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 2h7l3 3v9H3z"/>
-              <polyline points="9,2 9,5 12,5"/>
-              <line x1="8" y1="8" x2="8" y2="13"/>
-              <polyline points="5,11 8,14 11,11"/>
-            </svg>
-            Export CSV
-          </button>
-        </div>
         <div class="table-card">
           <table class="data-table">
             <thead>
@@ -975,6 +974,16 @@
             <line x1="11" y1="2" x2="11" y2="14"/>
           </svg>
           Load Envelope
+        </button>
+        <button id="btn-export-lc-csv" class="btn btn-secondary btn-sm" style="margin-left:auto;margin-right:4px;align-self:center" title="Export combinations to CSV">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 2h7l3 3v9H3z"/>
+            <polyline points="9,2 9,5 12,5"/>
+            <line x1="8" y1="8" x2="8" y2="13"/>
+            <polyline points="5,11 8,14 11,11"/>
+          </svg>
+          Export CSV
         </button>
       </div>
 
@@ -1267,6 +1276,16 @@
       <!-- Status bar -->
       <div class="rcb-statusbar">
         <span class="rcb-count" id="rcb-count">0 sections</span>
+        <button id="btn-export-rcb-csv" class="btn btn-secondary btn-sm" style="margin-left:auto;margin-right:4px;align-self:center" title="Export sections to CSV">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 2h7l3 3v9H3z"/>
+            <polyline points="9,2 9,5 12,5"/>
+            <line x1="8" y1="8" x2="8" y2="13"/>
+            <polyline points="5,11 8,14 11,11"/>
+          </svg>
+          Export CSV
+        </button>
         <button id="rcb-btn-add-row" class="btn btn-ghost btn-xs">
           <svg width="11" height="11" viewBox="0 0 12 12" fill="none"
                stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -1435,6 +1454,16 @@
       <!-- Status bar -->
       <div class="rcc-statusbar">
         <span class="rcc-count" id="rcc-count">0 sections</span>
+        <button id="btn-export-rcc-csv" class="btn btn-secondary btn-sm" style="margin-left:auto;margin-right:4px;align-self:center" title="Export sections to CSV">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 2h7l3 3v9H3z"/>
+            <polyline points="9,2 9,5 12,5"/>
+            <line x1="8" y1="8" x2="8" y2="13"/>
+            <polyline points="5,11 8,14 11,11"/>
+          </svg>
+          Export CSV
+        </button>
         <button id="rcc-btn-add-row" class="btn btn-ghost btn-xs">
           <svg width="11" height="11" viewBox="0 0 12 12" fill="none"
                stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -3417,6 +3446,6 @@
   </div>
 </div>
 
-<script src="/app/app.js?v=178"></script>
+<script src="/app/app.js?v=179"></script>
 </body>
 </html>

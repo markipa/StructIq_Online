@@ -826,6 +826,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Joint reactions: export CSV ──
   document.getElementById('btn-export-joint-csv').addEventListener('click', exportJointReactionsCSV);
 
+  // ── Load combinations: export CSV ──
+  document.getElementById('btn-export-lc-csv').addEventListener('click', exportLoadCombosCSV);
+
   // ── Joint reactions: source type toggle ──
   document.querySelectorAll('.joint-type-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -3473,6 +3476,9 @@ function rcbConfirmAutoGenRange() {
 
 function initRcBeam() {
   // Toolbar buttons
+  document.getElementById('btn-export-rcb-csv')
+    ?.addEventListener('click', exportRCBeamCSV);
+
   document.getElementById('rcb-btn-import-mat')
     ?.addEventListener('click', rcbImportMaterials);
 
@@ -4383,6 +4389,9 @@ ${unique.map(b => `<circle cx="${b.x.toFixed(1)}" cy="${b.y.toFixed(1)}" r="${ba
 // ── Init / event wiring ───────────────────────────────────────────
 
 function initRcColumn() {
+  document.getElementById('btn-export-rcc-csv')
+    ?.addEventListener('click', exportRCColumnCSV);
+
   document.getElementById('rcc-btn-import-mat')
     ?.addEventListener('click', rccImportMaterials);
 
@@ -9385,5 +9394,82 @@ function lcImportConfirm() {
   if (skippedSubCombos) {
     setTimeout(() => showToast('Note: nested combo references were skipped (only load case factors imported).'), 2200);
   }
+}
+
+// ── CSV export helper ──────────────────────────────────────────────────────
+function _downloadCSV(csvContent, filename) {
+  const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function _buildCSV(headers, rows) {
+  return [headers, ...rows]
+    .map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
+    .join('\r\n');
+}
+
+// ── CSV export for RC Beam sections ──
+function exportRCBeamCSV() {
+  if (!rcbSections.length) { showToast('No sections to export — add or import sections first.'); return; }
+  const headers = [
+    '#', 'Property Name', 'Concrete Strength', 'Fy (Main)', 'Fy (Ties)',
+    'Depth (mm)', 'Width (mm)', 'Bar Dia.', 'Top Cover (cc)', 'Bot Cover (cc)',
+    'NBar Top (i)', 'NBar Top (j)', 'NBar Bot (i)', 'NBar Bot (j)',
+    'Torsion', 'I22', 'I33'
+  ];
+  const rows = rcbSections.map(s => [
+    s.num, s.prop_name, s.concrete_strength, s.fy_main, s.fy_ties,
+    s.depth, s.width, s.bar_dia, s.top_cc, s.bot_cc,
+    s.nbar_top_i, s.nbar_top_j, s.nbar_bot_i, s.nbar_bot_j,
+    s.torsion, s.i22, s.i33
+  ]);
+  _downloadCSV(_buildCSV(headers, rows), `rc_beam_sections_${new Date().toISOString().slice(0, 10)}.csv`);
+  showToast(`Exported ${rcbSections.length} beam section${rcbSections.length !== 1 ? 's' : ''} to CSV.`);
+}
+
+// ── CSV export for RC Column sections ──
+function exportRCColumnCSV() {
+  if (!rccSections.length) { showToast('No sections to export — add or import sections first.'); return; }
+  const headers = [
+    '#', 'Property Name', 'Concrete Strength', 'Fy (Main)', 'Fy (Ties)',
+    'Depth (mm)', 'Width (mm)', 'Cover (mm)', 'Rebar Size',
+    'NBars(3)', 'NBars(2)', 'Tie Size', 'Spacing (mm)',
+    '#TieBars(3)', '#TieBars(2)', 'To Design', 'Torsion', 'I22', 'I33'
+  ];
+  const rows = rccSections.map(s => [
+    s.num, s.prop_name, s.concrete_strength, s.fy_main, s.fy_ties,
+    s.depth, s.width, s.cover, s.rebar_size,
+    s.nbars_3, s.nbars_2, s.tie_size, s.tie_spacing,
+    s.num_tie_3, s.num_tie_2, s.to_be_designed ? 'Yes' : 'No',
+    s.torsion, s.i22, s.i33
+  ]);
+  _downloadCSV(_buildCSV(headers, rows), `rc_column_sections_${new Date().toISOString().slice(0, 10)}.csv`);
+  showToast(`Exported ${rccSections.length} column section${rccSections.length !== 1 ? 's' : ''} to CSV.`);
+}
+
+// ── CSV export for Load Combinations ──
+function exportLoadCombosCSV() {
+  const dataRows = document.querySelectorAll('#lc-tbody tr:not(#lc-empty-row)');
+  if (!dataRows.length) { showToast('No combinations to export — add rows first.'); return; }
+  const visibleCols = lcColumns.filter(c => !lcHiddenCols.has(c));
+  const headers = ['#', 'Name', ...visibleCols];
+  const rows = Array.from(dataRows).map(tr => {
+    const num  = tr.querySelector('.lc-td-rownum')?.textContent?.trim() ?? '';
+    const name = tr.querySelector('.lc-name-input')?.value?.trim() ?? '';
+    const factors = visibleCols.map(col => {
+      const inp = tr.querySelector(`[data-col="${CSS.escape(col)}"]`);
+      return inp ? (inp.value ?? '') : '';
+    });
+    return [num, name, ...factors];
+  });
+  _downloadCSV(_buildCSV(headers, rows), `load_combinations_${new Date().toISOString().slice(0, 10)}.csv`);
+  showToast(`Exported ${rows.length} combination${rows.length !== 1 ? 's' : ''} to CSV.`);
 }
 

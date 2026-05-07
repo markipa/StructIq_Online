@@ -826,6 +826,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Joint reactions: export CSV ──
   document.getElementById('btn-export-joint-csv').addEventListener('click', exportJointReactionsCSV);
 
+  // ── Load combinations: export CSV ──
+  document.getElementById('btn-export-lc-csv').addEventListener('click', exportLoadCombosCSV);
+
   // ── Joint reactions: source type toggle ──
   document.querySelectorAll('.joint-type-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1412,16 +1415,19 @@ function driftRenderTable(rawData, allowable, multiplier) {
 }
 
 function driftRenderChart(rawData, allowable, multiplier) {
-  // Group by (case, step_num) → one line per step for step-by-step cases
+  // Use pivoted data so we have drift_x and drift_y per row
+  const pivoted = driftPivot(rawData);
+
+  // Group by (case, step_num) → one color per group, two traces (X solid, Y dashed)
   const byGroup = new Map();
-  rawData.forEach(r => {
+  pivoted.forEach(r => {
     const hasStep = r.step_num !== null && r.step_num !== undefined && r.step_num !== '';
     const label   = hasStep ? `${r.case} [${r.step_num}]` : r.case;
     if (!byGroup.has(label)) byGroup.set(label, []);
     byGroup.get(label).push(r);
   });
 
-  const allElevations = rawData.map(r => r.elevation);
+  const allElevations = pivoted.map(r => r.elevation);
   const minElev = Math.min(...allElevations);
   const maxElev = Math.max(...allElevations);
 
@@ -1429,27 +1435,39 @@ function driftRenderChart(rawData, allowable, multiplier) {
   let colorIdx = 0;
 
   byGroup.forEach((rows, groupLabel) => {
-    // Collapse X + Y per story: keep max |drift|
-    const byStory = {};
-    rows.forEach(r => {
-      if (!byStory[r.story] || Math.abs(r.drift) > Math.abs(byStory[r.story].drift)) {
-        byStory[r.story] = r;
-      }
-    });
-
-    const sorted = Object.values(byStory).sort((a, b) => a.elevation - b.elevation);
+    const sorted = [...rows].sort((a, b) => a.elevation - b.elevation);
     const color  = DRIFT_COLORS[colorIdx % DRIFT_COLORS.length];
 
-    traces.push({
-      x:    sorted.map(r => Math.abs(r.drift) * multiplier),
-      y:    sorted.map(r => r.elevation),
-      mode: 'lines+markers',
-      type: 'scatter',
-      name: groupLabel,
-      line:   { color, width: 2 },
-      marker: { color, size: 5, symbol: 'circle' },
-      hovertemplate: `<b>${groupLabel}</b><br>Drift: %{x:.6f}<br>Elev: %{y:.1f} m<extra></extra>`,
-    });
+    // X direction — solid line
+    const xRows = sorted.filter(r => r.drift_x !== null);
+    if (xRows.length) {
+      traces.push({
+        x:    xRows.map(r => Math.abs(r.drift_x) * multiplier),
+        y:    xRows.map(r => r.elevation),
+        mode: 'lines+markers',
+        type: 'scatter',
+        name: `${groupLabel} X`,
+        line:   { color, width: 2, dash: 'solid' },
+        marker: { color, size: 5, symbol: 'circle' },
+        hovertemplate: `<b>${groupLabel} X</b><br>Drift: %{x:.6f}<br>Elev: %{y:.1f} m<extra></extra>`,
+      });
+    }
+
+    // Y direction — dashed line, same color
+    const yRows = sorted.filter(r => r.drift_y !== null);
+    if (yRows.length) {
+      traces.push({
+        x:    yRows.map(r => Math.abs(r.drift_y) * multiplier),
+        y:    yRows.map(r => r.elevation),
+        mode: 'lines+markers',
+        type: 'scatter',
+        name: `${groupLabel} Y`,
+        line:   { color, width: 2, dash: 'dot' },
+        marker: { color, size: 5, symbol: 'diamond' },
+        hovertemplate: `<b>${groupLabel} Y</b><br>Drift: %{x:.6f}<br>Elev: %{y:.1f} m<extra></extra>`,
+      });
+    }
+
     colorIdx++;
   });
 
@@ -3458,6 +3476,9 @@ function rcbConfirmAutoGenRange() {
 
 function initRcBeam() {
   // Toolbar buttons
+  document.getElementById('btn-export-rcb-csv')
+    ?.addEventListener('click', exportRCBeamCSV);
+
   document.getElementById('rcb-btn-import-mat')
     ?.addEventListener('click', rcbImportMaterials);
 
@@ -4368,6 +4389,9 @@ ${unique.map(b => `<circle cx="${b.x.toFixed(1)}" cy="${b.y.toFixed(1)}" r="${ba
 // ── Init / event wiring ───────────────────────────────────────────
 
 function initRcColumn() {
+  document.getElementById('btn-export-rcc-csv')
+    ?.addEventListener('click', exportRCColumnCSV);
+
   document.getElementById('rcc-btn-import-mat')
     ?.addEventListener('click', rccImportMaterials);
 
@@ -4530,15 +4554,25 @@ const _BROWSE_ICON = `<svg width="14" height="14" viewBox="0 0 18 18" fill="none
   stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
   <path d="M2 5.5h6l2 2h6v9H2z"/><line x1="2" y1="5.5" x2="2" y2="14.5"/></svg>`;
 
+/** Route cleaner API calls: bridge (web mode) or embedded backend (Electron). */
+function _cleanerFetch(path, options = {}) {
+  if (_isBridgeModeAvailable()) {
+    // Web mode — cleaner must run on local machine via bridge
+    return fetch(`${BRIDGE_LOCAL}${path}`, options);
+  }
+  // Electron mode — embedded backend handles it
+  return authFetch(path, options);
+}
+
 async function cleanerBrowse() {
   const btn = document.getElementById('btn-cleaner-browse');
   btn.disabled = true;
   btn.innerHTML = _BROWSE_ICON + ' Opening…';
   showToast('A folder picker window has opened — check your taskbar if you cannot see it.', 'info');
   try {
-    const res  = await authFetch('/api/clean/browse-folder');
+    const res  = await _cleanerFetch('/api/clean/browse-folder');
     const data = await res.json();
-    if (!res.ok) { showToast(data.detail || 'Could not open folder picker', 'error'); return; }
+    if (!res.ok) { showToast(data.detail || data.error || 'Could not open folder picker', 'error'); return; }
     if (data.path) {
       document.getElementById('cleaner-dir-input').value = data.path;
       showToast('Folder selected. Click Scan Folder to continue.', 'success');
@@ -4554,38 +4588,74 @@ async function cleanerBrowse() {
 }
 
 async function cleanerScan() {
-  const dir     = cleanerNormPath(document.getElementById('cleaner-dir-input').value);
-  const scanBtn = document.getElementById('btn-cleaner-scan');
-  const delBtn  = document.getElementById('btn-cleaner-delete');
-  const results = document.getElementById('cleaner-results');
-
+  const dir = cleanerNormPath(document.getElementById('cleaner-dir-input').value);
   if (!dir) { showToast('Please enter a folder path first.'); return; }
 
-  scanBtn.disabled = true;
-  scanBtn.textContent = 'Scanning…';
-  results.classList.add('hidden');
-  delBtn.disabled = true;
+  // Pre-fetch: disable buttons using fresh queries (DOM may re-render during await)
+  document.getElementById('btn-cleaner-scan').disabled = true;
+  document.getElementById('btn-cleaner-scan').textContent = 'Scanning…';
+  document.getElementById('cleaner-results')?.classList.add('hidden');
+  document.getElementById('btn-cleaner-delete').disabled = true;
   _cleanerLastFiles = [];
 
   try {
-    const res  = await authFetch('/api/clean/run-files', {
+    const res  = await _cleanerFetch('/api/clean/run-files', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ directory: dir, dry_run: true }),
     });
     const data = await res.json();
-    if (!res.ok) { showToast(data.detail || 'Scan failed', 'error'); return; }
+    if (!res.ok) { showToast(data.detail || data.error || 'Scan failed', 'error'); return; }
 
     _cleanerLastFiles = data.files || [];
-    cleanerShowResults(data.count, null, [], data.total_bytes);
 
-    if (data.count > 0) delBtn.disabled = false;
+    // ── Re-query ALL elements fresh after async (stale refs break after re-render) ──
+    const _delBtn = document.getElementById('btn-cleaner-delete');
+    const _res    = document.getElementById('cleaner-results');
+    const _sum    = document.getElementById('cleaner-results-summary');
+    const _fl     = document.getElementById('cleaner-file-list');
+    const _tog    = document.getElementById('btn-cleaner-toggle-list');
+
+    if (_res) _res.classList.remove('hidden');
+    if (_sum) {
+      if (data.count === 0) {
+        _sum.textContent = '✓ No run files found — folder is clean.';
+        _sum.className = 'cleaner-results-summary cleaner-clean';
+        if (_tog) _tog.classList.add('hidden');
+      } else {
+        _sum.textContent = `Found ${data.count} run file${data.count !== 1 ? 's' : ''} ready for deletion — ${_fmtBytes(data.total_bytes)}.`;
+        _sum.className = 'cleaner-results-summary cleaner-found';
+        if (_tog) { _tog.classList.remove('hidden'); _tog.textContent = 'Hide files'; }
+      }
+    }
+
+    if (_fl) {
+      _fl.innerHTML = '';
+      _fl.classList.remove('hidden');
+      _cleanerLastFiles.forEach(f => {
+        const fpath  = (typeof f === 'string') ? f : (f.path || '');
+        const fname  = (typeof f === 'string') ? fpath.replace(/\\/g, '/').split('/').pop()
+                                               : (f.name || fpath.replace(/\\/g, '/').split('/').pop());
+        const pparts = fpath.replace(/\\/g, '/').split('/'); pparts.pop();
+        const parent = pparts.slice(-1)[0] || '';
+        const size   = (typeof f === 'object' && f.size != null) ? ` — ${_fmtBytes(f.size)}` : '';
+        const row = document.createElement('div');
+        row.className = 'cleaner-file-row'; row.title = fpath;
+        const ns = document.createElement('span'); ns.className = 'cleaner-file-name';   ns.textContent = fname;
+        const ps = document.createElement('span'); ps.className = 'cleaner-file-parent'; ps.textContent = (parent ? '…/' + parent : '') + size;
+        row.appendChild(ns); row.appendChild(ps);
+        _fl.appendChild(row);
+      });
+    }
+
+    if (data.count > 0 && _delBtn) _delBtn.removeAttribute('disabled');
 
   } catch (err) {
     showToast('Scan error: ' + err.message, 'error');
   } finally {
-    scanBtn.disabled = false;
-    scanBtn.textContent = 'Scan Folder';
+    // Re-query scan button fresh too
+    const _scanBtn = document.getElementById('btn-cleaner-scan');
+    if (_scanBtn) { _scanBtn.disabled = false; _scanBtn.textContent = 'Scan Folder'; }
   }
 }
 
@@ -4607,13 +4677,13 @@ async function cleanerDelete() {
   delBtn.textContent = 'Deleting…';
 
   try {
-    const res  = await authFetch('/api/clean/run-files', {
+    const res  = await _cleanerFetch('/api/clean/run-files', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ directory: dir, dry_run: false }),
     });
     const data = await res.json();
-    if (!res.ok) { showToast(data.detail || 'Delete failed', 'error'); return; }
+    if (!res.ok) { showToast(data.detail || data.error || 'Delete failed', 'error'); return; }
 
     _cleanerLastFiles = data.files || [];
     cleanerShowResults(data.count, data.deleted, data.errors, data.total_bytes);
@@ -4662,21 +4732,24 @@ function cleanerShowResults(count, deleted, errors = [], totalBytes = 0) {
     toggleBtn.textContent = 'Show files';
   }
 
-  // File list
+  // File list — show immediately after scan/delete
   fileList.innerHTML = '';
-  fileList.classList.add('hidden');
+  fileList.classList.remove('hidden');
+  if (toggleBtn) toggleBtn.textContent = 'Hide files';
   if (_cleanerLastFiles.length) {
-    _cleanerLastFiles.forEach(fp => {
+    _cleanerLastFiles.forEach(f => {
+      const fpath  = (typeof f === 'string') ? f : (f.path || '');
+      const fname  = (typeof f === 'string') ? fpath.replace(/\\/g, '/').split('/').pop() : (f.name || fpath.replace(/\\/g, '/').split('/').pop());
+      const parts  = fpath.replace(/\\/g, '/').split('/');
+      parts.pop();
+      const parent = parts.slice(-1)[0] || '';
+      const size   = (typeof f === 'object' && f.size != null) ? ` — ${_fmtBytes(f.size)}` : '';
       const row = document.createElement('div');
       row.className = 'cleaner-file-row';
-      // Show just the filename + parent folder for readability
-      const parts = fp.replace(/\\/g, '/').split('/');
-      const name  = parts.pop();
-      const parent = parts.slice(-1)[0] || '';
       row.innerHTML =
-        `<span class="cleaner-file-name">${name}</span>` +
-        `<span class="cleaner-file-parent">${parent ? '…/' + parent : ''}</span>`;
-      row.title = fp;
+        `<span class="cleaner-file-name">${fname}</span>` +
+        `<span class="cleaner-file-parent">${parent ? '…/' + parent : ''}${size}</span>`;
+      row.title = fpath;
       fileList.appendChild(row);
     });
   }
@@ -9321,5 +9394,82 @@ function lcImportConfirm() {
   if (skippedSubCombos) {
     setTimeout(() => showToast('Note: nested combo references were skipped (only load case factors imported).'), 2200);
   }
+}
+
+// ── CSV export helper ──────────────────────────────────────────────────────
+function _downloadCSV(csvContent, filename) {
+  const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function _buildCSV(headers, rows) {
+  return [headers, ...rows]
+    .map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
+    .join('\r\n');
+}
+
+// ── CSV export for RC Beam sections ──
+function exportRCBeamCSV() {
+  if (!rcbSections.length) { showToast('No sections to export — add or import sections first.'); return; }
+  const headers = [
+    '#', 'Property Name', 'Concrete Strength', 'Fy (Main)', 'Fy (Ties)',
+    'Depth (mm)', 'Width (mm)', 'Bar Dia.', 'Top Cover (cc)', 'Bot Cover (cc)',
+    'NBar Top (i)', 'NBar Top (j)', 'NBar Bot (i)', 'NBar Bot (j)',
+    'Torsion', 'I22', 'I33'
+  ];
+  const rows = rcbSections.map(s => [
+    s.num, s.prop_name, s.concrete_strength, s.fy_main, s.fy_ties,
+    s.depth, s.width, s.bar_dia, s.top_cc, s.bot_cc,
+    s.nbar_top_i, s.nbar_top_j, s.nbar_bot_i, s.nbar_bot_j,
+    s.torsion, s.i22, s.i33
+  ]);
+  _downloadCSV(_buildCSV(headers, rows), `rc_beam_sections_${new Date().toISOString().slice(0, 10)}.csv`);
+  showToast(`Exported ${rcbSections.length} beam section${rcbSections.length !== 1 ? 's' : ''} to CSV.`);
+}
+
+// ── CSV export for RC Column sections ──
+function exportRCColumnCSV() {
+  if (!rccSections.length) { showToast('No sections to export — add or import sections first.'); return; }
+  const headers = [
+    '#', 'Property Name', 'Concrete Strength', 'Fy (Main)', 'Fy (Ties)',
+    'Depth (mm)', 'Width (mm)', 'Cover (mm)', 'Rebar Size',
+    'NBars(3)', 'NBars(2)', 'Tie Size', 'Spacing (mm)',
+    '#TieBars(3)', '#TieBars(2)', 'To Design', 'Torsion', 'I22', 'I33'
+  ];
+  const rows = rccSections.map(s => [
+    s.num, s.prop_name, s.concrete_strength, s.fy_main, s.fy_ties,
+    s.depth, s.width, s.cover, s.rebar_size,
+    s.nbars_3, s.nbars_2, s.tie_size, s.tie_spacing,
+    s.num_tie_3, s.num_tie_2, s.to_be_designed ? 'Yes' : 'No',
+    s.torsion, s.i22, s.i33
+  ]);
+  _downloadCSV(_buildCSV(headers, rows), `rc_column_sections_${new Date().toISOString().slice(0, 10)}.csv`);
+  showToast(`Exported ${rccSections.length} column section${rccSections.length !== 1 ? 's' : ''} to CSV.`);
+}
+
+// ── CSV export for Load Combinations ──
+function exportLoadCombosCSV() {
+  const dataRows = document.querySelectorAll('#lc-tbody tr:not(#lc-empty-row)');
+  if (!dataRows.length) { showToast('No combinations to export — add rows first.'); return; }
+  const visibleCols = lcColumns.filter(c => !lcHiddenCols.has(c));
+  const headers = ['#', 'Name', ...visibleCols];
+  const rows = Array.from(dataRows).map(tr => {
+    const num  = tr.querySelector('.lc-td-rownum')?.textContent?.trim() ?? '';
+    const name = tr.querySelector('.lc-name-input')?.value?.trim() ?? '';
+    const factors = visibleCols.map(col => {
+      const inp = tr.querySelector(`[data-col="${CSS.escape(col)}"]`);
+      return inp ? (inp.value ?? '') : '';
+    });
+    return [num, name, ...factors];
+  });
+  _downloadCSV(_buildCSV(headers, rows), `load_combinations_${new Date().toISOString().slice(0, 10)}.csv`);
+  showToast(`Exported ${rows.length} combination${rows.length !== 1 ? 's' : ''} to CSV.`);
 }
 
