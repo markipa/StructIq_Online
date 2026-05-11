@@ -226,17 +226,26 @@ def _merge_collinear(lines: List[Dict], angle_tol: float = 5.0,
     return merged
 
 
-def _detect_polygons(mask: np.ndarray, member_type: str) -> List[Dict]:
-    """Return polygon vertex lists for slabs / walls (closed regions)."""
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+def _detect_polygons(mask: np.ndarray, member_type: str,
+                      simplify_px: float = 2.0) -> List[Dict]:
+    """
+    Return polygon vertex lists for slabs / walls (closed regions).
+
+    simplify_px is the absolute pixel tolerance passed to approxPolyDP.
+    A small constant (≈2 px) keeps the actual PDF outline shape — every
+    corner the engineer drew is preserved — while dropping per-pixel
+    noise along otherwise straight edges. Pass 0 to keep the raw contour.
+    """
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     out = []
     for c in contours:
         area = cv2.contourArea(c)
         if area < MIN_AREA[member_type]:
             continue
-        # Approximate to fewer vertices
-        epsilon = 0.01 * cv2.arcLength(c, True)
-        approx = cv2.approxPolyDP(c, epsilon, True)
+        if simplify_px > 0:
+            approx = cv2.approxPolyDP(c, float(simplify_px), True)
+        else:
+            approx = c
         verts = [[int(p[0][0]), int(p[0][1])] for p in approx]
         if len(verts) < 3:
             continue
