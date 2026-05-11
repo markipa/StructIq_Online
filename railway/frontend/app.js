@@ -10127,6 +10127,20 @@ function pdfmBuildPayload() {
     }
   });
 
+  // Auto-assignment fallback: pick a default section per kind for any
+  // member whose label is empty OR doesn't match an entry in the legend.
+  // Default = first section of that kind in pdfm.sections.
+  const defaultByKind = {};
+  for (const s of pdfm.sections) {
+    if (s.label && !defaultByKind[s.kind]) defaultByKind[s.kind] = s.label;
+  }
+  const resolveLabel = (rawLabel, kind) => {
+    const lbl = (rawLabel || '').trim().toUpperCase();
+    if (lbl && sectionsMap[lbl]) return lbl;       // explicit + known
+    if (defaultByKind[kind])      return defaultByKind[kind];
+    return '';                                      // no legend entry of this kind
+  };
+
   const floorsByStory = {};
   pdfm.uploads.forEach(upl => {
     upl.floors.forEach((story, pageIdx) => {
@@ -10143,23 +10157,24 @@ function pdfmBuildPayload() {
 
       det.members.columns.forEach(c => {
         const [x, y] = conv(c.cx, c.cy);
-        node.columns.push({ x_m: x, y_m: y, label: c.label || '' });
+        node.columns.push({ x_m: x, y_m: y, label: resolveLabel(c.label, 'column') });
       });
       det.members.beams.forEach(b => {
         const [x1, y1] = conv(b.x1, b.y1);
         const [x2, y2] = conv(b.x2, b.y2);
-        node.beams.push({ x1_m: x1, y1_m: y1, x2_m: x2, y2_m: y2, label: b.label || '' });
+        node.beams.push({ x1_m: x1, y1_m: y1, x2_m: x2, y2_m: y2,
+                          label: resolveLabel(b.label, 'beam') });
       });
       det.members.walls.forEach(wl => {
         node.walls.push({
           vertices_m: wl.vertices.map(v => conv(v[0], v[1])),
-          label: wl.label || '',
+          label: resolveLabel(wl.label, 'wall'),
         });
       });
       det.members.slabs.forEach(sl => {
         node.slabs.push({
           vertices_m: sl.vertices.map(v => conv(v[0], v[1])),
-          label: sl.label || '',
+          label: resolveLabel(sl.label, 'slab'),
         });
       });
     });
@@ -10177,6 +10192,32 @@ function pdfmBuildPayload() {
       x_grids: first.grids.x_grids.map(g => ({ label: g.label, x_m: g.x * k })),
       y_grids: first.grids.y_grids.map(g => ({ label: g.label, y_m: (h - g.y) * k })),
     };
+  }
+
+  // Auto-slab: if a floor has no detected slab polygons but the legend
+  // has a slab section, auto-create one slab = bounding rectangle of
+  // all members on that floor. Most plans don't bother drawing slab
+  // outlines; this covers the common case.
+  const slabDefault = defaultByKind['slab'];
+  if (slabDefault) {
+    Object.values(floorsByStory).forEach(floor => {
+      if (floor.slabs.length > 0) return;
+      const xs = [], ys = [];
+      floor.columns.forEach(c => { xs.push(c.x_m); ys.push(c.y_m); });
+      floor.beams.forEach(b => {
+        xs.push(b.x1_m, b.x2_m); ys.push(b.y1_m, b.y2_m);
+      });
+      floor.walls.forEach(w => w.vertices_m.forEach(v => {
+        xs.push(v[0]); ys.push(v[1]);
+      }));
+      if (xs.length < 3) return;
+      const xmin = Math.min(...xs), xmax = Math.max(...xs);
+      const ymin = Math.min(...ys), ymax = Math.max(...ys);
+      floor.slabs.push({
+        vertices_m: [[xmin,ymin],[xmax,ymin],[xmax,ymax],[xmin,ymax]],
+        label: slabDefault,
+      });
+    });
   }
 
   return {
