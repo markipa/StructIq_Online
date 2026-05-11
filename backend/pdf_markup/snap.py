@@ -1,13 +1,15 @@
 """
-Geometry snap pass.
+Geometry snap + topology cleanup pass.
 
-Engineers drawing freehand on PDFs rarely land beam endpoints exactly on
-column centroids or grid intersections. This module post-processes detected
-members and pulls every loose endpoint to the nearest reference point
-(column centroid or grid line crossing) within a pixel tolerance.
+Two operations performed in detection-pixel space:
 
-Operates entirely in detection-pixel space — caller already knows the
-coordinate system.
+1. snap_members(): pull beam endpoints + wall vertices to the nearest
+   column centroid or grid intersection within a pixel tolerance.
+
+2. split_beams_at_columns(): break each long beam at every column whose
+   centroid lies on it, so the pushed ETABS model has frame nodes at
+   intermediate columns (otherwise a single 4-column beam becomes one
+   ETABS frame with no intermediate connectivity).
 """
 from typing import Dict, List, Tuple
 import math
@@ -81,4 +83,74 @@ def snap_members(members: Dict, grids: Dict, tol_px: float = 30.0) -> Dict:
         w["vertices"] = new_verts
 
     members["snapped_endpoints"] = snapped_count
+    return members
+
+
+def split_beams_at_columns(members: Dict, grids: Dict,
+                           perp_tol_px: float = 15.0,
+                           min_segment_px: float = 20.0) -> Dict:
+    """
+    Split each beam at every column centroid (and grid intersection) that
+    lies within perp_tol_px of the beam line. Replaces the original beam
+    with N+1 short segments so ETABS gets a frame node at each column.
+
+    Original beam metadata (e.g. 'label') is copied to all segments.
+    """
+    cols = members.get("columns", []) or []
+    col_pts = [(float(c["cx"]), float(c["cy"])) for c in cols]
+
+    # Also include grid intersections — beams resting on a grid line should
+    # break at every grid intersection along their length.
+    x_lines = [float(g["x"]) for g in grids.get("x_grids", [])]
+    y_lines = [float(g["y"]) for g in grids.get("y_grids", [])]
+    grid_pts = [(x, y) for x in x_lines for y in y_lines]
+    break_pts = col_pts + grid_pts
+
+    new_beams: List[Dict] = []
+    for b in members.get("beams", []):
+        x1, y1 = float(b["x1"]), float(b["y1"])
+        x2, y2 = float(b["x2"]), float(b["y2"])
+        dx, dy = x2 - x1, y2 - y1
+        L = math.hypot(dx, dy)
+        if L < 1:
+            continue
+        ux, uy = dx / L, dy / L
+        nx, ny = -uy, ux
+
+        # Find every break point near the beam, parameterise along axis
+        ts: List[float] = []
+        for px, py in break_pts:
+            perp = abs((px - x1) * nx + (py - y1) * ny)
+            if perp > perp_tol_px:
+                continue
+            t = (px - x1) * ux + (py - y1) * uy
+            if min_segment_px < t < L - min_segment_px:
+                ts.append(t)
+        ts.sort()
+
+        # Build list of break positions: 0, ts..., L
+        ts = [0.0] + ts + [L]
+        # Dedupe near-equal ts within min_segment_px
+        clean: List[float] = [ts[0]]
+        for t in ts[1:]:
+            if t - clean[-1] >= min_segment_px:
+                clean.append(t)
+        if clean[-1] != L:
+            clean[-1] = L
+
+        # Emit a beam per segment, preserving original label
+        base = {k: v for k, v in b.items() if k not in ("x1", "y1", "x2", "y2", "length")}
+        for i in range(len(clean) - 1):
+            ta, tb = clean[i], clean[i + 1]
+            xa, ya = x1 + ta * ux, y1 + ta * uy
+            xb, yb = x1 + tb * ux, y1 + tb * uy
+            seg = dict(base)
+            seg.update({
+                "x1": int(round(xa)), "y1": int(round(ya)),
+                "x2": int(round(xb)), "y2": int(round(yb)),
+                "length": float(tb - ta),
+            })
+            new_beams.append(seg)
+
+    members["beams"] = new_beams
     return members

@@ -802,7 +802,7 @@ try:
     from pdf_markup import (
         detect_members, render_pdf_page,
         read_labels, parse_scale_from_titleblock, scan_section_schedule,
-        detect_grids, snap_members,
+        detect_grids, snap_members, split_beams_at_columns,
     )
     from pdf_markup.etabs_writer import push_to_etabs as _push_pdf_to_etabs
     import cv2 as _cv2
@@ -878,6 +878,8 @@ def br_pdf_detect(req: dict):
     snap_tol = float(req.get("snap_tol", 30))
     if snap_tol > 0:
         members = snap_members(members, grids, tol_px=snap_tol)
+    members = split_beams_at_columns(members, grids,
+                                       perp_tol_px=max(15.0, snap_tol * 0.5))
     scale   = parse_scale_from_titleblock(img)
     schedule = scan_section_schedule(img)
     return {
