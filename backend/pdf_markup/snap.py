@@ -154,3 +154,82 @@ def split_beams_at_columns(members: Dict, grids: Dict,
 
     members["beams"] = new_beams
     return members
+
+
+def autofill_grid_beams(members: Dict,
+                         row_tol_px: float = 25.0) -> Dict:
+    """
+    Generate orthogonal beams between every pair of adjacent columns on the
+    same row or column (i.e. columns whose y- or x-coordinate matches within
+    row_tol_px). Existing beams are left alone — autofill only adds beams
+    where a connection is missing between adjacent collinear columns.
+
+    Use case: engineer drew only horizontal beams on the PDF; verticals
+    are implied by the column layout but never inked.
+    """
+    cols = members.get("columns", []) or []
+    if len(cols) < 2:
+        return members
+
+    existing = members.get("beams", []) or []
+    # Build a quick lookup of existing beam axes (rounded coord pairs)
+    existing_axes = set()
+    for b in existing:
+        x1, y1, x2, y2 = b["x1"], b["y1"], b["x2"], b["y2"]
+        # Use sorted tuple so direction doesn't matter
+        existing_axes.add((min(x1, x2), min(y1, y2),
+                            max(x1, x2), max(y1, y2)))
+
+    def _have_beam(a, b) -> bool:
+        x1, y1 = a; x2, y2 = b
+        for ex in existing_axes:
+            ex1, ey1, ex2, ey2 = ex
+            # Check both axes overlap within tol
+            if (abs(x1 - ex1) < row_tol_px and abs(y1 - ey1) < row_tol_px
+                and abs(x2 - ex2) < row_tol_px and abs(y2 - ey2) < row_tol_px):
+                return True
+            if (abs(x1 - ex2) < row_tol_px and abs(y1 - ey2) < row_tol_px
+                and abs(x2 - ex1) < row_tol_px and abs(y2 - ey1) < row_tol_px):
+                return True
+        return False
+
+    pts = [(float(c["cx"]), float(c["cy"])) for c in cols]
+    added = 0
+
+    # Group by row (similar y) → sort by x → connect adjacent
+    by_row: Dict[int, List[Tuple[float, float]]] = {}
+    for x, y in pts:
+        key = int(round(y / row_tol_px))
+        by_row.setdefault(key, []).append((x, y))
+    for row in by_row.values():
+        if len(row) < 2: continue
+        row.sort(key=lambda p: p[0])
+        for i in range(len(row) - 1):
+            a, b = row[i], row[i + 1]
+            if _have_beam(a, b): continue
+            existing.append({"x1": int(round(a[0])), "y1": int(round(a[1])),
+                              "x2": int(round(b[0])), "y2": int(round(b[1])),
+                              "length": float(math.hypot(b[0]-a[0], b[1]-a[1])),
+                              "label": "", "auto": True})
+            added += 1
+
+    # Group by column (similar x) → sort by y → connect adjacent
+    by_col: Dict[int, List[Tuple[float, float]]] = {}
+    for x, y in pts:
+        key = int(round(x / row_tol_px))
+        by_col.setdefault(key, []).append((x, y))
+    for col in by_col.values():
+        if len(col) < 2: continue
+        col.sort(key=lambda p: p[1])
+        for i in range(len(col) - 1):
+            a, b = col[i], col[i + 1]
+            if _have_beam(a, b): continue
+            existing.append({"x1": int(round(a[0])), "y1": int(round(a[1])),
+                              "x2": int(round(b[0])), "y2": int(round(b[1])),
+                              "length": float(math.hypot(b[0]-a[0], b[1]-a[1])),
+                              "label": "", "auto": True})
+            added += 1
+
+    members["beams"] = existing
+    members["autofilled_beams"] = added
+    return members

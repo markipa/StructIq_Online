@@ -3235,6 +3235,7 @@ try:
         detect_members, render_pdf_page,
         read_labels, parse_scale_from_titleblock, scan_section_schedule,
         detect_grids, snap_members, split_beams_at_columns,
+        autofill_grid_beams,
     )
     from pdf_markup.etabs_writer import push_to_etabs as _push_pdf_to_etabs
     import cv2 as _cv2
@@ -3335,6 +3336,10 @@ def pdf_markup_detect(
     # so the ETABS model has frame nodes at intermediate columns.
     members = split_beams_at_columns(members, grids,
                                        perp_tol_px=max(15.0, snap_tol * 0.5))
+    if bool(req.get("autofill_grid", False)):
+        members = autofill_grid_beams(members)
+        members = split_beams_at_columns(members, grids,
+                                           perp_tol_px=max(15.0, snap_tol * 0.5))
     scale   = parse_scale_from_titleblock(img)
     schedule = scan_section_schedule(img)
 
@@ -3347,6 +3352,7 @@ def pdf_markup_detect(
         "scale": list(scale) if scale else None,
         "sections_detected": schedule,
         "snapped_endpoints": members.get("snapped_endpoints", 0),
+        "autofilled_beams": members.get("autofilled_beams", 0),
     }
 
 
