@@ -9709,11 +9709,87 @@ async function pdfmRunDetection() {
       `${m.columns.length} cols · ${m.beams.length} beams · ` +
       `${m.walls.length} walls · ${m.slabs.length} slabs · ` +
       `${data.grids.x_grids.length + data.grids.y_grids.length} grids`;
+    pdfmAutoPopulateSections(data.members);
     pdfmRedraw();
   } catch (e) {
     showToast('Detection failed: ' + e.message);
   } finally {
     btn.disabled = false; btn.textContent = 'Run detection';
+  }
+}
+
+/**
+ * Parse OCR'd label text for section name + dimensions.
+ * Recognized patterns (case-insensitive):
+ *   "C1 400x600"       → {name:"C1", b:400, h:600}
+ *   "C1=400x600"       → same
+ *   "C1 (400X600)"     → same
+ *   "B-300x500"        → {name:"B-300x500" or "B1", b:300, h:500}
+ *   "SW1 250"          → {name:"SW1", thickness:250}
+ *   "SW1 t=250"        → same
+ *   "S1 150 SLAB"      → {name:"S1", thickness:150}
+ *   "400x600"          → {name:"", b:400, h:600}
+ * Returns {name, b, h, thickness} — any field may be null.
+ */
+function pdfmParseLabel(txt, kind) {
+  if (!txt) return { name: '', b: null, h: null, thickness: null };
+  const t = txt.replace(/[\r\n]+/g, ' ').trim();
+  let name = '', b = null, h = null, thickness = null;
+
+  // bxh pattern (e.g. 400x600, 400X600, 400×600)
+  const bh = t.match(/(\d{2,4})\s*[xX×]\s*(\d{2,4})/);
+  if (bh) { b = +bh[1]; h = +bh[2]; }
+
+  // Name prefix: leading letters+digits (C1, B-1, SW1, S1)
+  const nm = t.match(/^([A-Za-z]{1,3}-?\d{1,3})/);
+  if (nm) name = nm[1].toUpperCase();
+
+  // Thickness for wall/slab: "t=250", "t 250", or lone integer when no bxh found
+  if (!bh) {
+    const tk = t.match(/t\s*[=:]?\s*(\d{2,4})/i) || t.match(/(\d{2,4})\s*(?:mm)?/i);
+    if (tk) thickness = +tk[1];
+  }
+
+  // Wall/slab kinds: prefer thickness from h if only one dim
+  if ((kind === 'wall' || kind === 'slab') && thickness == null) {
+    thickness = h || b;
+    b = null; h = null;
+  }
+  return { name, b, h, thickness };
+}
+
+function pdfmAutoPopulateSections(members) {
+  const kinds = [
+    { key: 'columns', kind: 'column' },
+    { key: 'beams',   kind: 'beam'   },
+    { key: 'walls',   kind: 'wall'   },
+    { key: 'slabs',   kind: 'slab'   },
+  ];
+  let added = 0;
+  for (const { key, kind } of kinds) {
+    for (const m of (members[key] || [])) {
+      const parsed = pdfmParseLabel(m.label || '', kind);
+      if (!parsed.name) continue;
+      // Re-tag the member with the cleaned name so push uses correct mapping
+      m.label = parsed.name;
+      // Skip if section already in legend
+      if (pdfm.sections.find(s => s.label === parsed.name)) continue;
+      // Need dims to be useful
+      if (kind === 'column' || kind === 'beam') {
+        if (!parsed.b || !parsed.h) continue;
+        pdfm.sections.push({ label: parsed.name, kind,
+                              b: parsed.b, h: parsed.h });
+      } else {
+        if (!parsed.thickness) continue;
+        pdfm.sections.push({ label: parsed.name, kind,
+                              b: 0, h: parsed.thickness });
+      }
+      added++;
+    }
+  }
+  if (added > 0) {
+    pdfmRenderSections();
+    showToast(`Auto-added ${added} section${added !== 1 ? 's' : ''} from PDF labels.`);
   }
 }
 

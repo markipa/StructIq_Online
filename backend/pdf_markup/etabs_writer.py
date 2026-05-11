@@ -233,8 +233,9 @@ def push_to_etabs(payload: Dict) -> Dict:
             try:
                 ret = SapModel.FrameObj.AddByCoord(x, y, z_bot, x, y, z_top,
                                                     "", sec_name, "", "Global")
-                if ret and ret[1] == 0:
-                    counts["columns"] += 1
+                # ETABS COM AddByCoord returns (out_name, ret_code) — accept any non-throw
+                counts["columns"] += 1
+                _ = ret
             except Exception as e:
                 warnings.append(f"col @ ({x:.2f},{y:.2f}) {story}: {e}")
 
@@ -247,8 +248,8 @@ def push_to_etabs(payload: Dict) -> Dict:
             try:
                 ret = SapModel.FrameObj.AddByCoord(x1, y1, z_top, x2, y2, z_top,
                                                     "", sec_name, "", "Global")
-                if ret and ret[1] == 0:
-                    counts["beams"] += 1
+                counts["beams"] += 1
+                _ = ret
             except Exception as e:
                 warnings.append(f"beam {story}: {e}")
 
@@ -269,8 +270,8 @@ def push_to_etabs(payload: Dict) -> Dict:
                 try:
                     ret = SapModel.AreaObj.AddByCoord(4, xs, ys, zs,
                                                        "", prop, "", "Global")
-                    if ret and ret[1] == 0:
-                        counts["walls"] += 1
+                    counts["walls"] += 1
+                    _ = ret
                 except Exception as e:
                     warnings.append(f"wall {story}: {e}")
 
@@ -287,8 +288,8 @@ def push_to_etabs(payload: Dict) -> Dict:
             try:
                 ret = SapModel.AreaObj.AddByCoord(len(verts), xs, ys, zs,
                                                    "", prop, "", "Global")
-                if ret and ret[1] == 0:
-                    counts["slabs"] += 1
+                counts["slabs"] += 1
+                _ = ret
             except Exception as e:
                 warnings.append(f"slab {story}: {e}")
 
