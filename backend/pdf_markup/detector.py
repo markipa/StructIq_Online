@@ -78,21 +78,49 @@ def _detect_columns(mask: np.ndarray) -> List[Dict]:
 
 
 def _detect_beams(mask: np.ndarray) -> List[Dict]:
-    """Skeletonise blue strokes and extract line endpoints via HoughLinesP."""
-    # Thin blue strokes — dilate slightly so HoughLinesP picks them up
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-    dil = cv2.dilate(mask, kernel, iterations=1)
-    lines = cv2.HoughLinesP(dil, rho=1, theta=np.pi / 180,
-                            threshold=50, minLineLength=30, maxLineGap=10)
-    out = []
-    if lines is None:
-        return out
-    for ln in lines:
-        x1, y1, x2, y2 = ln[0]
-        out.append({"x1": int(x1), "y1": int(y1),
-                    "x2": int(x2), "y2": int(y2),
-                    "length": float(np.hypot(x2 - x1, y2 - y1))})
-    return _merge_collinear(out)
+    """
+    One beam per connected blue region (avoids HoughLinesP duplicating long
+    strokes into many parallel/segmented hits).
+
+    Pipeline:
+      1. Close gaps in the blue mask so dashed/broken lines become one region.
+      2. For each contour: skip noise specks; fit a line via cv2.fitLine;
+         project contour points onto that line and use the extreme points
+         as the beam endpoints.
+    """
+    # Close small gaps so dashed/freehand strokes connect into one contour
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+    closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+
+    contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    out: List[Dict] = []
+    for c in contours:
+        area = cv2.contourArea(c)
+        if area < MIN_AREA["beam"]:
+            continue
+        pts = c.reshape(-1, 2).astype(np.float32)
+        if len(pts) < 5:
+            continue
+
+        # Direction of the stroke (least-squares line fit)
+        vx, vy, _, _ = cv2.fitLine(pts, cv2.DIST_L2, 0, 0.01, 0.01)
+        vx, vy = float(vx), float(vy)
+        # Use the centroid (avoids the fitLine x0,y0 being arbitrary point)
+        cx, cy = float(pts[:, 0].mean()), float(pts[:, 1].mean())
+
+        # Project every contour point onto the unit direction
+        proj = (pts[:, 0] - cx) * vx + (pts[:, 1] - cy) * vy
+        t_min, t_max = float(proj.min()), float(proj.max())
+        length = t_max - t_min
+        if length < 30:                # reject blob-like / noise
+            continue
+
+        x1 = cx + t_min * vx; y1 = cy + t_min * vy
+        x2 = cx + t_max * vx; y2 = cy + t_max * vy
+        out.append({"x1": int(round(x1)), "y1": int(round(y1)),
+                    "x2": int(round(x2)), "y2": int(round(y2)),
+                    "length": float(length)})
+    return out
 
 
 def _merge_collinear(lines: List[Dict], angle_tol: float = 5.0,
