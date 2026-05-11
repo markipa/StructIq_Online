@@ -5026,3 +5026,33 @@ body {
 .pdfm-assign-popup button {
   flex: 1; padding: 4px; font-size: 12px;
 }
+
+.pdfm-upload-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.pdfm-upload-name {
+  flex: 1;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pdfm-upload-del {
+  flex: 0 0 auto;
+  background: none;
+  border: 1px solid transparent;
+  color: #888;
+  cursor: pointer;
+  padding: 0 6px;
+  font-size: 14px;
+  line-height: 1;
+  border-radius: 3px;
+}
+.pdfm-upload-del:hover {
+  color: #c00;
+  border-color: #fbb;
+  background: #fff5f5;
+}

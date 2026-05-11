@@ -9631,14 +9631,64 @@ function pdfmRenderUploadList() {
   ul.innerHTML = '';
   pdfm.uploads.forEach((u, i) => {
     const li = document.createElement('li');
-    li.textContent = `${u.name} (${u.pages}p)`;
-    li.onclick = () => {
+    li.className = 'pdfm-upload-item';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = `${u.name} (${u.pages}p)`;
+    nameSpan.className = 'pdfm-upload-name';
+    nameSpan.onclick = () => {
       pdfm.current = { upload_id: u.upload_id, page: 0 };
       pdfmRefreshPageSelect();
       pdfmRedraw();
     };
+
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '✕';
+    delBtn.className = 'pdfm-upload-del';
+    delBtn.title = 'Remove this PDF';
+    delBtn.onclick = (e) => {
+      e.stopPropagation();
+      pdfmDeleteUpload(u.upload_id);
+    };
+
+    li.appendChild(nameSpan);
+    li.appendChild(delBtn);
     ul.appendChild(li);
   });
+}
+
+async function pdfmDeleteUpload(uploadId) {
+  const upl = pdfm.uploads.find(u => u.upload_id === uploadId);
+  if (!upl) return;
+  if (!confirm(`Remove "${upl.name}"?`)) return;
+
+  // Best-effort backend cleanup (ignore failure — front-end state is source of truth)
+  try {
+    await _pdfmFetch(`/api/pdf-markup/upload/${uploadId}`, { method: 'DELETE' });
+  } catch {}
+
+  // Drop from uploads + clear cached detections for its pages
+  pdfm.uploads = pdfm.uploads.filter(u => u.upload_id !== uploadId);
+  Object.keys(pdfm.detectionCache)
+    .filter(k => k.startsWith(uploadId + ':'))
+    .forEach(k => delete pdfm.detectionCache[k]);
+
+  // If current selection was on this PDF, switch / clear canvas
+  if (pdfm.current && pdfm.current.upload_id === uploadId) {
+    if (pdfm.uploads.length) {
+      pdfm.current = { upload_id: pdfm.uploads[0].upload_id, page: 0 };
+      pdfmRefreshPageSelect();
+      pdfmRedraw();
+    } else {
+      pdfm.current = null;
+      const canvas = document.getElementById('pdfm-canvas');
+      canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+      document.getElementById('pdfm-page-select').innerHTML = '';
+      document.getElementById('pdfm-detect-summary').textContent = '';
+    }
+  }
+  pdfmRenderUploadList();
+  showToast(`Removed ${upl.name}.`);
 }
 
 function pdfmRefreshPageSelect() {
