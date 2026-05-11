@@ -9486,6 +9486,7 @@ const pdfm = {
   mPerPx:    0,    // meters per preview-canvas pixel (from 2-click calibration)
   detectionCache: {},
   calib: { active: false, p1: null, p2: null },  // 2-click state
+  assignMode: false,                              // click-to-assign toggle
 };
 
 /**
@@ -9511,6 +9512,11 @@ function pdfmInit() {
   document.getElementById('pdfm-floor-select').onchange = pdfmAssignFloor;
   document.getElementById('pdfm-calib-btn').onclick = pdfmStartCalibration;
   document.getElementById('pdfm-canvas').addEventListener('click', pdfmCanvasClick);
+  document.getElementById('pdfm-assign-mode').onchange = (e) => {
+    pdfm.assignMode = e.target.checked;
+    document.getElementById('pdfm-canvas').style.cursor =
+      pdfm.assignMode ? 'pointer' : '';
+  };
   pdfmRenderStories();
   pdfmRenderSections();
 }
@@ -9525,14 +9531,19 @@ function pdfmStartCalibration() {
 }
 
 function pdfmCanvasClick(e) {
-  if (!pdfm.calib.active) return;
   const canvas = e.currentTarget;
   const rect = canvas.getBoundingClientRect();
-  // Account for CSS scaling (canvas may be displayed smaller than its pixel size)
   const sx = canvas.width  / rect.width;
   const sy = canvas.height / rect.height;
   const x = (e.clientX - rect.left) * sx;
   const y = (e.clientY - rect.top)  * sy;
+
+  // Click-to-assign takes precedence when active
+  if (pdfm.assignMode && !pdfm.calib.active) {
+    pdfmAssignClick(x, y, e.clientX, e.clientY);
+    return;
+  }
+  if (!pdfm.calib.active) return;
 
   if (!pdfm.calib.p1) {
     pdfm.calib.p1 = { x, y };
@@ -9709,6 +9720,9 @@ async function pdfmRunDetection() {
       `${m.columns.length} cols · ${m.beams.length} beams · ` +
       `${m.walls.length} walls · ${m.slabs.length} slabs · ` +
       `${data.grids.x_grids.length + data.grids.y_grids.length} grids`;
+    // 1. Auto-fill section legend from PDF schedule block (most reliable)
+    pdfmIngestSchedule(data.sections_detected || []);
+    // 2. Per-member label fallback (only adds rows for labels not in schedule)
     pdfmAutoPopulateSections(data.members);
     pdfmRedraw();
   } catch (e) {
@@ -9758,6 +9772,34 @@ function pdfmParseLabel(txt, kind) {
   return { name, b, h, thickness };
 }
 
+/**
+ * Ingest schedule-block entries returned by backend OCR scan.
+ * Merges into section legend table, skipping labels already present.
+ */
+function pdfmIngestSchedule(scheduleList) {
+  let added = 0;
+  for (const s of scheduleList) {
+    const label = (s.label || '').trim().toUpperCase();
+    if (!label) continue;
+    if (pdfm.sections.find(x => x.label === label)) continue;
+    const kind = s.kind || 'column';
+    if (kind === 'wall' || kind === 'slab') {
+      const t = s.thickness_mm || 0;
+      if (!t) continue;
+      pdfm.sections.push({ label, kind, b: 0, h: t });
+    } else {
+      const b = s.b_mm || 0, h = s.h_mm || 0;
+      if (!b || !h) continue;
+      pdfm.sections.push({ label, kind, b, h });
+    }
+    added++;
+  }
+  if (added > 0) {
+    pdfmRenderSections();
+    showToast(`Section schedule found — added ${added} entries.`);
+  }
+}
+
 function pdfmAutoPopulateSections(members) {
   const kinds = [
     { key: 'columns', kind: 'column' },
@@ -9791,6 +9833,97 @@ function pdfmAutoPopulateSections(members) {
     pdfmRenderSections();
     showToast(`Auto-added ${added} section${added !== 1 ? 's' : ''} from PDF labels.`);
   }
+}
+
+/**
+ * Click-to-assign: find nearest detected member to click point,
+ * show popup with section dropdown, mutate member.label on selection.
+ */
+function pdfmAssignClick(canvasX, canvasY, pageX, pageY) {
+  if (!pdfm.current) return;
+  const key = `${pdfm.current.upload_id}:${pdfm.current.page}`;
+  const det = pdfm.detectionCache[key];
+  if (!det) { showToast('Run detection first.'); return; }
+  const canvas = document.getElementById('pdfm-canvas');
+  const [dw, dh] = det.image_size;
+  // Convert click (canvas px) → detection px
+  const dx = canvasX * (dw / canvas.width);
+  const dy = canvasY * (dh / canvas.height);
+
+  // Find nearest member across all kinds. Score = distance to anchor point.
+  let best = null;
+  const consider = (kind, idx, ax, ay, member) => {
+    const d = Math.hypot(ax - dx, ay - dy);
+    if (!best || d < best.d) best = { kind, idx, d, member };
+  };
+  det.members.columns.forEach((c, i) => consider('column', i, c.cx, c.cy, c));
+  det.members.beams.forEach((b, i) =>
+    consider('beam', i, (b.x1 + b.x2)/2, (b.y1 + b.y2)/2, b));
+  ['walls', 'slabs'].forEach(key => {
+    const kind = key === 'walls' ? 'wall' : 'slab';
+    det.members[key].forEach((p, i) => {
+      const xs = p.vertices.map(v => v[0]);
+      const ys = p.vertices.map(v => v[1]);
+      const cx = xs.reduce((a,b)=>a+b,0) / xs.length;
+      const cy = ys.reduce((a,b)=>a+b,0) / ys.length;
+      consider(kind, i, cx, cy, p);
+    });
+  });
+
+  // Threshold: 80 det px (~ a typical column bbox)
+  if (!best || best.d > 80) {
+    pdfmHideAssignPopup();
+    showToast('No member near click. Get closer to a detected shape.');
+    return;
+  }
+
+  pdfmShowAssignPopup(best, pageX, pageY);
+}
+
+function pdfmShowAssignPopup(hit, pageX, pageY) {
+  const pop = document.getElementById('pdfm-assign-popup');
+  // Available sections matching the hit kind
+  const opts = pdfm.sections
+    .filter(s => s.kind === hit.kind)
+    .map(s => {
+      const dim = (s.kind === 'wall' || s.kind === 'slab')
+        ? `t=${s.h}`
+        : `${s.b}×${s.h}`;
+      return `<option value="${s.label}">${s.label} (${dim})</option>`;
+    }).join('');
+
+  pop.innerHTML = `
+    <div class="ap-title">${hit.kind.toUpperCase()} — current: ${hit.member.label || '(none)'}</div>
+    ${opts
+      ? `<select id="ap-pick"><option value="">— pick —</option>${opts}</select>`
+      : `<div class="pdfm-hint">No ${hit.kind} sections in legend. Add one first.</div>`}
+    <div class="ap-actions">
+      <button id="ap-apply">Apply</button>
+      <button id="ap-cancel">Cancel</button>
+    </div>
+  `;
+  // Position relative to canvas wrap
+  const wrap = document.getElementById('pdfm-canvas').parentElement;
+  const wrapRect = wrap.getBoundingClientRect();
+  pop.style.left = (pageX - wrapRect.left + 10) + 'px';
+  pop.style.top  = (pageY - wrapRect.top + 10) + 'px';
+  pop.style.display = 'block';
+
+  document.getElementById('ap-cancel').onclick = pdfmHideAssignPopup;
+  document.getElementById('ap-apply').onclick = () => {
+    const sel = document.getElementById('ap-pick');
+    if (sel && sel.value) {
+      hit.member.label = sel.value;
+      showToast(`Tagged ${hit.kind} as ${sel.value}`);
+      pdfmRedraw();
+    }
+    pdfmHideAssignPopup();
+  };
+}
+
+function pdfmHideAssignPopup() {
+  const pop = document.getElementById('pdfm-assign-popup');
+  if (pop) pop.style.display = 'none';
 }
 
 function pdfmDrawOverlay(data) {

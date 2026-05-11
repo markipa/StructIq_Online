@@ -5003,3 +5003,26 @@ body {
   background: #fff; overflow: auto; max-height: 75vh;
 }
 #pdfm-canvas { display: block; max-width: 100%; }
+
+.pdfm-assign-popup {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  z-index: 10;
+  min-width: 180px;
+  font-size: 12px;
+}
+.pdfm-assign-popup .ap-title {
+  font-weight: 600; margin-bottom: 4px;
+  border-bottom: 1px solid #eee; padding-bottom: 4px;
+}
+.pdfm-assign-popup select { width: 100%; padding: 3px 4px; margin-top: 4px; }
+.pdfm-assign-popup .ap-actions {
+  display: flex; gap: 4px; margin-top: 6px;
+}
+.pdfm-assign-popup button {
+  flex: 1; padding: 4px; font-size: 12px;
+}

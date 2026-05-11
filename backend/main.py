@@ -3233,7 +3233,7 @@ async def fem2d_solve(req: dict):
 try:
     from pdf_markup import (
         detect_members, render_pdf_page,
-        read_labels, parse_scale_from_titleblock,
+        read_labels, parse_scale_from_titleblock, scan_section_schedule,
         detect_grids,
     )
     from pdf_markup.etabs_writer import push_to_etabs as _push_pdf_to_etabs
@@ -3329,6 +3329,7 @@ def pdf_markup_detect(
     members = read_labels(img, members)
     grids   = detect_grids(img)
     scale   = parse_scale_from_titleblock(img)
+    schedule = scan_section_schedule(img)
 
     return {
         "image_size": members["image_size"],
@@ -3336,6 +3337,7 @@ def pdf_markup_detect(
         "members": {k: v for k, v in members.items() if k != "image_size"},
         "grids": grids,
         "scale": list(scale) if scale else None,
+        "sections_detected": schedule,
     }
 
 

@@ -127,6 +127,100 @@ _SCALE_PATTERNS = [
 ]
 
 
+# Section schedule patterns. Examples matched:
+#   C1 = 400 x 600
+#   C1: 400x600
+#   B-1 300X500
+#   SW1 = t250        (wall, t-prefix → thickness)
+#   SW1 t = 250
+#   S1 = 150 SLAB
+#   S2 t150 mm
+_SCHEDULE_BXH = re.compile(
+    r"\b([A-Z]{1,3}-?\d{1,3})\s*[:=]?\s*\(?(\d{2,4})\s*[xX×]\s*(\d{2,4})\)?",
+)
+_SCHEDULE_T = re.compile(
+    r"\b((?:SW|W|S|SL|FS)\-?\d{1,3})\s*[:=]?\s*t?\s*[:=]?\s*(\d{2,4})\b",
+    re.IGNORECASE,
+)
+
+
+def _classify_kind(label: str, ctx: str) -> str:
+    """Best-effort kind inference from label prefix + nearby context."""
+    L = label.upper()
+    if L.startswith(("SW", "W")):
+        return "wall"
+    if L.startswith(("S", "SL", "FS")) and not L.startswith("ST"):
+        return "slab"
+    if L.startswith("B"):
+        return "beam"
+    if L.startswith("C"):
+        return "column"
+    cl = (ctx or "").upper()
+    if "WALL" in cl: return "wall"
+    if "SLAB" in cl: return "slab"
+    if "BEAM" in cl or "GIRDER" in cl: return "beam"
+    if "COL"  in cl: return "column"
+    return "column"
+
+
+def scan_section_schedule(img):
+    """
+    OCR the entire page at low cost (psm=6) and extract every section
+    definition found anywhere on the drawing — typically the schedule
+    block in a corner.
+
+    Returns list of dicts:
+        [{"label": "C1", "kind": "column", "b_mm": 400, "h_mm": 600}, ...]
+        [{"label": "SW1", "kind": "wall",  "thickness_mm": 250}, ...]
+    Deduplicated by (label, kind).
+    """
+    if not _HAS_TESS:
+        return []
+    pre = _preprocess(img)
+    try:
+        text = pytesseract.image_to_string(pre, config="--psm 6")
+    except Exception:
+        return []
+
+    found = {}
+    upper = text.upper()
+
+    # b × h pattern (columns / beams)
+    for m in _SCHEDULE_BXH.finditer(upper):
+        label = m.group(1).upper()
+        b, h  = int(m.group(2)), int(m.group(3))
+        # Sanity check on dim range (50–5000 mm)
+        if not (50 <= b <= 5000 and 50 <= h <= 5000):
+            continue
+        # Use 80-char window around match for context
+        i, j = max(0, m.start() - 40), min(len(upper), m.end() + 40)
+        kind = _classify_kind(label, upper[i:j])
+        if kind in ("wall", "slab"):
+            # Mis-classified bxh as thickness? keep as wall but use min as t
+            found[(label, kind)] = {"label": label, "kind": kind,
+                                     "thickness_mm": min(b, h)}
+        else:
+            found[(label, kind)] = {"label": label, "kind": kind,
+                                     "b_mm": b, "h_mm": h}
+
+    # Thickness pattern (walls / slabs)
+    for m in _SCHEDULE_T.finditer(upper):
+        label = m.group(1).upper()
+        t = int(m.group(2))
+        if not (50 <= t <= 1000):
+            continue
+        i, j = max(0, m.start() - 40), min(len(upper), m.end() + 40)
+        kind = _classify_kind(label, upper[i:j])
+        # Skip if same label already captured as bxh (avoid wall ↔ column collision)
+        if any(k[0] == label for k in found):
+            continue
+        if kind not in ("wall", "slab"):
+            kind = "wall" if label.startswith(("SW", "W")) else "slab"
+        found[(label, kind)] = {"label": label, "kind": kind, "thickness_mm": t}
+
+    return list(found.values())
+
+
 def parse_scale_from_titleblock(img: np.ndarray) -> Optional[Tuple[int, int]]:
     """
     OCR bottom-right quadrant (typical title-block location) for "1:NN" scale.

@@ -2389,10 +2389,14 @@
               <select id="pdfm-floor-select"></select>
             </label>
             <button class="btn-secondary" id="pdfm-detect-btn">Run detection</button>
+            <label style="font-size:12px;display:flex;align-items:center;gap:4px">
+              <input type="checkbox" id="pdfm-assign-mode"> Click-to-assign
+            </label>
             <span id="pdfm-detect-summary" class="pdfm-hint"></span>
           </div>
-          <div class="pdfm-canvas-wrap">
+          <div class="pdfm-canvas-wrap" style="position:relative">
             <canvas id="pdfm-canvas" width="800" height="600"></canvas>
+            <div id="pdfm-assign-popup" class="pdfm-assign-popup" style="display:none"></div>
           </div>
         </div>
       </div>
