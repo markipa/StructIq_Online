@@ -4959,3 +4959,47 @@ body {
   font-size: var(--fs-xs);
   letter-spacing: 0.5px;
 }
+
+
+/* ========== PDF Markup → ETABS ========== */
+.pdfm-layout { display: grid; grid-template-columns: 340px 1fr; gap: 16px; }
+.pdfm-sidebar { display: flex; flex-direction: column; gap: 14px; }
+.pdfm-section {
+  background: var(--bg2, #fafafa);
+  border: 1px solid var(--border, #e3e3e3);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.pdfm-section h3 { font-size: 13px; margin: 0 0 8px; font-weight: 600; }
+.pdfm-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.pdfm-row label { font-size: 12px; min-width: 60px; }
+.pdfm-row input { flex: 1; padding: 4px 6px; }
+.pdfm-hint { font-size: 11px; color: var(--t2, #666); margin-top: 4px; }
+.pdfm-upload-list { list-style: none; margin: 8px 0 0; padding: 0; font-size: 12px; }
+.pdfm-upload-list li {
+  padding: 4px 6px; border: 1px solid var(--border, #e3e3e3);
+  border-radius: 4px; margin-bottom: 4px; cursor: pointer;
+}
+.pdfm-upload-list li:hover { background: var(--bg3, #f0f0f0); }
+.pdfm-sec-table, .pdfm-story-table {
+  width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 6px;
+}
+.pdfm-sec-table th, .pdfm-story-table th,
+.pdfm-sec-table td, .pdfm-story-table td {
+  padding: 3px 4px; border-bottom: 1px solid var(--border, #eee); text-align: left;
+}
+.pdfm-sec-table input, .pdfm-sec-table select,
+.pdfm-story-table input { padding: 2px 4px; font-size: 12px; }
+.pdfm-status { margin-top: 8px; font-size: 12px; }
+.pdfm-main { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.pdfm-toolbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px; background: var(--bg2, #fafafa);
+  border: 1px solid var(--border, #e3e3e3); border-radius: 6px;
+}
+.pdfm-toolbar select { padding: 4px 6px; font-size: 12px; }
+.pdfm-canvas-wrap {
+  border: 1px solid var(--border, #e3e3e3); border-radius: 6px;
+  background: #fff; overflow: auto; max-height: 75vh;
+}
+#pdfm-canvas { display: block; max-width: 100%; }

@@ -15,6 +15,13 @@ hidden = []
 for pkg in ('fastapi', 'uvicorn', 'starlette', 'pydantic', 'comtypes', 'anyio', 'h11'):
     hidden += collect_submodules(pkg)
 
+# PDF Markup → ETABS deps (Enterprise feature)
+for pkg in ('fitz', 'cv2', 'pytesseract', 'PIL', 'numpy'):
+    try:
+        hidden += collect_submodules(pkg)
+    except Exception:
+        pass
+
 a = Analysis(
     ['launcher.py'],
     pathex=['.'],
@@ -22,11 +29,12 @@ a = Analysis(
     datas=[
         ('frontend', 'frontend'),          # HTML / CSS / JS
         ('etabs_api', 'etabs_api'),        # ETABS COM bridge
+        ('pdf_markup', 'pdf_markup'),      # PDF Markup → ETABS (Enterprise)
         ('main.py',   '.'),               # App routes — loaded from filesystem so patches work without rebuild
         ('database.py', '.'),              # Auth DB module
         ('config.py', '.'),                # App config
         (certifi.where(), 'certifi'),      # SSL CA bundle — needed for HTTPS in .exe
-    ],
+    ] + ([('tesseract', 'tesseract')] if os.path.isdir('tesseract') else []),
     hiddenimports=hidden + [
         'uvicorn.logging',
         'uvicorn.loops',
@@ -49,7 +57,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['tkinter', 'matplotlib', 'numpy', 'pandas', 'PIL'],
+    excludes=['tkinter', 'matplotlib', 'pandas'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,

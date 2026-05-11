@@ -7,3 +7,8 @@ comtypes
 pydantic
 requests
 pyinstaller
+PyMuPDF
+opencv-python-headless
+pytesseract
+numpy
+python-multipart

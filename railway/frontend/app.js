@@ -9473,3 +9473,499 @@ function exportLoadCombosCSV() {
   showToast(`Exported ${rows.length} combination${rows.length !== 1 ? 's' : ''} to CSV.`);
 }
 
+
+// =================================================================
+//  PDF MARKUP → ETABS (Enterprise)
+// =================================================================
+const pdfm = {
+  uploads:   [],   // [{upload_id, name, pages, floors: [storyName|null per page]}]
+  current:   null, // {upload_id, page}
+  detection: null, // last detect result
+  sections:  [],
+  stories:   [{ name: 'Story1', height: 3.5 }],
+  mPerPx:    0,    // meters per preview-canvas pixel (from 2-click calibration)
+  detectionCache: {},
+  calib: { active: false, p1: null, p2: null },  // 2-click state
+};
+
+/**
+ * Route PDF Markup API calls to bridge (web mode) or local backend (Electron).
+ * Bridge runs on localhost:19999 with permissive CORS — browser can call directly.
+ */
+function _pdfmFetch(path, options = {}) {
+  if (_isBridgeModeAvailable()) {
+    return fetch(`${BRIDGE_LOCAL}${path}`, options);
+  }
+  return authFetch(path, options);
+}
+
+function pdfmInit() {
+  document.getElementById('pdfm-upload-btn').onclick =
+    () => document.getElementById('pdfm-file-input').click();
+  document.getElementById('pdfm-file-input').onchange  = pdfmHandleFiles;
+  document.getElementById('pdfm-add-sec-btn').onclick   = () => pdfmAddSecRow();
+  document.getElementById('pdfm-add-story-btn').onclick = pdfmAddStoryRow;
+  document.getElementById('pdfm-detect-btn').onclick    = pdfmRunDetection;
+  document.getElementById('pdfm-push-btn').onclick      = pdfmPush;
+  document.getElementById('pdfm-page-select').onchange  = pdfmSelectPage;
+  document.getElementById('pdfm-floor-select').onchange = pdfmAssignFloor;
+  document.getElementById('pdfm-calib-btn').onclick = pdfmStartCalibration;
+  document.getElementById('pdfm-canvas').addEventListener('click', pdfmCanvasClick);
+  pdfmRenderStories();
+  pdfmRenderSections();
+}
+
+// ── 2-click scale calibration ──────────────────────────────────────
+function pdfmStartCalibration() {
+  if (!pdfm.current) { showToast('Upload a PDF first.'); return; }
+  pdfm.calib = { active: true, p1: null, p2: null };
+  document.getElementById('pdfm-calib-status').textContent =
+    'Click first point on PDF…';
+  document.getElementById('pdfm-canvas').style.cursor = 'crosshair';
+}
+
+function pdfmCanvasClick(e) {
+  if (!pdfm.calib.active) return;
+  const canvas = e.currentTarget;
+  const rect = canvas.getBoundingClientRect();
+  // Account for CSS scaling (canvas may be displayed smaller than its pixel size)
+  const sx = canvas.width  / rect.width;
+  const sy = canvas.height / rect.height;
+  const x = (e.clientX - rect.left) * sx;
+  const y = (e.clientY - rect.top)  * sy;
+
+  if (!pdfm.calib.p1) {
+    pdfm.calib.p1 = { x, y };
+    document.getElementById('pdfm-calib-status').textContent =
+      'Click second point…';
+    pdfmDrawCalibMarkers();
+    return;
+  }
+  pdfm.calib.p2 = { x, y };
+  pdfmDrawCalibMarkers();
+  const distStr = window.prompt(
+    'Enter the real-world distance between the two points (in meters):',
+    '1.0'
+  );
+  const distM = parseFloat(distStr);
+  if (!distM || distM <= 0) {
+    document.getElementById('pdfm-calib-status').textContent =
+      'Cancelled — not calibrated.';
+    pdfm.calib = { active: false, p1: null, p2: null };
+    document.getElementById('pdfm-canvas').style.cursor = '';
+    pdfmRedraw();
+    return;
+  }
+  const px = Math.hypot(pdfm.calib.p2.x - pdfm.calib.p1.x,
+                         pdfm.calib.p2.y - pdfm.calib.p1.y);
+  pdfm.mPerPx = distM / px;
+  document.getElementById('pdfm-mpp').value = pdfm.mPerPx.toFixed(6);
+  document.getElementById('pdfm-calib-status').innerHTML =
+    `<span style="color:#0a0">✓ Calibrated</span> — ${px.toFixed(1)} px = ${distM} m`;
+  pdfm.calib.active = false;
+  document.getElementById('pdfm-canvas').style.cursor = '';
+}
+
+function pdfmDrawCalibMarkers() {
+  pdfmRedraw();   // redraws base + overlay; markers drawn on top after image loads
+  // Note: drawing happens inside img.onload via pdfmRedraw. For immediate feedback
+  // draw on next tick after redraw completes.
+  setTimeout(() => {
+    const ctx = document.getElementById('pdfm-canvas').getContext('2d');
+    [pdfm.calib.p1, pdfm.calib.p2].forEach((p, i) => {
+      if (!p) return;
+      ctx.fillStyle = '#ff00ff';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = '12px sans-serif';
+      ctx.fillText(String(i + 1), p.x + 7, p.y - 6);
+    });
+    if (pdfm.calib.p1 && pdfm.calib.p2) {
+      ctx.strokeStyle = '#ff00ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(pdfm.calib.p1.x, pdfm.calib.p1.y);
+      ctx.lineTo(pdfm.calib.p2.x, pdfm.calib.p2.y);
+      ctx.stroke();
+    }
+  }, 250);
+}
+
+async function pdfmHandleFiles(e) {
+  const files = Array.from(e.target.files || []);
+  for (const f of files) {
+    const fd = new FormData();
+    fd.append('file', f);
+    const res = await _pdfmFetch('/api/pdf-markup/upload', { method: 'POST', body: fd });
+    if (!res.ok) { showToast('Upload failed: ' + await res.text()); continue; }
+    const data = await res.json();
+    pdfm.uploads.push({
+      upload_id: data.upload_id, name: data.name, pages: data.pages,
+      floors: new Array(data.pages).fill(null),
+    });
+  }
+  e.target.value = '';
+  pdfmRenderUploadList();
+  if (pdfm.uploads.length && !pdfm.current) {
+    pdfm.current = { upload_id: pdfm.uploads[0].upload_id, page: 0 };
+    pdfmRefreshPageSelect();
+    pdfmRedraw();
+  }
+}
+
+function pdfmRenderUploadList() {
+  const ul = document.getElementById('pdfm-upload-list');
+  ul.innerHTML = '';
+  pdfm.uploads.forEach((u, i) => {
+    const li = document.createElement('li');
+    li.textContent = `${u.name} (${u.pages}p)`;
+    li.onclick = () => {
+      pdfm.current = { upload_id: u.upload_id, page: 0 };
+      pdfmRefreshPageSelect();
+      pdfmRedraw();
+    };
+    ul.appendChild(li);
+  });
+}
+
+function pdfmRefreshPageSelect() {
+  const sel = document.getElementById('pdfm-page-select');
+  sel.innerHTML = '';
+  const upl = pdfm.uploads.find(u => u.upload_id === pdfm.current.upload_id);
+  if (!upl) return;
+  for (let p = 0; p < upl.pages; p++) {
+    const opt = document.createElement('option');
+    opt.value = p;
+    opt.textContent = `${upl.name} — page ${p + 1}`;
+    sel.appendChild(opt);
+  }
+  sel.value = pdfm.current.page;
+  pdfmRefreshFloorSelect();
+}
+
+function pdfmRefreshFloorSelect() {
+  const sel = document.getElementById('pdfm-floor-select');
+  sel.innerHTML = '<option value="">— assign —</option>';
+  pdfm.stories.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s.name; o.textContent = s.name;
+    sel.appendChild(o);
+  });
+  const upl = pdfm.uploads.find(u => u.upload_id === pdfm.current.upload_id);
+  if (upl) sel.value = upl.floors[pdfm.current.page] || '';
+}
+
+function pdfmSelectPage(e) {
+  pdfm.current.page = parseInt(e.target.value, 10);
+  pdfmRefreshFloorSelect();
+  pdfmRedraw();
+}
+
+function pdfmAssignFloor(e) {
+  const upl = pdfm.uploads.find(u => u.upload_id === pdfm.current.upload_id);
+  if (upl) upl.floors[pdfm.current.page] = e.target.value || null;
+}
+
+async function pdfmRedraw() {
+  if (!pdfm.current) return;
+  const { upload_id, page } = pdfm.current;
+  const canvas = document.getElementById('pdfm-canvas');
+  const ctx = canvas.getContext('2d');
+  // Fetch PNG preview
+  const res = await _pdfmFetch(`/api/pdf-markup/preview/${upload_id}/${page}?dpi=120`);
+  if (!res.ok) { showToast('Preview failed'); return; }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.onload = () => {
+    canvas.width  = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    const key = `${upload_id}:${page}`;
+    if (pdfm.detectionCache[key]) pdfmDrawOverlay(pdfm.detectionCache[key]);
+  };
+  img.src = url;
+}
+
+async function pdfmRunDetection() {
+  if (!pdfm.current) return;
+  const { upload_id, page } = pdfm.current;
+  const btn = document.getElementById('pdfm-detect-btn');
+  btn.disabled = true; btn.textContent = 'Detecting…';
+  try {
+    const res = await _pdfmFetch('/api/pdf-markup/detect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ upload_id, page, dpi: 200 }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    pdfm.detectionCache[`${upload_id}:${page}`] = data;
+    const m = data.members;
+    document.getElementById('pdfm-detect-summary').textContent =
+      `${m.columns.length} cols · ${m.beams.length} beams · ` +
+      `${m.walls.length} walls · ${m.slabs.length} slabs · ` +
+      `${data.grids.x_grids.length + data.grids.y_grids.length} grids`;
+    pdfmRedraw();
+  } catch (e) {
+    showToast('Detection failed: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Run detection';
+  }
+}
+
+function pdfmDrawOverlay(data) {
+  const canvas = document.getElementById('pdfm-canvas');
+  const ctx = canvas.getContext('2d');
+  // Detection ran at higher DPI than preview — compute scale ratio
+  const [dw, dh] = data.image_size;
+  const sx = canvas.width  / dw;
+  const sy = canvas.height / dh;
+  const m = data.members;
+
+  ctx.lineWidth = 2;
+  // Columns
+  ctx.strokeStyle = 'rgba(255,0,0,0.9)';
+  m.columns.forEach(c => {
+    const [x,y,w,h] = c.bbox;
+    ctx.strokeRect(x*sx, y*sy, w*sx, h*sy);
+  });
+  // Beams
+  ctx.strokeStyle = 'rgba(0,80,255,0.9)';
+  m.beams.forEach(b => {
+    ctx.beginPath();
+    ctx.moveTo(b.x1*sx, b.y1*sy);
+    ctx.lineTo(b.x2*sx, b.y2*sy);
+    ctx.stroke();
+  });
+  // Walls
+  ctx.strokeStyle = 'rgba(220,180,0,0.9)';
+  m.walls.forEach(w => pdfmDrawPoly(ctx, w.vertices, sx, sy));
+  // Slabs
+  ctx.strokeStyle = 'rgba(0,160,40,0.9)';
+  m.slabs.forEach(s => pdfmDrawPoly(ctx, s.vertices, sx, sy));
+  // Grids
+  ctx.strokeStyle = 'rgba(100,100,100,0.5)';
+  ctx.setLineDash([6, 4]);
+  data.grids.x_grids.forEach(g => {
+    ctx.beginPath();
+    ctx.moveTo(g.x*sx, 0); ctx.lineTo(g.x*sx, canvas.height); ctx.stroke();
+  });
+  data.grids.y_grids.forEach(g => {
+    ctx.beginPath();
+    ctx.moveTo(0, g.y*sy); ctx.lineTo(canvas.width, g.y*sy); ctx.stroke();
+  });
+  ctx.setLineDash([]);
+}
+
+function pdfmDrawPoly(ctx, verts, sx, sy) {
+  if (verts.length < 2) return;
+  ctx.beginPath();
+  ctx.moveTo(verts[0][0]*sx, verts[0][1]*sy);
+  for (let i = 1; i < verts.length; i++) ctx.lineTo(verts[i][0]*sx, verts[i][1]*sy);
+  ctx.closePath();
+  ctx.stroke();
+}
+
+// ── Section legend table ──
+function pdfmAddSecRow(s) {
+  s = s || { label: '', kind: 'column', b: 400, h: 600 };
+  pdfm.sections.push(s);
+  pdfmRenderSections();
+}
+
+function pdfmRenderSections() {
+  const tb = document.getElementById('pdfm-sec-tbody');
+  tb.innerHTML = '';
+  pdfm.sections.forEach((s, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input value="${s.label}" data-i="${i}" data-k="label" style="width:60px"></td>
+      <td>
+        <select data-i="${i}" data-k="kind">
+          <option value="column" ${s.kind==='column'?'selected':''}>Column</option>
+          <option value="beam"   ${s.kind==='beam'?'selected':''}>Beam</option>
+          <option value="wall"   ${s.kind==='wall'?'selected':''}>Wall</option>
+          <option value="slab"   ${s.kind==='slab'?'selected':''}>Slab</option>
+        </select>
+      </td>
+      <td><input type="number" value="${s.b||''}" data-i="${i}" data-k="b" style="width:55px"></td>
+      <td><input type="number" value="${s.h||''}" data-i="${i}" data-k="h" style="width:55px"></td>
+      <td><button data-del="${i}">✕</button></td>
+    `;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('input,select').forEach(el => {
+    el.onchange = (e) => {
+      const i = +e.target.dataset.i;
+      const k = e.target.dataset.k;
+      const v = e.target.type === 'number' ? parseFloat(e.target.value) : e.target.value;
+      pdfm.sections[i][k] = v;
+    };
+  });
+  tb.querySelectorAll('button[data-del]').forEach(btn => {
+    btn.onclick = () => {
+      pdfm.sections.splice(+btn.dataset.del, 1);
+      pdfmRenderSections();
+    };
+  });
+}
+
+// ── Stories table ──
+function pdfmAddStoryRow() {
+  const n = pdfm.stories.length + 1;
+  pdfm.stories.push({ name: 'Story' + n, height: 3.0 });
+  pdfmRenderStories();
+}
+
+function pdfmRenderStories() {
+  const tb = document.getElementById('pdfm-story-tbody');
+  tb.innerHTML = '';
+  pdfm.stories.forEach((s, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input value="${s.name}" data-i="${i}" data-k="name" style="width:80px"></td>
+      <td><input type="number" value="${s.height}" step="0.1" data-i="${i}" data-k="height" style="width:60px"></td>
+      <td><button data-del="${i}">✕</button></td>
+    `;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('input').forEach(el => {
+    el.onchange = (e) => {
+      const i = +e.target.dataset.i;
+      const k = e.target.dataset.k;
+      pdfm.stories[i][k] = e.target.type === 'number'
+        ? parseFloat(e.target.value) : e.target.value;
+      pdfmRefreshFloorSelect();
+    };
+  });
+  tb.querySelectorAll('button[data-del]').forEach(btn => {
+    btn.onclick = () => {
+      pdfm.stories.splice(+btn.dataset.del, 1);
+      pdfmRenderStories();
+      pdfmRefreshFloorSelect();
+    };
+  });
+}
+
+// ── Build payload + push to ETABS ──
+const PDFM_PREVIEW_DPI = 120;   // must match pdfmRedraw() request
+
+function pdfmBuildPayload() {
+  // Conversion: mPerPx is meters per PREVIEW-canvas pixel (calibrated by user clicks).
+  // Detection runs at higher DPI, so scale detection pixels into preview pixels first.
+  //   world_m = det_px * (preview_dpi / det_dpi) * mPerPx
+  const sectionsMap = {};
+  pdfm.sections.forEach(s => {
+    if (!s.label) return;
+    if (s.kind === 'wall' || s.kind === 'slab') {
+      sectionsMap[s.label] = { kind: s.kind, thickness_mm: s.h || s.b || 150 };
+    } else {
+      sectionsMap[s.label] = { kind: s.kind, b_mm: s.b, h_mm: s.h };
+    }
+  });
+
+  const floorsByStory = {};
+  pdfm.uploads.forEach(upl => {
+    upl.floors.forEach((story, pageIdx) => {
+      if (!story) return;
+      const det = pdfm.detectionCache[`${upl.upload_id}:${pageIdx}`];
+      if (!det) return;
+      const [w, h] = det.image_size;
+      const dpi   = det.dpi || 200;
+      const k     = (PDFM_PREVIEW_DPI / dpi) * pdfm.mPerPx;  // det_px → world m
+      const conv  = (px, py) => [px * k, (h - py) * k];      // flip Y → bottom-left origin
+
+      const node = floorsByStory[story] ||
+        (floorsByStory[story] = { story, columns: [], beams: [], walls: [], slabs: [] });
+
+      det.members.columns.forEach(c => {
+        const [x, y] = conv(c.cx, c.cy);
+        node.columns.push({ x_m: x, y_m: y, label: c.label || '' });
+      });
+      det.members.beams.forEach(b => {
+        const [x1, y1] = conv(b.x1, b.y1);
+        const [x2, y2] = conv(b.x2, b.y2);
+        node.beams.push({ x1_m: x1, y1_m: y1, x2_m: x2, y2_m: y2, label: b.label || '' });
+      });
+      det.members.walls.forEach(wl => {
+        node.walls.push({
+          vertices_m: wl.vertices.map(v => conv(v[0], v[1])),
+          label: wl.label || '',
+        });
+      });
+      det.members.slabs.forEach(sl => {
+        node.slabs.push({
+          vertices_m: sl.vertices.map(v => conv(v[0], v[1])),
+          label: sl.label || '',
+        });
+      });
+    });
+  });
+
+  // Grids from first detected page
+  let grids = null;
+  const detKeys = Object.keys(pdfm.detectionCache);
+  if (detKeys.length) {
+    const first = pdfm.detectionCache[detKeys[0]];
+    const [w, h] = first.image_size;
+    const dpi   = first.dpi || 200;
+    const k     = (PDFM_PREVIEW_DPI / dpi) * pdfm.mPerPx;
+    grids = {
+      x_grids: first.grids.x_grids.map(g => ({ label: g.label, x_m: g.x * k })),
+      y_grids: first.grids.y_grids.map(g => ({ label: g.label, y_m: (h - g.y) * k })),
+    };
+  }
+
+  return {
+    stories:  pdfm.stories.map(s => ({ name: s.name, height_m: s.height })),
+    grids,
+    sections: sectionsMap,
+    floors:   Object.values(floorsByStory),
+  };
+}
+
+async function pdfmPush() {
+  if (!pdfm.mPerPx || pdfm.mPerPx <= 0) {
+    showToast('Calibrate the scale first (2-click).'); return;
+  }
+  const payload = pdfmBuildPayload();
+  if (!payload.floors.length) {
+    showToast('Assign at least one page to a story and run detection first.');
+    return;
+  }
+  const btn = document.getElementById('pdfm-push-btn');
+  const statusEl = document.getElementById('pdfm-push-status');
+  btn.disabled = true; statusEl.textContent = 'Pushing to ETABS…';
+  try {
+    const res = await _pdfmFetch('/api/pdf-markup/push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    const c = data.counts;
+    statusEl.innerHTML =
+      `<span style="color:#0a0">✓ Generated</span> — ` +
+      `${c.stories} stories, ${c.columns} cols, ${c.beams} beams, ` +
+      `${c.walls} walls, ${c.slabs} slabs.` +
+      (data.warnings.length ? `<br><small>${data.warnings.length} warnings</small>` : '');
+    showToast('ETABS model generated.');
+  } catch (e) {
+    statusEl.innerHTML = `<span style="color:#c00">✗ ${e.message}</span>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Init on DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', pdfmInit);
+} else {
+  pdfmInit();
+}
+

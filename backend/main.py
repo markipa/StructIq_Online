@@ -3225,3 +3225,146 @@ async def fem2d_solve(req: dict):
         )
     except Exception as e:
         raise HTTPException(400, str(e))
+
+
+# ── PDF Markup → ETABS (Enterprise) ───────────────────────────────────────────
+# Lazy import the pdf_markup package — heavy deps (cv2, fitz) shouldn't block
+# startup if user hasn't installed them yet (frozen build always ships them).
+try:
+    from pdf_markup import (
+        detect_members, render_pdf_page,
+        read_labels, parse_scale_from_titleblock,
+        detect_grids,
+    )
+    from pdf_markup.etabs_writer import push_to_etabs as _push_pdf_to_etabs
+    import cv2 as _cv2
+    _HAS_PDF_MARKUP = True
+    _PDF_MARKUP_ERR = ""
+except Exception as _e:
+    _HAS_PDF_MARKUP = False
+    _PDF_MARKUP_ERR = str(_e)
+
+
+# In-memory store for uploaded PDFs (per server lifetime).
+# { upload_id: {"name": str, "bytes": bytes, "pages": int} }
+_pdf_uploads: dict = {}
+
+
+def _require_pdf_markup():
+    if not _HAS_PDF_MARKUP:
+        raise HTTPException(
+            503,
+            f"PDF Markup module not available: {_PDF_MARKUP_ERR}. "
+            "Install: pip install PyMuPDF opencv-python-headless pytesseract Pillow"
+        )
+
+
+from fastapi import UploadFile, File, Form
+from fastapi.responses import Response
+
+
+@app.post("/api/pdf-markup/upload")
+async def pdf_markup_upload(
+    file: UploadFile = File(...),
+    _u: dict = Depends(require_plan("enterprise")),
+):
+    """Upload a marked-up PDF. Returns upload_id + page count."""
+    _require_pdf_markup()
+    import uuid, fitz
+    data = await file.read()
+    if not data:
+        raise HTTPException(400, "Empty file.")
+    try:
+        doc = fitz.open(stream=data, filetype="pdf")
+        n_pages = doc.page_count
+        doc.close()
+    except Exception as e:
+        raise HTTPException(400, f"Invalid PDF: {e}")
+    uid = uuid.uuid4().hex
+    _pdf_uploads[uid] = {"name": file.filename, "bytes": data, "pages": n_pages}
+    return {"upload_id": uid, "name": file.filename, "pages": n_pages}
+
+
+@app.get("/api/pdf-markup/preview/{upload_id}/{page}")
+def pdf_markup_preview(
+    upload_id: str, page: int = 0,
+    dpi: int = Query(default=120, ge=72, le=300),
+    _u: dict = Depends(require_plan("enterprise")),
+):
+    """Return PNG render of given page (for frontend preview)."""
+    _require_pdf_markup()
+    rec = _pdf_uploads.get(upload_id)
+    if not rec:
+        raise HTTPException(404, "upload_id not found")
+    if page < 0 or page >= rec["pages"]:
+        raise HTTPException(400, "page out of range")
+    img = render_pdf_page(rec["bytes"], page_index=page, dpi=dpi)
+    ok, buf = _cv2.imencode(".png", img)
+    if not ok:
+        raise HTTPException(500, "PNG encode failed")
+    return Response(content=buf.tobytes(), media_type="image/png")
+
+
+@app.post("/api/pdf-markup/detect")
+def pdf_markup_detect(
+    req: dict,
+    _u: dict = Depends(require_plan("enterprise")),
+):
+    """
+    Run OpenCV detection + OCR + grid detection on one page.
+    Input:  {"upload_id": str, "page": int, "dpi": int (opt)}
+    Output: {"image_size": [w,h], "members": {...}, "grids": {...},
+             "scale": [num, denom] | null}
+    """
+    _require_pdf_markup()
+    uid  = req.get("upload_id")
+    page = int(req.get("page", 0))
+    dpi  = int(req.get("dpi", 200))
+    rec  = _pdf_uploads.get(uid)
+    if not rec:
+        raise HTTPException(404, "upload_id not found")
+
+    img = render_pdf_page(rec["bytes"], page_index=page, dpi=dpi)
+    members = detect_members(img)
+    members = read_labels(img, members)
+    grids   = detect_grids(img)
+    scale   = parse_scale_from_titleblock(img)
+
+    return {
+        "image_size": members["image_size"],
+        "dpi": dpi,
+        "members": {k: v for k, v in members.items() if k != "image_size"},
+        "grids": grids,
+        "scale": list(scale) if scale else None,
+    }
+
+
+class PDFPushRequest(BaseModel):
+    stories:  List[Dict]
+    grids:    Optional[Dict] = None
+    sections: Dict[str, Dict]
+    floors:   List[Dict]
+
+
+@app.post("/api/pdf-markup/push")
+def pdf_markup_push(
+    req: PDFPushRequest,
+    _u: dict = Depends(require_plan("enterprise")),
+):
+    """Push detected/edited members to running ETABS."""
+    _require_pdf_markup()
+    try:
+        return _push_pdf_to_etabs(req.model_dump())
+    except RuntimeError as e:
+        raise HTTPException(503, str(e))
+    except Exception as e:
+        raise HTTPException(500, f"Push failed: {e}")
+
+
+@app.delete("/api/pdf-markup/upload/{upload_id}")
+def pdf_markup_clear(
+    upload_id: str,
+    _u: dict = Depends(require_plan("enterprise")),
+):
+    _pdf_uploads.pop(upload_id, None)
+    return {"status": "ok"}

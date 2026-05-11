@@ -23,7 +23,10 @@ a = Analysis(
         (os.path.join(_BACKEND, 'pmm_engine.py'), '.'),
         # Bundle server.py alongside launcher
         (os.path.join(_BRIDGE, 'server.py'), '.'),
-    ],
+        # Bundle pdf_markup package (Enterprise: PDF Markup → ETABS)
+        (os.path.join(_BACKEND, 'pdf_markup'), 'pdf_markup'),
+    ] + ([(os.path.join(_BRIDGE, 'tesseract'), 'tesseract')]
+         if os.path.isdir(os.path.join(_BRIDGE, 'tesseract')) else []),
     hiddenimports=[
         # FastAPI / uvicorn
         'fastapi', 'uvicorn', 'uvicorn.logging', 'uvicorn.loops',
@@ -42,10 +45,12 @@ a = Analysis(
         'pystray', 'PIL', 'PIL.Image', 'PIL.ImageDraw',
         # Stdlib extras
         'email.mime.text', 'email.mime.multipart',
+        # PDF Markup deps
+        'fitz', 'cv2', 'pytesseract', 'numpy',
     ],
     hookspath=[],
     runtime_hooks=[],
-    excludes=['tkinter', 'matplotlib', 'numpy', 'pandas'],
+    excludes=['tkinter', 'matplotlib', 'pandas'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,

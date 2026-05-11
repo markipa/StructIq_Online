@@ -4,3 +4,9 @@ comtypes
 pydantic
 requests
 pyinstaller
+PyMuPDF
+opencv-python-headless
+pytesseract
+Pillow
+numpy
+python-multipart

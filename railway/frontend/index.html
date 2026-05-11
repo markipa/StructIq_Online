@@ -167,6 +167,16 @@
         </svg>
         Run File Cleaner
       </a>
+
+      <a href="#" class="nav-item" data-target="pdfmarkup-panel" data-plan="enterprise">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 18 18" fill="none"
+             stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="2" width="12" height="14" rx="1"/>
+          <path d="M6 6h6M6 9h6M6 12h4"/>
+        </svg>
+        PDF Markup → ETABS
+        <span class="nav-plan-badge" style="background:#7a3aff">ENT</span>
+      </a>
     </nav>
 
     <div class="sidebar-footer">
@@ -2309,6 +2319,84 @@
       </div><!-- /.pmm-layout -->
 
     </section><!-- /#plate-fem-panel -->
+
+
+    <!-- ───── PDF MARKUP → ETABS (Enterprise) ───── -->
+    <section id="pdfmarkup-panel" class="panel">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <h1 class="panel-title">PDF Markup → ETABS</h1>
+          <span class="panel-sub">
+            Upload color-marked architectural PDFs and generate an ETABS model.
+            <b>Red</b> = columns · <b>Blue</b> = beams · <b>Yellow</b> = shear walls · <b>Green</b> = slabs
+          </span>
+        </div>
+      </div>
+
+      <div class="pdfm-layout">
+        <!-- Left: upload + page list + sections + stories -->
+        <aside class="pdfm-sidebar">
+          <div class="pdfm-section">
+            <h3>1. Upload marked PDFs</h3>
+            <input type="file" id="pdfm-file-input" accept="application/pdf" multiple
+                   style="display:none">
+            <button class="btn-primary" id="pdfm-upload-btn">+ Add PDF(s)</button>
+            <ul id="pdfm-upload-list" class="pdfm-upload-list"></ul>
+          </div>
+
+          <div class="pdfm-section">
+            <h3>2. Scale &amp; origin</h3>
+            <button class="btn-secondary" id="pdfm-calib-btn">📏 Calibrate scale (2-click)</button>
+            <div class="pdfm-row" style="margin-top:8px">
+              <label>m / px</label>
+              <input type="number" id="pdfm-mpp" value="0" step="0.0001" readonly
+                     style="background:#f5f5f5">
+            </div>
+            <div id="pdfm-calib-status" class="pdfm-hint">Not calibrated.</div>
+            <div class="pdfm-hint">Origin: PDF bottom-left = (0, 0). +X → right, +Y → up.</div>
+          </div>
+
+          <div class="pdfm-section">
+            <h3>3. Section legend</h3>
+            <table class="pdfm-sec-table">
+              <thead><tr><th>Label</th><th>Kind</th><th>b (mm)</th><th>h / t (mm)</th><th></th></tr></thead>
+              <tbody id="pdfm-sec-tbody"></tbody>
+            </table>
+            <button class="btn-secondary" id="pdfm-add-sec-btn">+ Add row</button>
+          </div>
+
+          <div class="pdfm-section">
+            <h3>4. Stories</h3>
+            <table class="pdfm-story-table">
+              <thead><tr><th>Name</th><th>Height (m)</th><th></th></tr></thead>
+              <tbody id="pdfm-story-tbody"></tbody>
+            </table>
+            <button class="btn-secondary" id="pdfm-add-story-btn">+ Add story</button>
+          </div>
+
+          <div class="pdfm-section">
+            <h3>5. Push to ETABS</h3>
+            <button class="btn-primary" id="pdfm-push-btn">⚡ Generate ETABS model</button>
+            <div id="pdfm-push-status" class="pdfm-status"></div>
+          </div>
+        </aside>
+
+        <!-- Right: canvas preview + per-page floor assignment -->
+        <div class="pdfm-main">
+          <div class="pdfm-toolbar">
+            <select id="pdfm-page-select"></select>
+            <label>Floor:
+              <select id="pdfm-floor-select"></select>
+            </label>
+            <button class="btn-secondary" id="pdfm-detect-btn">Run detection</button>
+            <span id="pdfm-detect-summary" class="pdfm-hint"></span>
+          </div>
+          <div class="pdfm-canvas-wrap">
+            <canvas id="pdfm-canvas" width="800" height="600"></canvas>
+          </div>
+        </div>
+      </div>
+    </section><!-- /#pdfmarkup-panel -->
 
   </main>
 </div>
