@@ -12,6 +12,7 @@ Caller converts to ETABS world coords via scale (mm/px) and Y-flip
 (PDF top-left → ETABS bottom-left = 0,0).
 """
 import io
+import math
 from typing import List, Dict, Tuple, Optional
 
 import numpy as np
@@ -77,50 +78,113 @@ def _detect_columns(mask: np.ndarray) -> List[Dict]:
     return out
 
 
+def _fit_beam_endpoints(contour: np.ndarray) -> Optional[Tuple[float, float, float, float, float]]:
+    """Return (x1, y1, x2, y2, length) from a single contour, else None."""
+    pts = contour.reshape(-1, 2).astype(np.float32)
+    if len(pts) < 5:
+        return None
+    vx, vy, _, _ = cv2.fitLine(pts, cv2.DIST_L2, 0, 0.01, 0.01)
+    vx, vy = float(vx), float(vy)
+    cx, cy = float(pts[:, 0].mean()), float(pts[:, 1].mean())
+    proj = (pts[:, 0] - cx) * vx + (pts[:, 1] - cy) * vy
+    t_min, t_max = float(proj.min()), float(proj.max())
+    length = t_max - t_min
+    if length < 30:
+        return None
+    x1 = cx + t_min * vx; y1 = cy + t_min * vy
+    x2 = cx + t_max * vx; y2 = cy + t_max * vy
+    return x1, y1, x2, y2, length
+
+
 def _detect_beams(mask: np.ndarray) -> List[Dict]:
     """
-    One beam per connected blue region (avoids HoughLinesP duplicating long
-    strokes into many parallel/segmented hits).
+    One beam per connected blue region. Detected separately for horizontal
+    and vertical directions so that beams crossing red column squares (which
+    chop the blue mask into pieces) get reconnected along their axis.
 
     Pipeline:
-      1. Close gaps in the blue mask so dashed/broken lines become one region.
-      2. For each contour: skip noise specks; fit a line via cv2.fitLine;
-         project contour points onto that line and use the extreme points
-         as the beam endpoints.
+      1. Directional morphological close along X → bridges horizontal gaps
+         (including breaks where beams pass through columns).
+      2. findContours + cv2.fitLine on each contour → endpoints of horizontal
+         beams (filtered by |vx| > |vy|).
+      3. Repeat with Y-direction close for vertical beams.
+      4. Plus a generic close for diagonal members.
+      5. Deduplicate hits that overlap heavily (same axis, near identical line).
     """
-    # Close small gaps so dashed/freehand strokes connect into one contour
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
-    closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+    H, W = mask.shape[:2]
 
-    contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    # Bridge width: cover typical column width (~30 px @ 200 DPI)
+    BRIDGE = 35
+
+    kernel_h = cv2.getStructuringElement(cv2.MORPH_RECT, (BRIDGE, 3))
+    kernel_v = cv2.getStructuringElement(cv2.MORPH_RECT, (3, BRIDGE))
+    kernel_g = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+
+    masks = [
+        ("h", cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel_h, iterations=1)),
+        ("v", cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel_v, iterations=1)),
+        ("g", cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel_g, iterations=2)),
+    ]
+
     out: List[Dict] = []
-    for c in contours:
-        area = cv2.contourArea(c)
-        if area < MIN_AREA["beam"]:
-            continue
-        pts = c.reshape(-1, 2).astype(np.float32)
-        if len(pts) < 5:
-            continue
+    for tag, m in masks:
+        contours, _ = cv2.findContours(m, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        for c in contours:
+            if cv2.contourArea(c) < MIN_AREA["beam"]:
+                continue
+            res = _fit_beam_endpoints(c)
+            if res is None:
+                continue
+            x1, y1, x2, y2, length = res
+            dx, dy = abs(x2 - x1), abs(y2 - y1)
+            # Only keep horizontals from h-pass, verticals from v-pass.
+            # The generic pass keeps diagonals (neither dx>>dy nor dy>>dx).
+            if tag == "h" and dx < dy * 1.5:
+                continue
+            if tag == "v" and dy < dx * 1.5:
+                continue
+            if tag == "g" and (dx > dy * 1.5 or dy > dx * 1.5):
+                continue
+            out.append({"x1": int(round(x1)), "y1": int(round(y1)),
+                        "x2": int(round(x2)), "y2": int(round(y2)),
+                        "length": float(length)})
 
-        # Direction of the stroke (least-squares line fit)
-        vx, vy, _, _ = cv2.fitLine(pts, cv2.DIST_L2, 0, 0.01, 0.01)
-        vx, vy = float(vx), float(vy)
-        # Use the centroid (avoids the fitLine x0,y0 being arbitrary point)
-        cx, cy = float(pts[:, 0].mean()), float(pts[:, 1].mean())
+    return _dedupe_beams(out)
 
-        # Project every contour point onto the unit direction
-        proj = (pts[:, 0] - cx) * vx + (pts[:, 1] - cy) * vy
-        t_min, t_max = float(proj.min()), float(proj.max())
-        length = t_max - t_min
-        if length < 30:                # reject blob-like / noise
+
+def _dedupe_beams(beams: List[Dict], pos_tol: float = 12.0,
+                  ang_tol_deg: float = 8.0) -> List[Dict]:
+    """
+    Remove beams that lie almost on top of each other (same axis, parallel,
+    overlapping). Keeps the longer of each pair.
+    """
+    keep = [True] * len(beams)
+    beams = sorted(beams, key=lambda b: -b["length"])  # longest first
+    for i, a in enumerate(beams):
+        if not keep[i]:
             continue
+        ax = (a["x1"] + a["x2"]) / 2
+        ay = (a["y1"] + a["y2"]) / 2
+        a_ang = math.degrees(math.atan2(a["y2"] - a["y1"], a["x2"] - a["x1"])) % 180
+        for j in range(i + 1, len(beams)):
+            if not keep[j]:
+                continue
+            b = beams[j]
+            bx = (b["x1"] + b["x2"]) / 2
+            by = (b["y1"] + b["y2"]) / 2
+            b_ang = math.degrees(math.atan2(b["y2"] - b["y1"], b["x2"] - b["x1"])) % 180
+            d_ang = min(abs(a_ang - b_ang), 180 - abs(a_ang - b_ang))
+            if d_ang > ang_tol_deg:
+                continue
+            # Perpendicular distance from b's midpoint to a's line
+            # For near-horizontal: compare y; for near-vertical: compare x
+            if a_ang < 45 or a_ang > 135:   # ~horizontal
+                if abs(ay - by) > pos_tol: continue
+            else:                            # ~vertical
+                if abs(ax - bx) > pos_tol: continue
+            keep[j] = False     # drop the shorter duplicate
 
-        x1 = cx + t_min * vx; y1 = cy + t_min * vy
-        x2 = cx + t_max * vx; y2 = cy + t_max * vy
-        out.append({"x1": int(round(x1)), "y1": int(round(y1)),
-                    "x2": int(round(x2)), "y2": int(round(y2)),
-                    "length": float(length)})
-    return out
+    return [b for b, k in zip(beams, keep) if k]
 
 
 def _merge_collinear(lines: List[Dict], angle_tol: float = 5.0,
