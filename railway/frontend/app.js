@@ -9757,19 +9757,22 @@ async function pdfmRunDetection() {
   const btn = document.getElementById('pdfm-detect-btn');
   btn.disabled = true; btn.textContent = 'Detecting…';
   try {
+    const snapTol = parseFloat(document.getElementById('pdfm-snap-tol').value) || 0;
     const res = await _pdfmFetch('/api/pdf-markup/detect', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ upload_id, page, dpi: 200 }),
+      body: JSON.stringify({ upload_id, page, dpi: 200, snap_tol: snapTol }),
     });
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
     pdfm.detectionCache[`${upload_id}:${page}`] = data;
     const m = data.members;
+    const snapped = data.snapped_endpoints || 0;
     document.getElementById('pdfm-detect-summary').textContent =
       `${m.columns.length} cols · ${m.beams.length} beams · ` +
       `${m.walls.length} walls · ${m.slabs.length} slabs · ` +
-      `${data.grids.x_grids.length + data.grids.y_grids.length} grids`;
+      `${data.grids.x_grids.length + data.grids.y_grids.length} grids` +
+      (snapped > 0 ? ` · ${snapped} snapped` : '');
     // 1. Auto-fill section legend from PDF schedule block (most reliable)
     pdfmIngestSchedule(data.sections_detected || []);
     // 2. Per-member label fallback (only adds rows for labels not in schedule)
