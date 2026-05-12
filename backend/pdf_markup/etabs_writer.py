@@ -57,28 +57,30 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
     if n == 0:
         return []
 
-    names    = [s["name"] for s in stories]
-    heights  = [float(s["height_m"]) for s in stories]
+    # ETABS Story.GetStories returns arrays of length n+1: index 0 is Base
+    # with height=0, elevation=0, is_master=False. SetStories expects the
+    # same shape, so prepend a Base entry.
+    names    = ["Base"] + [s["name"] for s in stories]
+    heights  = [0.0]    + [float(s["height_m"]) for s in stories]
 
-    # Top elevation of each story (cumulative from base 0)
-    elevations: List[float] = []
+    # Cumulative top elevation. Base = 0.
+    elevations: List[float] = [0.0]
     cum = 0.0
-    for h in heights:
+    for h in heights[1:]:
         cum += h
         elevations.append(cum)
 
-    # Master / similar-to. similar_to references the master story name;
-    # use "None" for floors that are their own master (ETABS API convention,
-    # confirmed by the sample code provided).
-    is_master:  List[bool] = []
-    similar_to: List[str]  = []
+    # Master / similar-to. Base is not a master.
+    is_master:  List[bool] = [False]
+    similar_to: List[str]  = [""]
     for s in stories:
         sim = (s.get("similar_to") or "").strip()
         is_master.append(bool(s.get("master", not sim)))
-        similar_to.append(sim if sim else "None")
+        similar_to.append(sim if sim else "")
 
-    splice   = [False] * n
-    splice_h = [0.0] * n
+    n_full   = len(names)             # n + 1 (includes Base)
+    splice   = [False] * n_full
+    splice_h = [0.0]   * n_full
 
     # Convert lists to tuples so comtypes marshals them as fixed SAFEARRAYs
     # of the correct element type. Lists sometimes get marshaled as
@@ -94,7 +96,7 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
     # Different ETABS versions expose SetStories with different signatures.
     # Try each shape until one accepts. Comtypes is strict on positional
     # arg types so a mismatched shape raises a marshaling error.
-    color_t = tuple([0] * n)
+    color_t = tuple([0] * n_full)
     attempts = [
         # (api_name, args_factory)
         # SetStories with elevations + heights (VB sample shape, 7 args)
@@ -114,12 +116,29 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
                                     similar_t, splice_t, splice_h_t)),
     ]
 
-    # Diagnostic: what does SapModel.Story actually expose?
+    # Diagnostic: what does SapModel.Story actually expose, and what does
+    # GetStories look like for the currently-loaded model? Mirror that
+    # exact format on the way back in.
     try:
         story_methods = sorted([m for m in dir(SapModel.Story)
                                 if not m.startswith("_")])
     except Exception:
         story_methods = []
+    get_stories_dump = ""
+    try:
+        gs = SapModel.Story.GetStories()
+        def _short(x):
+            try:
+                if isinstance(x, (list, tuple)) and len(x) > 8:
+                    return f"{type(x).__name__}[{len(x)}]={x[:4]}..."
+                return repr(x)
+            except Exception:
+                return repr(x)
+        get_stories_dump = (
+            "GetStories=(" + ", ".join(_short(p) for p in gs) + ")"
+        )
+    except Exception as e:
+        get_stories_dump = f"GetStories ex:{type(e).__name__}:{e}"
 
     last_err = None
     attempt_log: List[str] = []
@@ -154,8 +173,15 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
         story_warning = (
             f"SetStories warning: {last_err}. "
             f"Attempts: {'; '.join(attempt_log)}. "
-            f"Available: {', '.join(m for m in story_methods if 'Stor' in m or 'Set' in m or 'Add' in m or 'Delete' in m)[:300]}"
+            f"{get_stories_dump}"
         )
+
+    # Refresh ETABS so the new story config commits to the UI before the
+    # next API call (sections, frames, etc.) reads it back.
+    try:
+        SapModel.View.RefreshView(0, False)
+    except Exception:
+        pass
 
     # Verify by reading back
     try:
