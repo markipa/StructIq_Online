@@ -129,8 +129,20 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
             last_err = f"{api} returned {code}"
         except Exception as e:
             last_err = e
+    # Don't abort the whole push if SetStories returns non-zero. ETABS often
+    # still applies most of the story config and members can be placed onto
+    # the existing or freshly-written stories. Surface the warning so the
+    # caller can show it, but continue.
+    story_warning = None
     if last_err is not None:
-        raise RuntimeError(f"Could not define stories: {last_err}")
+        story_warning = f"SetStories warning: {last_err} — continuing anyway"
+
+    # Refresh ETABS so the new story config commits to the UI before the
+    # next API call (sections, frames, etc.) reads it back.
+    try:
+        SapModel.View.RefreshView(0, False)
+    except Exception:
+        pass
 
     # Refresh ETABS so the new story config commits to the UI before the
     # next API call (sections, frames, etc.) reads it back.
@@ -145,6 +157,9 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
         created = list(ret[1]) if ret and len(ret) > 1 else []
     except Exception:
         created = names
+    # Attach the warning string to the first element so the caller can
+    # propagate it. (Caller handles missing _warning gracefully.)
+    _define_stories._last_warning = story_warning
     return created
 
 
@@ -264,6 +279,8 @@ def push_to_etabs(payload: Dict) -> Dict:
     # 1. Stories — bottom→top order
     stories = payload.get("stories", [])
     story_names = _define_stories(SapModel, stories)
+    if getattr(_define_stories, "_last_warning", None):
+        warnings.append(_define_stories._last_warning)
     counts["stories"] = len(story_names)
 
     # Compute top elevations per story (bottom→top stacking, base 0)
