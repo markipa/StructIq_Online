@@ -94,20 +94,24 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
     # Different ETABS versions expose SetStories with different signatures.
     # Try each shape until one accepts. Comtypes is strict on positional
     # arg types so a mismatched shape raises a marshaling error.
+    color_t = tuple([0] * n)
     attempts = [
-        # (api_name, args_factory)  — using tuples for correct COM marshaling
+        # (api_name, args_factory)
+        # SetStories with elevations + heights (VB sample shape, 7 args)
         ("SetStories",   lambda: (names_t, elevations_t, heights_t,
                                     is_master_t, similar_t, splice_t, splice_h_t)),
+        # SetStories_2: names + heights + is_master + similar + splice + splice_h + color
+        # NO elevations (ETABS computes them from heights). 7 args.
+        ("SetStories_2", lambda: (names_t, heights_t, is_master_t, similar_t,
+                                    splice_t, splice_h_t, color_t)),
+        # Older shape — 6 args, no elevations, no color
         ("SetStories",   lambda: (names_t, heights_t, is_master_t, similar_t,
                                     splice_t, splice_h_t)),
-        ("SetStories",   lambda: (0.0, n, names_t, heights_t, is_master_t,
-                                    similar_t, splice_t, splice_h_t)),
-        ("SetStories_2", lambda: (names_t, elevations_t, heights_t,
-                                    is_master_t, similar_t, splice_t, splice_h_t)),
-        ("SetStories_2", lambda: (0.0, n, names_t, heights_t, is_master_t,
-                                    similar_t, splice_t, splice_h_t, tuple([0]*n))),
         ("SetStories_1", lambda: (names_t, heights_t, is_master_t, similar_t,
                                     splice_t, splice_h_t)),
+        # Oldest — with BaseElevation + count
+        ("SetStories",   lambda: (0.0, n, names_t, heights_t, is_master_t,
+                                    similar_t, splice_t, splice_h_t)),
     ]
 
     last_err = None
@@ -136,13 +140,6 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
     story_warning = None
     if last_err is not None:
         story_warning = f"SetStories warning: {last_err} — continuing anyway"
-
-    # Refresh ETABS so the new story config commits to the UI before the
-    # next API call (sections, frames, etc.) reads it back.
-    try:
-        SapModel.View.RefreshView(0, False)
-    except Exception:
-        pass
 
     # Refresh ETABS so the new story config commits to the UI before the
     # next API call (sections, frames, etc.) reads it back.
