@@ -296,18 +296,20 @@ def detect_members(img_bgr: np.ndarray) -> Dict[str, list]:
     wall_mask = _mask_color(hsv, "wall")
 
     # Slab: red columns and blue beams puncture the green fill. Only union
-    # them in if green is actually drawn — otherwise the column squares
-    # would be miscounted as slabs/walls on a PDF with no slab markup.
+    # IN-SLAB columns/beams so the stray column-callout outside the slab
+    # doesn't grow its own miniature slab blob after morph close.
     big = cv2.getStructuringElement(cv2.MORPH_RECT, (25, 25))
     if int(np.count_nonzero(slab_mask)) > 5000:        # >5000 green px = real slab
-        slab_mask = cv2.bitwise_or(slab_mask, col_mask)
-        slab_mask = cv2.bitwise_or(slab_mask, beam_mask)
+        slab_dilated = cv2.dilate(slab_mask, big, iterations=3)
+        slab_mask = cv2.bitwise_or(slab_mask, cv2.bitwise_and(col_mask,  slab_dilated))
+        slab_mask = cv2.bitwise_or(slab_mask, cv2.bitwise_and(beam_mask, slab_dilated))
         slab_mask = cv2.morphologyEx(slab_mask, cv2.MORPH_CLOSE, big, iterations=2)
 
     # Walls: same gating — never invent walls from column squares on a PDF
     # that has no yellow/orange markup at all.
     if int(np.count_nonzero(wall_mask)) > 3000:        # >3000 yellow px = real wall
-        wall_mask = cv2.bitwise_or(wall_mask, col_mask)
+        wall_dilated = cv2.dilate(wall_mask, big, iterations=2)
+        wall_mask = cv2.bitwise_or(wall_mask, cv2.bitwise_and(col_mask, wall_dilated))
         wall_mask = cv2.morphologyEx(wall_mask, cv2.MORPH_CLOSE, big, iterations=1)
 
     columns = _detect_columns(col_mask)
