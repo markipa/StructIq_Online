@@ -70,13 +70,14 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
         cum += h
         elevations.append(cum)
 
-    # Master / similar-to. Base is not a master.
-    is_master:  List[bool] = [False]
-    similar_to: List[str]  = [""]
+    # Master / similar-to. Base is not a master. ETABS API returns Python
+    # None (not "" or "None" string) for "no similar story" — match that.
+    is_master:  List[bool]              = [False]
+    similar_to: List[Optional[str]]     = [None]
     for s in stories:
         sim = (s.get("similar_to") or "").strip()
         is_master.append(bool(s.get("master", not sim)))
-        similar_to.append(sim if sim else "")
+        similar_to.append(sim if sim else None)
 
     n_full   = len(names)             # n + 1 (includes Base)
     splice   = [False] * n_full
@@ -89,7 +90,8 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
     heights_t    = tuple(float(x) for x in heights)
     elevations_t = tuple(float(x) for x in elevations)
     is_master_t  = tuple(bool(x) for x in is_master)
-    similar_t    = tuple(str(x) for x in similar_to)
+    # Preserve None objects in similar_to — ETABS uses None, not ""/None-string
+    similar_t    = tuple(x if x is None else str(x) for x in similar_to)
     splice_t     = tuple(bool(x) for x in splice)
     splice_h_t   = tuple(float(x) for x in splice_h)
 
