@@ -110,23 +110,23 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
     color_t  = tuple([0] * n_full)
     color_nbt = tuple([0] * n)
     attempts = [
-        # 1. WITH Base + elevations + heights — matches GetStories shape (7 args)
+        # A. NumberStories + 6 arrays (no Base) — symmetric to GetStories shape
+        ("SetStories",   lambda: (n, names_nbt, heights_nbt,
+                                    is_master_nbt, similar_nbt, splice_nbt, splice_h_nbt)),
+        # B. NumberStories + 6 arrays (WITH Base)
+        ("SetStories",   lambda: (n_full, names_t, heights_t,
+                                    is_master_t, similar_t, splice_t, splice_h_t)),
+        # C. WITH Base + elevations + heights — matches GetStories tuple positions 2-8
         ("SetStories",   lambda: (names_t, elevations_t, heights_t,
                                     is_master_t, similar_t, splice_t, splice_h_t)),
-        # 2. WITHOUT Base + elevations + heights (7 args)
+        # D. WITHOUT Base + elevations + heights
         ("SetStories",   lambda: (names_nbt, elevations_nbt, heights_nbt,
                                     is_master_nbt, similar_nbt, splice_nbt, splice_h_nbt)),
-        # 3. WITH Base + heights only (no elevations) (6 args)
-        ("SetStories",   lambda: (names_t, heights_t, is_master_t, similar_t,
-                                    splice_t, splice_h_t)),
-        # 4. WITHOUT Base + heights only (6 args)
-        ("SetStories",   lambda: (names_nbt, heights_nbt, is_master_nbt, similar_nbt,
-                                    splice_nbt, splice_h_nbt)),
-        # 5. SetStories_2 WITH Base + color
-        ("SetStories_2", lambda: (names_t, heights_t, is_master_t, similar_t,
+        # E. SetStories_2 reversed similar/master order (WITH Base)
+        ("SetStories_2", lambda: (names_t, heights_t, similar_t, is_master_t,
                                     splice_t, splice_h_t, color_t)),
-        # 6. SetStories_2 WITHOUT Base + color
-        ("SetStories_2", lambda: (names_nbt, heights_nbt, is_master_nbt, similar_nbt,
+        # F. SetStories_2 reversed similar/master order (no Base)
+        ("SetStories_2", lambda: (names_nbt, heights_nbt, similar_nbt, is_master_nbt,
                                     splice_nbt, splice_h_nbt, color_nbt)),
     ]
 
