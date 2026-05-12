@@ -65,8 +65,14 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
     #   SimilarToStory   – String[N]      no Base
     #   SpliceAbove      – Boolean[N]     no Base
     #   SpliceHeight     – Double[N]      no Base
-    names      = [s["name"] for s in stories]
-    heights    = [float(s["height_m"]) for s in stories]
+    def _flt(x, default=0.0):
+        try:
+            return float(x) if x is not None else default
+        except (TypeError, ValueError):
+            return default
+
+    names   = [str(s.get("name", f"Story{i+1}")) for i, s in enumerate(stories)]
+    heights = [_flt(s.get("height_m"), 3.0) for s in stories]
 
     # Elevations: N+1 entries. First = base elevation (0). Then top of
     # each story = running cumulative height.
@@ -314,8 +320,13 @@ def push_to_etabs(payload: Dict) -> Dict:
     story_bot: Dict[str, float] = {}
     elev = 0.0
     for s in stories:
+        h = s.get("height_m")
+        try:
+            h = float(h) if h is not None else 3.0
+        except (TypeError, ValueError):
+            h = 3.0
         story_bot[s["name"]] = elev
-        elev += float(s["height_m"])
+        elev += h
         story_top[s["name"]] = elev
 
     # 2. Grids
@@ -323,6 +334,12 @@ def push_to_etabs(payload: Dict) -> Dict:
     _define_grid_system(SapModel, grids.get("x_grids", []), grids.get("y_grids", []))
 
     # 3. Materials + sections
+    def _sflt(v, default):
+        try:
+            return float(v) if v is not None else default
+        except (TypeError, ValueError):
+            return default
+
     mat = _ensure_concrete_material(SapModel, "CONC28")
     sec_map: Dict[str, str] = {}            # label → ETABS section name
     for label, sec in payload.get("sections", {}).items():
@@ -330,20 +347,20 @@ def push_to_etabs(payload: Dict) -> Dict:
         if kind in ("column", "beam"):
             sec_map[label] = _ensure_rect_section(
                 SapModel, label,
-                float(sec.get("b_mm", 300)),
-                float(sec.get("h_mm", 500)),
+                _sflt(sec.get("b_mm"), 300.0),
+                _sflt(sec.get("h_mm"), 500.0),
                 mat,
             )
         elif kind == "wall":
             sec_map[label] = _ensure_wall_property(
                 SapModel, label,
-                float(sec.get("thickness_mm", 200)),
+                _sflt(sec.get("thickness_mm"), 200.0),
                 mat,
             )
         elif kind == "slab":
             sec_map[label] = _ensure_slab_property(
                 SapModel, label,
-                float(sec.get("thickness_mm", 150)),
+                _sflt(sec.get("thickness_mm"), 150.0),
                 mat,
             )
         counts["sections"] += 1
