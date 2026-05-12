@@ -57,31 +57,32 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
     if n == 0:
         return []
 
-    # ETABS Story.GetStories returns arrays of length n+1: index 0 is Base
-    # with height=0, elevation=0, is_master=False. SetStories expects the
-    # same shape, so prepend a Base entry.
-    names    = ["Base"] + [s["name"] for s in stories]
-    heights  = [0.0]    + [float(s["height_m"]) for s in stories]
-
-    # Cumulative top elevation. Base = 0.
-    elevations: List[float] = [0.0]
+    # Build both with-Base and without-Base variants — try both shapes.
+    names_nb    = [s["name"] for s in stories]
+    heights_nb  = [float(s["height_m"]) for s in stories]
+    elevations_nb: List[float] = []
     cum = 0.0
-    for h in heights[1:]:
+    for h in heights_nb:
         cum += h
-        elevations.append(cum)
-
-    # Master / similar-to. Base is not a master. ETABS API returns Python
-    # None (not "" or "None" string) for "no similar story" — match that.
-    is_master:  List[bool]              = [False]
-    similar_to: List[Optional[str]]     = [None]
+        elevations_nb.append(cum)
+    is_master_nb:  List[bool]          = []
+    similar_nb:    List[Optional[str]] = []
     for s in stories:
         sim = (s.get("similar_to") or "").strip()
-        is_master.append(bool(s.get("master", not sim)))
-        similar_to.append(sim if sim else None)
+        is_master_nb.append(bool(s.get("master", not sim)))
+        similar_nb.append(sim if sim else None)
+    splice_nb   = [False] * n
+    splice_h_nb = [0.0]   * n
 
-    n_full   = len(names)             # n + 1 (includes Base)
-    splice   = [False] * n_full
-    splice_h = [0.0]   * n_full
+    # With Base prepended (matches GetStories output shape)
+    names      = ["Base"] + names_nb
+    heights    = [0.0]    + heights_nb
+    elevations = [0.0]    + elevations_nb
+    is_master  = [False]  + is_master_nb
+    similar_to = [None]   + similar_nb
+    splice     = [False]  + splice_nb
+    splice_h   = [0.0]    + splice_h_nb
+    n_full     = len(names)
 
     # Convert lists to tuples so comtypes marshals them as fixed SAFEARRAYs
     # of the correct element type. Lists sometimes get marshaled as
@@ -90,32 +91,43 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
     heights_t    = tuple(float(x) for x in heights)
     elevations_t = tuple(float(x) for x in elevations)
     is_master_t  = tuple(bool(x) for x in is_master)
-    # Preserve None objects in similar_to — ETABS uses None, not ""/None-string
     similar_t    = tuple(x if x is None else str(x) for x in similar_to)
     splice_t     = tuple(bool(x) for x in splice)
     splice_h_t   = tuple(float(x) for x in splice_h)
 
+    # No-Base variants
+    names_nbt      = tuple(str(s) for s in names_nb)
+    heights_nbt    = tuple(float(x) for x in heights_nb)
+    elevations_nbt = tuple(float(x) for x in elevations_nb)
+    is_master_nbt  = tuple(bool(x) for x in is_master_nb)
+    similar_nbt    = tuple(x if x is None else str(x) for x in similar_nb)
+    splice_nbt     = tuple(bool(x) for x in splice_nb)
+    splice_h_nbt   = tuple(float(x) for x in splice_h_nb)
+
     # Different ETABS versions expose SetStories with different signatures.
     # Try each shape until one accepts. Comtypes is strict on positional
     # arg types so a mismatched shape raises a marshaling error.
-    color_t = tuple([0] * n_full)
+    color_t  = tuple([0] * n_full)
+    color_nbt = tuple([0] * n)
     attempts = [
-        # (api_name, args_factory)
-        # SetStories with elevations + heights (VB sample shape, 7 args)
+        # 1. WITH Base + elevations + heights — matches GetStories shape (7 args)
         ("SetStories",   lambda: (names_t, elevations_t, heights_t,
                                     is_master_t, similar_t, splice_t, splice_h_t)),
-        # SetStories_2: names + heights + is_master + similar + splice + splice_h + color
-        # NO elevations (ETABS computes them from heights). 7 args.
-        ("SetStories_2", lambda: (names_t, heights_t, is_master_t, similar_t,
-                                    splice_t, splice_h_t, color_t)),
-        # Older shape — 6 args, no elevations, no color
+        # 2. WITHOUT Base + elevations + heights (7 args)
+        ("SetStories",   lambda: (names_nbt, elevations_nbt, heights_nbt,
+                                    is_master_nbt, similar_nbt, splice_nbt, splice_h_nbt)),
+        # 3. WITH Base + heights only (no elevations) (6 args)
         ("SetStories",   lambda: (names_t, heights_t, is_master_t, similar_t,
                                     splice_t, splice_h_t)),
-        ("SetStories_1", lambda: (names_t, heights_t, is_master_t, similar_t,
-                                    splice_t, splice_h_t)),
-        # Oldest — with BaseElevation + count
-        ("SetStories",   lambda: (0.0, n, names_t, heights_t, is_master_t,
-                                    similar_t, splice_t, splice_h_t)),
+        # 4. WITHOUT Base + heights only (6 args)
+        ("SetStories",   lambda: (names_nbt, heights_nbt, is_master_nbt, similar_nbt,
+                                    splice_nbt, splice_h_nbt)),
+        # 5. SetStories_2 WITH Base + color
+        ("SetStories_2", lambda: (names_t, heights_t, is_master_t, similar_t,
+                                    splice_t, splice_h_t, color_t)),
+        # 6. SetStories_2 WITHOUT Base + color
+        ("SetStories_2", lambda: (names_nbt, heights_nbt, is_master_nbt, similar_nbt,
+                                    splice_nbt, splice_h_nbt, color_nbt)),
     ]
 
     # Diagnostic: what does SapModel.Story actually expose, and what does
