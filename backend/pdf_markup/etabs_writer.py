@@ -32,6 +32,15 @@ def _setup_units(SapModel):
     SapModel.SetPresentUnits(6)
 
 
+def _ensure_unlocked(SapModel) -> None:
+    """ETABS locks the model after analysis; SetStories etc. require unlock."""
+    try:
+        if SapModel.GetModelIsLocked():
+            SapModel.SetModelIsLocked(False)
+    except Exception:
+        pass
+
+
 def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
     """
     stories = [{"name": "Story1", "height_m": 3.5, "similar_to": ""?, "master": bool?}, ...]
@@ -214,6 +223,7 @@ def push_to_etabs(payload: Dict) -> Dict:
     """
     SapModel = _connect()
     _setup_units(SapModel)
+    _ensure_unlocked(SapModel)
 
     warnings: List[str] = []
     counts = {"columns": 0, "beams": 0, "walls": 0, "slabs": 0,
