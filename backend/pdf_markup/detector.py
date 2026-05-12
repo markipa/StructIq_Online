@@ -136,6 +136,8 @@ def _detect_beams(mask: np.ndarray) -> List[Dict]:
             if res is None:
                 continue
             x1, y1, x2, y2, length = res
+            if length < _MIN_BEAM_LEN:
+                continue
             dx, dy = abs(x2 - x1), abs(y2 - y1)
             # Only keep horizontals from h-pass, verticals from v-pass.
             # The generic pass keeps diagonals (neither dx>>dy nor dy>>dx).
@@ -251,6 +253,26 @@ def _detect_polygons(mask: np.ndarray, member_type: str,
             continue
         out.append({"vertices": verts, "area": float(area)})
     return out
+
+
+def configure_detection(min_beam_len: int = None,
+                         beam_min_area: int = None,
+                         column_min_area: int = None,
+                         poly_min_area: int = None) -> None:
+    """Adjust detection thresholds at runtime (used by /detect query params)."""
+    global _MIN_BEAM_LEN
+    if min_beam_len is not None:
+        _MIN_BEAM_LEN = int(min_beam_len)
+    if beam_min_area is not None:
+        MIN_AREA["beam"] = int(beam_min_area)
+    if column_min_area is not None:
+        MIN_AREA["column"] = int(column_min_area)
+    if poly_min_area is not None:
+        MIN_AREA["slab"] = int(poly_min_area)
+        MIN_AREA["wall"] = int(poly_min_area)
+
+
+_MIN_BEAM_LEN = 30  # px, default — overridable via configure_detection()
 
 
 def detect_members(img_bgr: np.ndarray) -> Dict[str, list]:

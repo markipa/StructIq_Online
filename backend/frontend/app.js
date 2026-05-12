@@ -9757,7 +9757,20 @@ async function pdfmRunDetection() {
   const btn = document.getElementById('pdfm-detect-btn');
   btn.disabled = true; btn.textContent = 'Detecting…';
   try {
-    const snapTol = parseFloat(document.getElementById('pdfm-snap-tol').value) || 0;
+    let snapTol = parseFloat(document.getElementById('pdfm-snap-tol').value) || 0;
+    if (snapTol > 120) {
+      showToast(`Snap tol clamped to 120 (was ${snapTol}).`);
+      snapTol = 120;
+      document.getElementById('pdfm-snap-tol').value = 120;
+    }
+    const minBeam = parseInt(document.getElementById('pdfm-min-beam').value, 10) || 30;
+    const sens = document.getElementById('pdfm-sensitivity').value;
+    const sensMap = {
+      low:  { beam: 80,  col: 150, poly: 800 },
+      med:  { beam: 40,  col: 80,  poly: 400 },
+      high: { beam: 20,  col: 40,  poly: 200 },
+    };
+    const s = sensMap[sens] || sensMap.med;
     const autofillGrid = document.getElementById('pdfm-autofill-grid').checked;
     const res = await _pdfmFetch('/api/pdf-markup/detect', {
       method: 'POST',
@@ -9765,6 +9778,10 @@ async function pdfmRunDetection() {
       body: JSON.stringify({
         upload_id, page, dpi: 200,
         snap_tol: snapTol,
+        min_beam_len: minBeam,
+        beam_min_area: s.beam,
+        col_min_area:  s.col,
+        poly_min_area: s.poly,
         autofill_grid: autofillGrid,
       }),
     });

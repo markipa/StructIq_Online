@@ -805,6 +805,7 @@ try:
         detect_grids, snap_members, split_beams_at_columns,
         autofill_grid_beams,
     )
+    from pdf_markup.detector import configure_detection as _pdfm_configure
     from pdf_markup.etabs_writer import push_to_etabs as _push_pdf_to_etabs
     import cv2 as _cv2
     _HAS_PDF_MARKUP = True
@@ -873,12 +874,22 @@ def br_pdf_detect(req: dict):
     rec  = _pdf_uploads.get(uid)
     if not rec:
         raise HTTPException(404, "upload_id not found")
+    snap_tol = float(req.get("snap_tol", 30))
+    snap_tol = max(0.0, min(snap_tol, 120.0))
+
+    _pdfm_configure(
+        min_beam_len  = int(req.get("min_beam_len", 30)),
+        beam_min_area = int(req.get("beam_min_area", 40)),
+        column_min_area = int(req.get("col_min_area", 80)),
+        poly_min_area = int(req.get("poly_min_area", 400)),
+    )
+
     img     = render_pdf_page(rec["bytes"], page_index=page, dpi=dpi)
     members = read_labels(img, detect_members(img))
     grids   = detect_grids(img)
-    snap_tol = float(req.get("snap_tol", 30))
     if snap_tol > 0:
-        members = snap_members(members, grids, tol_px=snap_tol)
+        members = snap_members(members, grids, tol_px=snap_tol,
+                                min_beam_len_px=int(req.get("min_beam_len", 30)))
     members = split_beams_at_columns(members, grids,
                                        perp_tol_px=max(15.0, snap_tol * 0.5))
     if bool(req.get("autofill_grid", False)):

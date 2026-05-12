@@ -47,31 +47,40 @@ def _nearest(pt: Tuple[float, float],
     return best if best is not None else pt
 
 
-def snap_members(members: Dict, grids: Dict, tol_px: float = 30.0) -> Dict:
+def snap_members(members: Dict, grids: Dict, tol_px: float = 30.0,
+                  min_beam_len_px: float = 25.0) -> Dict:
     """
     Snap beam endpoints + wall polygon vertices to nearest column or grid
     intersection within tol_px. Mutates and returns members.
 
-    Tracks how many endpoints moved so the caller can report it.
+    Safeguard: if snapping both endpoints would shrink a beam below
+    min_beam_len_px (e.g. with overly large tol both endpoints jump to the
+    same column), revert that beam to its original endpoints rather than
+    destroying it. This is what saves beams when the user dials snap tol
+    way up.
     """
     snap_pts = _build_snap_points(members, grids)
     snapped_count = 0
 
     for b in members.get("beams", []):
-        before = (b["x1"], b["y1"])
-        sx1, sy1 = _nearest(before, snap_pts, tol_px)
-        if (sx1, sy1) != before:
+        orig_x1, orig_y1 = b["x1"], b["y1"]
+        orig_x2, orig_y2 = b["x2"], b["y2"]
+        sx1, sy1 = _nearest((orig_x1, orig_y1), snap_pts, tol_px)
+        sx2, sy2 = _nearest((orig_x2, orig_y2), snap_pts, tol_px)
+
+        new_len = math.hypot(sx2 - sx1, sy2 - sy1)
+        if new_len < min_beam_len_px:
+            # Snap would degenerate the beam — keep original endpoints.
+            b["length"] = math.hypot(orig_x2 - orig_x1, orig_y2 - orig_y1)
+            continue
+
+        if (sx1, sy1) != (orig_x1, orig_y1):
             b["x1"], b["y1"] = sx1, sy1
             snapped_count += 1
-
-        before = (b["x2"], b["y2"])
-        sx2, sy2 = _nearest(before, snap_pts, tol_px)
-        if (sx2, sy2) != before:
+        if (sx2, sy2) != (orig_x2, orig_y2):
             b["x2"], b["y2"] = sx2, sy2
             snapped_count += 1
-
-        # Recompute length after snap (used in overlay tooltips)
-        b["length"] = math.hypot(b["x2"] - b["x1"], b["y2"] - b["y1"])
+        b["length"] = new_len
 
     for w in members.get("walls", []):
         new_verts = []

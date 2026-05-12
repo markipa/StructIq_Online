@@ -2389,10 +2389,26 @@
               <select id="pdfm-floor-select"></select>
             </label>
             <button class="btn-secondary" id="pdfm-detect-btn">Run detection</button>
-            <label style="font-size:12px;display:flex;align-items:center;gap:4px">
-              Snap tol (px):
-              <input type="number" id="pdfm-snap-tol" value="30" min="0" max="200"
-                     step="5" style="width:50px">
+            <label style="font-size:12px;display:flex;align-items:center;gap:4px"
+                   title="How close an endpoint must be to a column/grid to snap. Higher = more aggressive but risks collapsing beams. 30 is normal.">
+              Snap (px):
+              <input type="number" id="pdfm-snap-tol" value="30" min="0" max="120"
+                     step="5" style="width:48px">
+            </label>
+            <label style="font-size:12px;display:flex;align-items:center;gap:4px"
+                   title="Drop beams shorter than this. Lower = catches thin/short strokes, higher = ignores small artefacts.">
+              Min beam (px):
+              <input type="number" id="pdfm-min-beam" value="30" min="5" max="200"
+                     step="5" style="width:48px">
+            </label>
+            <label style="font-size:12px;display:flex;align-items:center;gap:4px"
+                   title="Detection sensitivity preset for color masks. Higher = catches faded markups but more false positives.">
+              Sensitivity:
+              <select id="pdfm-sensitivity" style="font-size:12px">
+                <option value="low">Low</option>
+                <option value="med" selected>Normal</option>
+                <option value="high">High</option>
+              </select>
             </label>
             <label style="font-size:12px;display:flex;align-items:center;gap:4px">
               <input type="checkbox" id="pdfm-autofill-grid"> Auto-fill grid beams
