@@ -236,6 +236,17 @@ def push_to_etabs(payload: Dict) -> Dict:
     Returns counts of placed objects + warnings.
     """
     SapModel = _connect()
+
+    # Initialize a fresh blank model so SetStories has a valid context.
+    # Without this, ETABS rejects Story.SetStories with ret=1 when the
+    # API client connects to an empty session. User's open model is
+    # replaced — they should save any prior work before generating.
+    try:
+        SapModel.InitializeNewModel(6)   # 6 = kN_m_C
+        SapModel.File.NewBlank()
+    except Exception:
+        pass
+
     _setup_units(SapModel)
     _ensure_unlocked(SapModel)
 
