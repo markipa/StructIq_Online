@@ -51,27 +51,19 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
     names    = [s["name"] for s in stories]
     heights  = [float(s["height_m"]) for s in stories]
 
-    # Master / similar-to relationships
+    # Master / similar-to relationships. ETABS API expects "" (empty string)
+    # for "no similar story" — passing "None" makes SetStories reject the
+    # whole batch.
     is_master  = []
     similar_to = []
     for s in stories:
-        sim = s.get("similar_to", "") or ""
+        sim = (s.get("similar_to") or "").strip()
         is_master.append(bool(s.get("master", not sim)))
-        similar_to.append(sim if sim else "None")
+        similar_to.append(sim)
 
     splice      = [False] * n
     splice_h    = [0.0] * n
     color       = [0] * n
-
-    # Ensure a model file exists before writing stories. If ETABS was just
-    # opened with no model, SetStories silently fails.
-    try:
-        SapModel.GetModelIsLocked()
-    except Exception:
-        try:
-            SapModel.File.NewBlank()
-        except Exception:
-            pass
 
     last_err = None
     for api in ("SetStories_2", "SetStories"):
@@ -80,15 +72,24 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
             continue
         try:
             if api == "SetStories_2":
-                fn(0.0, n, names, heights, is_master, similar_to,
-                    splice, splice_h, color)
+                ret = fn(0.0, n, names, heights, is_master, similar_to,
+                          splice, splice_h, color)
             else:
-                fn(0.0, n, names, heights, is_master, similar_to,
-                    splice, splice_h)
-            break
+                ret = fn(0.0, n, names, heights, is_master, similar_to,
+                          splice, splice_h)
+            # comtypes returns either an int ret code or a tuple ending in
+            # the ret code. Treat non-zero as failure and try the next API.
+            if isinstance(ret, tuple):
+                code = ret[-1] if ret else 0
+            else:
+                code = ret
+            if code in (0, None):
+                last_err = None
+                break
+            last_err = f"{api} returned {code}"
         except Exception as e:
             last_err = e
-    else:
+    if last_err is not None:
         raise RuntimeError(f"Could not define stories: {last_err}")
 
     # Verify by reading back
