@@ -18,13 +18,20 @@ All input coords are world meters (after scale + Y-flip applied by caller).
 from typing import List, Dict, Optional, Tuple
 
 
-def set_stories_only(stories: List[Dict]) -> Dict:
+def set_stories_only(stories: List[Dict], init_new: bool = True) -> Dict:
     """
-    Standalone story-data write. Connects to ETABS, unlocks the model,
-    sets units, defines stories, refreshes view. Returns success +
-    created story names + any warning.
+    Standalone story-data write. Connects to ETABS, optionally initialises
+    a new model (matches the ETABS SetStories example pattern — without
+    this the call returns ret=1 when changing story COUNT), unlocks the
+    model, defines stories, refreshes view.
     """
     SapModel = _connect()
+    if init_new:
+        try:
+            SapModel.InitializeNewModel(6)   # 6 = kN_m_C
+            SapModel.File.NewBlank()
+        except Exception:
+            pass
     _setup_units(SapModel)
     _ensure_unlocked(SapModel)
     created = _define_stories(SapModel, stories)
@@ -37,6 +44,7 @@ def set_stories_only(stories: List[Dict]) -> Dict:
         "status":   "success" if not warning else "warning",
         "stories":  created,
         "warning":  warning,
+        "init_new": init_new,
     }
 
 

@@ -934,7 +934,10 @@ def br_pdf_push(req: _BrPDFPush):
 def br_pdf_set_stories(req: dict):
     _require_pdf_markup()
     try:
-        return _set_stories_only(req.get("stories", []))
+        return _set_stories_only(
+            req.get("stories", []),
+            init_new=bool(req.get("init_new", True)),
+        )
     except RuntimeError as e:
         raise HTTPException(503, str(e))
     except Exception as e:

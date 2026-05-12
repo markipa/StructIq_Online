@@ -3400,7 +3400,14 @@ def pdf_markup_set_stories(
     """Apply only the story definitions to ETABS (no geometry push)."""
     _require_pdf_markup()
     try:
+<<<<<<< HEAD
+        return _set_stories_only(
+            req.get("stories", []),
+            init_new=bool(req.get("init_new", True)),
+        )
+=======
         return _set_stories_only(req.get("stories", []))
+>>>>>>> origin/main
     except RuntimeError as e:
         raise HTTPException(503, str(e))
     except Exception as e:

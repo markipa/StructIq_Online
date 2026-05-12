@@ -10178,11 +10178,12 @@ async function pdfmApplyStories() {
   const statusEl = document.getElementById('pdfm-apply-stories-status');
   btn.disabled = true;
   statusEl.textContent = 'Applying stories…';
+  const initNew = document.getElementById('pdfm-init-new').checked;
   try {
     const res = await _pdfmFetch('/api/pdf-markup/set-stories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stories }),
+      body: JSON.stringify({ stories, init_new: initNew }),
     });
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
