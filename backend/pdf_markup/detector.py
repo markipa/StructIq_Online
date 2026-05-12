@@ -290,10 +290,27 @@ def detect_members(img_bgr: np.ndarray) -> Dict[str, list]:
     """
     hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
     h, w = img_bgr.shape[:2]
+    col_mask  = _mask_color(hsv, "column")
+    beam_mask = _mask_color(hsv, "beam")
+    slab_mask = _mask_color(hsv, "slab")
+    wall_mask = _mask_color(hsv, "wall")
+
+    # Red columns and blue beams puncture the green slab fill — OR them into
+    # the slab mask + close large gaps so the outer contour traces ONE region
+    # instead of fragmenting around every column.
+    slab_mask = cv2.bitwise_or(slab_mask, col_mask)
+    slab_mask = cv2.bitwise_or(slab_mask, beam_mask)
+    big = cv2.getStructuringElement(cv2.MORPH_RECT, (25, 25))
+    slab_mask = cv2.morphologyEx(slab_mask, cv2.MORPH_CLOSE, big, iterations=2)
+
+    # Same treatment for walls so wall outlines aren't broken by columns
+    wall_mask = cv2.bitwise_or(wall_mask, col_mask)
+    wall_mask = cv2.morphologyEx(wall_mask, cv2.MORPH_CLOSE, big, iterations=1)
+
     return {
-        "columns":    _detect_columns(_mask_color(hsv, "column")),
-        "beams":      _detect_beams(_mask_color(hsv, "beam")),
-        "slabs":      _detect_polygons(_mask_color(hsv, "slab"), "slab"),
-        "walls":      _detect_polygons(_mask_color(hsv, "wall"), "wall"),
+        "columns":    _detect_columns(col_mask),
+        "beams":      _detect_beams(beam_mask),
+        "slabs":      _detect_polygons(slab_mask, "slab"),
+        "walls":      _detect_polygons(wall_mask, "wall"),
         "image_size": [w, h],
     }

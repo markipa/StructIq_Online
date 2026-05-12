@@ -255,9 +255,9 @@ def push_to_etabs(payload: Dict) -> Dict:
         for w in floor.get("walls", []):
             w["vertices_m"] = [list(_canonize((float(v[0]), float(v[1])), canon))
                                 for v in w.get("vertices_m", [])]
-        for s in floor.get("slabs", []):
-            s["vertices_m"] = [list(_canonize((float(v[0]), float(v[1])), canon))
-                                for v in s.get("vertices_m", [])]
+        # NOTE: slabs are NOT canonicalized — preserve exact freehand outline
+        # the engineer drew on the PDF. Slab connectivity is via edge overlap
+        # with beams, not vertex sharing.
 
     # 4. Place objects per floor
     for floor in payload.get("floors", []):
