@@ -132,6 +132,13 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
     if last_err is not None:
         raise RuntimeError(f"Could not define stories: {last_err}")
 
+    # Refresh ETABS so the new story config commits to the UI before the
+    # next API call (sections, frames, etc.) reads it back.
+    try:
+        SapModel.View.RefreshView(0, False)
+    except Exception:
+        pass
+
     # Verify by reading back
     try:
         ret = SapModel.Story.GetNameList()
