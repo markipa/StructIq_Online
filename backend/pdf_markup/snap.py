@@ -11,7 +11,7 @@ Two operations performed in detection-pixel space:
    intermediate columns (otherwise a single 4-column beam becomes one
    ETABS frame with no intermediate connectivity).
 """
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 import math
 
 
@@ -28,6 +28,26 @@ def _build_snap_points(members: Dict, grids: Dict) -> List[Tuple[float, float]]:
         for y in y_lines:
             pts.append((x, y))
     return pts
+
+
+def _snap_inside_column(pt: Tuple[float, float], columns: List[Dict],
+                         margin_px: float = 8.0) -> Optional[Tuple[float, float]]:
+    """
+    If `pt` lies inside any column's bounding box (expanded by margin_px),
+    return that column's centroid. Otherwise None.
+    Catches beams whose endpoints end at the column EDGE rather than the
+    centroid — common when engineers draw beams to touch column outline.
+    """
+    px, py = pt
+    for c in columns:
+        bbox = c.get("bbox") or []
+        if len(bbox) != 4:
+            continue
+        x, y, w, h = bbox
+        if (x - margin_px) <= px <= (x + w + margin_px) and \
+           (y - margin_px) <= py <= (y + h + margin_px):
+            return (float(c["cx"]), float(c["cy"]))
+    return None
 
 
 def _nearest(pt: Tuple[float, float],
@@ -60,13 +80,22 @@ def snap_members(members: Dict, grids: Dict, tol_px: float = 30.0,
     way up.
     """
     snap_pts = _build_snap_points(members, grids)
+    cols = members.get("columns", []) or []
     snapped_count = 0
+
+    def _snap_one(pt: Tuple[float, float]) -> Tuple[float, float]:
+        """Bbox snap takes priority — guarantees connectivity when endpoint
+        lies on column edge. Falls back to radius snap to grids / far cols."""
+        inside = _snap_inside_column(pt, cols)
+        if inside is not None:
+            return inside
+        return _nearest(pt, snap_pts, tol_px)
 
     for b in members.get("beams", []):
         orig_x1, orig_y1 = b["x1"], b["y1"]
         orig_x2, orig_y2 = b["x2"], b["y2"]
-        sx1, sy1 = _nearest((orig_x1, orig_y1), snap_pts, tol_px)
-        sx2, sy2 = _nearest((orig_x2, orig_y2), snap_pts, tol_px)
+        sx1, sy1 = _snap_one((orig_x1, orig_y1))
+        sx2, sy2 = _snap_one((orig_x2, orig_y2))
 
         new_len = math.hypot(sx2 - sx1, sy2 - sy1)
         if new_len < min_beam_len_px:
