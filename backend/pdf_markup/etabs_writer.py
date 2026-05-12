@@ -57,77 +57,57 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
     if n == 0:
         return []
 
-    # Build both with-Base and without-Base variants — try both shapes.
-    names_nb    = [s["name"] for s in stories]
-    heights_nb  = [float(s["height_m"]) for s in stories]
-    elevations_nb: List[float] = []
+    # ETABS API docs (d840a5fd):
+    #   StoryNames       – String[N]      no Base
+    #   StoryElevations  – Double[N+1]    WITH Base elevation at index 0
+    #   StoryHeights     – Double[N]      no Base
+    #   IsMasterStory    – Boolean[N]     no Base
+    #   SimilarToStory   – String[N]      no Base
+    #   SpliceAbove      – Boolean[N]     no Base
+    #   SpliceHeight     – Double[N]      no Base
+    names      = [s["name"] for s in stories]
+    heights    = [float(s["height_m"]) for s in stories]
+
+    # Elevations: N+1 entries. First = base elevation (0). Then top of
+    # each story = running cumulative height.
+    elevations: List[float] = [0.0]
     cum = 0.0
-    for h in heights_nb:
+    for h in heights:
         cum += h
-        elevations_nb.append(cum)
-    is_master_nb:  List[bool]          = []
-    similar_nb:    List[Optional[str]] = []
+        elevations.append(cum)
+
+    is_master:  List[bool]   = []
+    similar_to: List[str]    = []
     for s in stories:
         sim = (s.get("similar_to") or "").strip()
-        is_master_nb.append(bool(s.get("master", not sim)))
-        similar_nb.append(sim if sim else None)
-    splice_nb   = [False] * n
-    splice_h_nb = [0.0]   * n
+        is_master.append(bool(s.get("master", not sim)))
+        # ETABS sample uses "None" string for "no similar story" entries
+        similar_to.append(sim if sim else "None")
 
-    # With Base prepended (matches GetStories output shape)
-    names      = ["Base"] + names_nb
-    heights    = [0.0]    + heights_nb
-    elevations = [0.0]    + elevations_nb
-    is_master  = [False]  + is_master_nb
-    similar_to = [None]   + similar_nb
-    splice     = [False]  + splice_nb
-    splice_h   = [0.0]    + splice_h_nb
-    n_full     = len(names)
+    splice   = [False] * n
+    splice_h = [0.0]   * n
 
     # Convert lists to tuples so comtypes marshals them as fixed SAFEARRAYs
     # of the correct element type. Lists sometimes get marshaled as
     # SAFEARRAY of VARIANT which ETABS rejects with ret=1.
-    names_t      = tuple(str(s) for s in names)
-    heights_t    = tuple(float(x) for x in heights)
-    elevations_t = tuple(float(x) for x in elevations)
-    is_master_t  = tuple(bool(x) for x in is_master)
-    similar_t    = tuple(x if x is None else str(x) for x in similar_to)
-    splice_t     = tuple(bool(x) for x in splice)
-    splice_h_t   = tuple(float(x) for x in splice_h)
-
-    # No-Base variants
-    names_nbt      = tuple(str(s) for s in names_nb)
-    heights_nbt    = tuple(float(x) for x in heights_nb)
-    elevations_nbt = tuple(float(x) for x in elevations_nb)
-    is_master_nbt  = tuple(bool(x) for x in is_master_nb)
-    similar_nbt    = tuple(x if x is None else str(x) for x in similar_nb)
-    splice_nbt     = tuple(bool(x) for x in splice_nb)
-    splice_h_nbt   = tuple(float(x) for x in splice_h_nb)
+    names_t      = tuple(str(s) for s in names)              # N entries
+    heights_t    = tuple(float(x) for x in heights)           # N entries
+    elevations_t = tuple(float(x) for x in elevations)        # N+1 entries
+    is_master_t  = tuple(bool(x) for x in is_master)          # N entries
+    similar_t    = tuple(str(x) for x in similar_to)          # N entries
+    splice_t     = tuple(bool(x) for x in splice)             # N entries
+    splice_h_t   = tuple(float(x) for x in splice_h)          # N entries
 
     # Different ETABS versions expose SetStories with different signatures.
     # Try each shape until one accepts. Comtypes is strict on positional
     # arg types so a mismatched shape raises a marshaling error.
-    color_t  = tuple([0] * n_full)
-    color_nbt = tuple([0] * n)
+    # Per ETABS API docs (d840a5fd-1599-8263-d65f-338a7b5ee001):
+    #   SetStories(Names[N], Elevations[N+1], Heights[N],
+    #              IsMaster[N], SimilarTo[N], SpliceAbove[N], SpliceHeight[N])
+    # Elevations is the only array with an extra leading Base entry.
     attempts = [
-        # A. NumberStories + 6 arrays (no Base) — symmetric to GetStories shape
-        ("SetStories",   lambda: (n, names_nbt, heights_nbt,
-                                    is_master_nbt, similar_nbt, splice_nbt, splice_h_nbt)),
-        # B. NumberStories + 6 arrays (WITH Base)
-        ("SetStories",   lambda: (n_full, names_t, heights_t,
-                                    is_master_t, similar_t, splice_t, splice_h_t)),
-        # C. WITH Base + elevations + heights — matches GetStories tuple positions 2-8
-        ("SetStories",   lambda: (names_t, elevations_t, heights_t,
-                                    is_master_t, similar_t, splice_t, splice_h_t)),
-        # D. WITHOUT Base + elevations + heights
-        ("SetStories",   lambda: (names_nbt, elevations_nbt, heights_nbt,
-                                    is_master_nbt, similar_nbt, splice_nbt, splice_h_nbt)),
-        # E. SetStories_2 reversed similar/master order (WITH Base)
-        ("SetStories_2", lambda: (names_t, heights_t, similar_t, is_master_t,
-                                    splice_t, splice_h_t, color_t)),
-        # F. SetStories_2 reversed similar/master order (no Base)
-        ("SetStories_2", lambda: (names_nbt, heights_nbt, similar_nbt, is_master_nbt,
-                                    splice_nbt, splice_h_nbt, color_nbt)),
+        ("SetStories", lambda: (names_t, elevations_t, heights_t,
+                                  is_master_t, similar_t, splice_t, splice_h_t)),
     ]
 
     # Diagnostic: what does SapModel.Story actually expose, and what does
