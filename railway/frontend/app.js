@@ -9506,6 +9506,7 @@ function pdfmInit() {
   document.getElementById('pdfm-file-input').onchange  = pdfmHandleFiles;
   document.getElementById('pdfm-add-sec-btn').onclick   = () => pdfmAddSecRow();
   document.getElementById('pdfm-add-story-btn').onclick = pdfmAddStoryRow;
+  document.getElementById('pdfm-apply-stories-btn').onclick = pdfmApplyStories;
   document.getElementById('pdfm-detect-btn').onclick    = pdfmRunDetection;
   document.getElementById('pdfm-push-btn').onclick      = pdfmPush;
   document.getElementById('pdfm-page-select').onchange  = pdfmSelectPage;
@@ -10168,6 +10169,38 @@ function pdfmExpandStories() {
     }
   });
   return out;
+}
+
+async function pdfmApplyStories() {
+  const stories = pdfmExpandStories();
+  if (!stories.length) { showToast('No stories defined.'); return; }
+  const btn = document.getElementById('pdfm-apply-stories-btn');
+  const statusEl = document.getElementById('pdfm-apply-stories-status');
+  btn.disabled = true;
+  statusEl.textContent = 'Applying stories…';
+  try {
+    const res = await _pdfmFetch('/api/pdf-markup/set-stories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stories }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    const list = (data.stories || []).join(', ');
+    if (data.warning) {
+      statusEl.innerHTML =
+        `<span style="color:#a60">⚠</span> ${data.stories.length} stories: ${list}` +
+        `<br><small>${data.warning}</small>`;
+    } else {
+      statusEl.innerHTML =
+        `<span style="color:#0a0">✓</span> ${data.stories.length} stories applied: ${list}`;
+    }
+    showToast(`Stories applied: ${data.stories.length}`);
+  } catch (e) {
+    statusEl.innerHTML = `<span style="color:#c00">✗ ${e.message}</span>`;
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 // ── Build payload + push to ETABS ──

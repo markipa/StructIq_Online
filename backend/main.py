@@ -3238,7 +3238,8 @@ try:
         autofill_grid_beams,
     )
     from pdf_markup.detector import configure_detection as _pdfm_configure
-    from pdf_markup.etabs_writer import push_to_etabs as _push_pdf_to_etabs
+    from pdf_markup.etabs_writer import (push_to_etabs as _push_pdf_to_etabs,
+                                            set_stories_only as _set_stories_only)
     import cv2 as _cv2
     _HAS_PDF_MARKUP = True
     _PDF_MARKUP_ERR = ""
@@ -3389,6 +3390,21 @@ def pdf_markup_push(
         raise HTTPException(503, str(e))
     except Exception as e:
         raise HTTPException(500, f"Push failed: {e}")
+
+
+@app.post("/api/pdf-markup/set-stories")
+def pdf_markup_set_stories(
+    req: dict,
+    _u: dict = Depends(require_plan("enterprise")),
+):
+    """Apply only the story definitions to ETABS (no geometry push)."""
+    _require_pdf_markup()
+    try:
+        return _set_stories_only(req.get("stories", []))
+    except RuntimeError as e:
+        raise HTTPException(503, str(e))
+    except Exception as e:
+        raise HTTPException(500, f"Set stories failed: {e}")
 
 
 @app.delete("/api/pdf-markup/upload/{upload_id}")

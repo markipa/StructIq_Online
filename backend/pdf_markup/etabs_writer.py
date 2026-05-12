@@ -18,6 +18,28 @@ All input coords are world meters (after scale + Y-flip applied by caller).
 from typing import List, Dict, Optional, Tuple
 
 
+def set_stories_only(stories: List[Dict]) -> Dict:
+    """
+    Standalone story-data write. Connects to ETABS, unlocks the model,
+    sets units, defines stories, refreshes view. Returns success +
+    created story names + any warning.
+    """
+    SapModel = _connect()
+    _setup_units(SapModel)
+    _ensure_unlocked(SapModel)
+    created = _define_stories(SapModel, stories)
+    warning = getattr(_define_stories, "_last_warning", None)
+    try:
+        SapModel.View.RefreshView(0, False)
+    except Exception:
+        pass
+    return {
+        "status":   "success" if not warning else "warning",
+        "stories":  created,
+        "warning":  warning,
+    }
+
+
 def _connect():
     """Lazy import to avoid hard dep when not on Windows."""
     from etabs_api.connection import get_active_etabs
