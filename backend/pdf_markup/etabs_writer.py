@@ -80,23 +80,34 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
     splice   = [False] * n
     splice_h = [0.0] * n
 
+    # Convert lists to tuples so comtypes marshals them as fixed SAFEARRAYs
+    # of the correct element type. Lists sometimes get marshaled as
+    # SAFEARRAY of VARIANT which ETABS rejects with ret=1.
+    names_t      = tuple(str(s) for s in names)
+    heights_t    = tuple(float(x) for x in heights)
+    elevations_t = tuple(float(x) for x in elevations)
+    is_master_t  = tuple(bool(x) for x in is_master)
+    similar_t    = tuple(str(x) for x in similar_to)
+    splice_t     = tuple(bool(x) for x in splice)
+    splice_h_t   = tuple(float(x) for x in splice_h)
+
     # Different ETABS versions expose SetStories with different signatures.
     # Try each shape until one accepts. Comtypes is strict on positional
     # arg types so a mismatched shape raises a marshaling error.
     attempts = [
-        # (api_name, args_factory)
-        ("SetStories",   lambda: (names, elevations, heights,
-                                    is_master, similar_to, splice, splice_h)),
-        ("SetStories",   lambda: (names, heights, is_master, similar_to,
-                                    splice, splice_h)),
-        ("SetStories",   lambda: (0.0, n, names, heights, is_master,
-                                    similar_to, splice, splice_h)),
-        ("SetStories_2", lambda: (names, elevations, heights,
-                                    is_master, similar_to, splice, splice_h)),
-        ("SetStories_2", lambda: (0.0, n, names, heights, is_master,
-                                    similar_to, splice, splice_h, [0]*n)),
-        ("SetStories_1", lambda: (names, heights, is_master, similar_to,
-                                    splice, splice_h)),
+        # (api_name, args_factory)  — using tuples for correct COM marshaling
+        ("SetStories",   lambda: (names_t, elevations_t, heights_t,
+                                    is_master_t, similar_t, splice_t, splice_h_t)),
+        ("SetStories",   lambda: (names_t, heights_t, is_master_t, similar_t,
+                                    splice_t, splice_h_t)),
+        ("SetStories",   lambda: (0.0, n, names_t, heights_t, is_master_t,
+                                    similar_t, splice_t, splice_h_t)),
+        ("SetStories_2", lambda: (names_t, elevations_t, heights_t,
+                                    is_master_t, similar_t, splice_t, splice_h_t)),
+        ("SetStories_2", lambda: (0.0, n, names_t, heights_t, is_master_t,
+                                    similar_t, splice_t, splice_h_t, tuple([0]*n))),
+        ("SetStories_1", lambda: (names_t, heights_t, is_master_t, similar_t,
+                                    splice_t, splice_h_t)),
     ]
 
     last_err = None
@@ -236,17 +247,6 @@ def push_to_etabs(payload: Dict) -> Dict:
     Returns counts of placed objects + warnings.
     """
     SapModel = _connect()
-
-    # Initialize a fresh blank model so SetStories has a valid context.
-    # Without this, ETABS rejects Story.SetStories with ret=1 when the
-    # API client connects to an empty session. User's open model is
-    # replaced — they should save any prior work before generating.
-    try:
-        SapModel.InitializeNewModel(6)   # 6 = kN_m_C
-        SapModel.File.NewBlank()
-    except Exception:
-        pass
-
     _setup_units(SapModel)
     _ensure_unlocked(SapModel)
 
