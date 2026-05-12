@@ -80,20 +80,32 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
     splice   = [False] * n
     splice_h = [0.0] * n
 
-    # Per ETABS API sample, SetStories signature is:
-    #   (Names[], Elevations[], Heights[],
-    #    IsMasterStory[], SimilarToStory[],
-    #    SpliceAbove[], SpliceHeight[])
-    # 7 array args, NO BaseElevation, NO NumberStories, NO color.
+    # Different ETABS versions expose SetStories with different signatures.
+    # Try each shape until one accepts. Comtypes is strict on positional
+    # arg types so a mismatched shape raises a marshaling error.
+    attempts = [
+        # (api_name, args_factory)
+        ("SetStories",   lambda: (names, elevations, heights,
+                                    is_master, similar_to, splice, splice_h)),
+        ("SetStories",   lambda: (names, heights, is_master, similar_to,
+                                    splice, splice_h)),
+        ("SetStories",   lambda: (0.0, n, names, heights, is_master,
+                                    similar_to, splice, splice_h)),
+        ("SetStories_2", lambda: (names, elevations, heights,
+                                    is_master, similar_to, splice, splice_h)),
+        ("SetStories_2", lambda: (0.0, n, names, heights, is_master,
+                                    similar_to, splice, splice_h, [0]*n)),
+        ("SetStories_1", lambda: (names, heights, is_master, similar_to,
+                                    splice, splice_h)),
+    ]
+
     last_err = None
-    for api in ("SetStories", "SetStories_1", "SetStories_2"):
+    for api, build in attempts:
         fn = getattr(SapModel.Story, api, None)
         if fn is None:
             continue
         try:
-            ret = fn(names, elevations, heights,
-                      is_master, similar_to,
-                      splice, splice_h)
+            ret = fn(*build())
             # comtypes returns either an int ret code or a tuple ending in
             # the ret code. Treat non-zero as failure and try the next API.
             if isinstance(ret, tuple):
