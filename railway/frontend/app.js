@@ -10112,9 +10112,11 @@ function pdfmRenderStories() {
   tb.innerHTML = '';
   pdfm.stories.forEach((s, i) => {
     const tr = document.createElement('tr');
+    const cnt = s.count == null ? 1 : s.count;
     tr.innerHTML = `
       <td><input value="${s.name}" data-i="${i}" data-k="name" style="width:80px"></td>
-      <td><input type="number" value="${s.height}" step="0.1" data-i="${i}" data-k="height" style="width:60px"></td>
+      <td><input type="number" value="${s.height}" step="0.1" data-i="${i}" data-k="height" style="width:55px"></td>
+      <td><input type="number" value="${cnt}" min="1" step="1" data-i="${i}" data-k="count" style="width:45px"></td>
       <td><button data-del="${i}">✕</button></td>
     `;
     tb.appendChild(tr);
@@ -10123,8 +10125,9 @@ function pdfmRenderStories() {
     el.onchange = (e) => {
       const i = +e.target.dataset.i;
       const k = e.target.dataset.k;
-      pdfm.stories[i][k] = e.target.type === 'number'
+      const v = e.target.type === 'number'
         ? parseFloat(e.target.value) : e.target.value;
+      pdfm.stories[i][k] = (k === 'count') ? Math.max(1, parseInt(v, 10) || 1) : v;
       pdfmRefreshFloorSelect();
     };
   });
@@ -10135,6 +10138,23 @@ function pdfmRenderStories() {
       pdfmRefreshFloorSelect();
     };
   });
+}
+
+/**
+ * Expand the user-facing story rows (which may include count > 1 typical
+ * floors) into the flat list ETABS expects: one entry per individual story,
+ * with auto-suffixed names when a row is replicated.
+ */
+function pdfmExpandStories() {
+  const out = [];
+  pdfm.stories.forEach(s => {
+    const count = Math.max(1, s.count == null ? 1 : s.count);
+    for (let k = 0; k < count; k++) {
+      const name = (count === 1) ? s.name : `${s.name}-${k + 1}`;
+      out.push({ name, height_m: s.height });
+    }
+  });
+  return out;
 }
 
 // ── Build payload + push to ETABS ──
@@ -10247,11 +10267,30 @@ function pdfmBuildPayload() {
     });
   }
 
+  // Expand typical floors (count > 1) into individual story entries
+  const stories_expanded = pdfmExpandStories();
+
+  // Replicate floor placements: a page assigned to a Typical row should
+  // place its members on EVERY replicated story (so columns/beams/slabs
+  // appear on every typical floor, not just the first).
+  const floorsExpanded = [];
+  for (const f of Object.values(floorsByStory)) {
+    const original = pdfm.stories.find(s => s.name === f.story);
+    if (!original || !original.count || original.count <= 1) {
+      floorsExpanded.push(f);
+      continue;
+    }
+    for (let k = 0; k < original.count; k++) {
+      floorsExpanded.push(Object.assign({}, f,
+        { story: `${original.name}-${k + 1}` }));
+    }
+  }
+
   return {
-    stories:  pdfm.stories.map(s => ({ name: s.name, height_m: s.height })),
+    stories:  stories_expanded,
     grids,
     sections: sectionsMap,
-    floors:   Object.values(floorsByStory),
+    floors:   floorsExpanded,
   };
 }
 
