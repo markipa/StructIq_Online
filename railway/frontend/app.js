@@ -10154,7 +10154,17 @@ function pdfmExpandStories() {
     const count = Math.max(1, s.count == null ? 1 : s.count);
     for (let k = 0; k < count; k++) {
       const name = (count === 1) ? s.name : `${s.name}-${k + 1}`;
-      out.push({ name, height_m: s.height });
+      if (count > 1) {
+        const masterName = `${s.name}-1`;
+        out.push({
+          name,
+          height_m: s.height,
+          master: k === 0,
+          similar_to: k === 0 ? '' : masterName,
+        });
+      } else {
+        out.push({ name, height_m: s.height, master: true, similar_to: '' });
+      }
     }
   });
   return out;

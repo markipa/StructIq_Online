@@ -34,30 +34,70 @@ def _setup_units(SapModel):
 
 def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
     """
-    stories = [{"name": "Story1", "height_m": 3.5}, ...]
+    stories = [{"name": "Story1", "height_m": 3.5, "similar_to": ""?, "master": bool?}, ...]
     Stories list runs bottom→top. Returns list of story names actually created.
+
+    Each entry may include:
+        - "similar_to" → name of master story this floor is similar to
+                          (typical-floor copies share a master so ETABS
+                           treats them as one design group)
+        - "master"     → True if this floor is the master of its group
+                          (default True for the first / only entry)
     """
     n = len(stories)
     if n == 0:
         return []
+
     names    = [s["name"] for s in stories]
     heights  = [float(s["height_m"]) for s in stories]
-    # Bottom elev = 0; ETABS API auto-stacks
-    is_master   = [True] * n
-    similar_to  = [""] * n
+
+    # Master / similar-to relationships
+    is_master  = []
+    similar_to = []
+    for s in stories:
+        sim = s.get("similar_to", "") or ""
+        is_master.append(bool(s.get("master", not sim)))
+        similar_to.append(sim if sim else "None")
+
     splice      = [False] * n
     splice_h    = [0.0] * n
     color       = [0] * n
+
+    # Ensure a model file exists before writing stories. If ETABS was just
+    # opened with no model, SetStories silently fails.
     try:
-        SapModel.Story.SetStories_2(0.0, n, names, heights,
-                                     is_master, similar_to,
-                                     splice, splice_h, color)
+        SapModel.GetModelIsLocked()
     except Exception:
-        # Fallback to older API
-        SapModel.Story.SetStories(0.0, n, names, heights,
-                                   is_master, similar_to,
-                                   splice, splice_h)
-    return names
+        try:
+            SapModel.File.NewBlank()
+        except Exception:
+            pass
+
+    last_err = None
+    for api in ("SetStories_2", "SetStories"):
+        fn = getattr(SapModel.Story, api, None)
+        if fn is None:
+            continue
+        try:
+            if api == "SetStories_2":
+                fn(0.0, n, names, heights, is_master, similar_to,
+                    splice, splice_h, color)
+            else:
+                fn(0.0, n, names, heights, is_master, similar_to,
+                    splice, splice_h)
+            break
+        except Exception as e:
+            last_err = e
+    else:
+        raise RuntimeError(f"Could not define stories: {last_err}")
+
+    # Verify by reading back
+    try:
+        ret = SapModel.Story.GetNameList()
+        created = list(ret[1]) if ret and len(ret) > 1 else []
+    except Exception:
+        created = names
+    return created
 
 
 def _define_grid_system(SapModel, x_grids: List[Dict], y_grids: List[Dict],
