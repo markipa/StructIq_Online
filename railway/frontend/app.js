@@ -9708,10 +9708,13 @@ function pdfmRefreshPageSelect() {
 
 function pdfmRefreshFloorSelect() {
   const sel = document.getElementById('pdfm-floor-select');
-  sel.innerHTML = '<option value="">— assign —</option>';
+  sel.innerHTML = '<option value="">— assign —</option>'
+                + '<option value="__ALL__">★ All Stories</option>';
   pdfm.stories.forEach(s => {
     const o = document.createElement('option');
-    o.value = s.name; o.textContent = s.name;
+    const cnt = s.count == null ? 1 : s.count;
+    o.value = s.name;
+    o.textContent = cnt > 1 ? `${s.name} (×${cnt})` : s.name;
     sel.appendChild(o);
   });
   const upl = pdfm.uploads.find(u => u.upload_id === pdfm.current.upload_id);
@@ -10270,11 +10273,19 @@ function pdfmBuildPayload() {
   // Expand typical floors (count > 1) into individual story entries
   const stories_expanded = pdfmExpandStories();
 
-  // Replicate floor placements: a page assigned to a Typical row should
-  // place its members on EVERY replicated story (so columns/beams/slabs
-  // appear on every typical floor, not just the first).
+  // Replicate floor placements:
+  //  - story === "__ALL__"  → page applies to every expanded story
+  //  - typical row (count>1) → page applies to every replicated copy
+  //  - otherwise            → single story as named
+  const allStoryNames = stories_expanded.map(s => s.name);
   const floorsExpanded = [];
   for (const f of Object.values(floorsByStory)) {
+    if (f.story === '__ALL__') {
+      for (const name of allStoryNames) {
+        floorsExpanded.push(Object.assign({}, f, { story: name }));
+      }
+      continue;
+    }
     const original = pdfm.stories.find(s => s.name === f.story);
     if (!original || !original.count || original.count <= 1) {
       floorsExpanded.push(f);
