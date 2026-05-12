@@ -114,10 +114,19 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
                                     similar_t, splice_t, splice_h_t)),
     ]
 
+    # Diagnostic: what does SapModel.Story actually expose?
+    try:
+        story_methods = sorted([m for m in dir(SapModel.Story)
+                                if not m.startswith("_")])
+    except Exception:
+        story_methods = []
+
     last_err = None
+    attempt_log: List[str] = []
     for api, build in attempts:
         fn = getattr(SapModel.Story, api, None)
         if fn is None:
+            attempt_log.append(f"{api}=missing")
             continue
         try:
             ret = fn(*build())
@@ -127,11 +136,14 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
                 code = ret[-1] if ret else 0
             else:
                 code = ret
-            if code in (0, None):
+            if code == 0:
+                attempt_log.append(f"{api}=OK")
                 last_err = None
                 break
+            attempt_log.append(f"{api}=ret{code}")
             last_err = f"{api} returned {code}"
         except Exception as e:
+            attempt_log.append(f"{api}=ex:{type(e).__name__}")
             last_err = e
     # Don't abort the whole push if SetStories returns non-zero. ETABS often
     # still applies most of the story config and members can be placed onto
@@ -139,14 +151,11 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
     # caller can show it, but continue.
     story_warning = None
     if last_err is not None:
-        story_warning = f"SetStories warning: {last_err} — continuing anyway"
-
-    # Refresh ETABS so the new story config commits to the UI before the
-    # next API call (sections, frames, etc.) reads it back.
-    try:
-        SapModel.View.RefreshView(0, False)
-    except Exception:
-        pass
+        story_warning = (
+            f"SetStories warning: {last_err}. "
+            f"Attempts: {'; '.join(attempt_log)}. "
+            f"Available: {', '.join(m for m in story_methods if 'Stor' in m or 'Set' in m or 'Add' in m or 'Delete' in m)[:300]}"
+        )
 
     # Verify by reading back
     try:
