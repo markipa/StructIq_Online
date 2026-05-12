@@ -310,10 +310,45 @@ def detect_members(img_bgr: np.ndarray) -> Dict[str, list]:
         wall_mask = cv2.bitwise_or(wall_mask, col_mask)
         wall_mask = cv2.morphologyEx(wall_mask, cv2.MORPH_CLOSE, big, iterations=1)
 
+    columns = _detect_columns(col_mask)
+    beams   = _detect_beams(beam_mask)
+    slabs   = _detect_polygons(slab_mask, "slab")
+    walls   = _detect_polygons(wall_mask, "wall")
+
+    # Filter outliers (e.g. stray column-callout marks, leader lines from
+    # annotations) by clipping to the slab footprint when a slab is found.
+    if slabs:
+        big_slab = max(slabs, key=lambda s: s["area"])
+        verts = big_slab["vertices"]
+        xs = [v[0] for v in verts]; ys = [v[1] for v in verts]
+        margin = 40
+        xmin, xmax = min(xs) - margin, max(xs) + margin
+        ymin, ymax = min(ys) - margin, max(ys) + margin
+        columns = [c for c in columns
+                   if xmin <= c["cx"] <= xmax and ymin <= c["cy"] <= ymax]
+        beams = [b for b in beams
+                 if (xmin <= b["x1"] <= xmax and ymin <= b["y1"] <= ymax)
+                 or (xmin <= b["x2"] <= xmax and ymin <= b["y2"] <= ymax)]
+    elif len(columns) >= 4:
+        # No slab to anchor against — drop columns whose nearest neighbour
+        # is far beyond the median nearest-neighbour distance (outliers).
+        coords = [(c["cx"], c["cy"]) for c in columns]
+        nn_d = []
+        for i, (xi, yi) in enumerate(coords):
+            best = None
+            for j, (xj, yj) in enumerate(coords):
+                if i == j: continue
+                d = (xi - xj) ** 2 + (yi - yj) ** 2
+                if best is None or d < best:
+                    best = d
+            nn_d.append(best ** 0.5)
+        med = sorted(nn_d)[len(nn_d) // 2]
+        columns = [c for c, d in zip(columns, nn_d) if d <= med * 2.5]
+
     return {
-        "columns":    _detect_columns(col_mask),
-        "beams":      _detect_beams(beam_mask),
-        "slabs":      _detect_polygons(slab_mask, "slab"),
-        "walls":      _detect_polygons(wall_mask, "wall"),
+        "columns":    columns,
+        "beams":      beams,
+        "slabs":      slabs,
+        "walls":      walls,
         "image_size": [w, h],
     }
