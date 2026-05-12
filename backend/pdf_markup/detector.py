@@ -326,9 +326,11 @@ def detect_members(img_bgr: np.ndarray) -> Dict[str, list]:
         ymin, ymax = min(ys) - margin, max(ys) + margin
         columns = [c for c in columns
                    if xmin <= c["cx"] <= xmax and ymin <= c["cy"] <= ymax]
+        # Drop beam if EITHER endpoint sits outside slab — catches leader
+        # lines from column callouts (one end in grid, one end outside).
         beams = [b for b in beams
                  if (xmin <= b["x1"] <= xmax and ymin <= b["y1"] <= ymax)
-                 or (xmin <= b["x2"] <= xmax and ymin <= b["y2"] <= ymax)]
+                 and (xmin <= b["x2"] <= xmax and ymin <= b["y2"] <= ymax)]
     elif len(columns) >= 4:
         # No slab to anchor against — drop columns whose nearest neighbour
         # is far beyond the median nearest-neighbour distance (outliers).
