@@ -60,15 +60,13 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
     names    = [s["name"] for s in stories]
     heights  = [float(s["height_m"]) for s in stories]
 
-    # Master / similar-to relationships. ETABS API expects "" (empty string)
-    # for "no similar story" — passing "None" makes SetStories reject the
-    # whole batch.
-    is_master  = []
-    similar_to = []
-    for s in stories:
-        sim = (s.get("similar_to") or "").strip()
-        is_master.append(bool(s.get("master", not sim)))
-        similar_to.append(sim)
+    # All stories defined as independent masters. SetStories rejects the
+    # batch (ret=1) when any similar_to references another story name in
+    # the same call, even when ordered bottom→top with the master first.
+    # User can group floors as similar-to-each-other in the ETABS UI after
+    # generation.
+    is_master  = [True] * n
+    similar_to = ["None"] * n
 
     splice      = [False] * n
     splice_h    = [0.0] * n
