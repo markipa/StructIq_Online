@@ -216,6 +216,49 @@ def push_to_etabs(payload: Dict) -> Dict:
             )
         counts["sections"] += 1
 
+    # 3b. Canonicalize coordinates — columns are the source of truth.
+    #     For every floor, build a canonical (x, y) list from its columns,
+    #     then re-snap each beam endpoint / wall vertex / slab vertex to the
+    #     nearest canonical point within CANON_TOL_M. Guarantees beam end
+    #     coord == column coord exactly (no float drift → ETABS shares the
+    #     node), regardless of what the pixel-level snap did upstream.
+    CANON_TOL_M = 0.5    # ~500 mm — covers freehand drift + half a column width
+
+    def _canonize(pt_xy, canon_pts):
+        if not canon_pts:
+            return pt_xy
+        px, py = pt_xy
+        best, best_d = pt_xy, CANON_TOL_M * CANON_TOL_M
+        for cx, cy in canon_pts:
+            d = (cx - px) ** 2 + (cy - py) ** 2
+            if d < best_d:
+                best_d = d
+                best = (cx, cy)
+        return best
+
+    for floor in payload.get("floors", []):
+        canon = [(float(c["x_m"]), float(c["y_m"])) for c in floor.get("columns", [])]
+        if not canon:
+            continue
+        for b in floor.get("beams", []):
+            x1, y1 = _canonize((float(b["x1_m"]), float(b["y1_m"])), canon)
+            x2, y2 = _canonize((float(b["x2_m"]), float(b["y2_m"])), canon)
+            # Reject collapsed beams (both endpoints snapped to same column)
+            if abs(x1 - x2) + abs(y1 - y2) < 1e-3:
+                warnings.append(
+                    f"beam on {floor.get('story')} collapsed to a point after "
+                    f"canonicalization — skipping")
+                b["_skip"] = True
+                continue
+            b["x1_m"], b["y1_m"] = x1, y1
+            b["x2_m"], b["y2_m"] = x2, y2
+        for w in floor.get("walls", []):
+            w["vertices_m"] = [list(_canonize((float(v[0]), float(v[1])), canon))
+                                for v in w.get("vertices_m", [])]
+        for s in floor.get("slabs", []):
+            s["vertices_m"] = [list(_canonize((float(v[0]), float(v[1])), canon))
+                                for v in s.get("vertices_m", [])]
+
     # 4. Place objects per floor
     for floor in payload.get("floors", []):
         story = floor["story"]
@@ -241,6 +284,8 @@ def push_to_etabs(payload: Dict) -> Dict:
 
         # Beams: horizontal at z_top
         for b in floor.get("beams", []):
+            if b.get("_skip"):
+                continue
             x1, y1 = float(b["x1_m"]), float(b["y1_m"])
             x2, y2 = float(b["x2_m"]), float(b["y2_m"])
             label = b.get("label", "")
