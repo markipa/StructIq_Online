@@ -60,36 +60,40 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
     names    = [s["name"] for s in stories]
     heights  = [float(s["height_m"]) for s in stories]
 
-    # All stories defined as independent masters. SetStories rejects the
-    # batch (ret=1) when any similar_to references another story name in
-    # the same call, even when ordered bottom→top with the master first.
-    # User can group floors as similar-to-each-other in the ETABS UI after
-    # generation.
-    is_master  = [True] * n
-    similar_to = ["None"] * n
+    # Top elevation of each story (cumulative from base 0)
+    elevations: List[float] = []
+    cum = 0.0
+    for h in heights:
+        cum += h
+        elevations.append(cum)
 
-    splice      = [False] * n
-    splice_h    = [0.0] * n
+    # Master / similar-to. similar_to references the master story name;
+    # use "None" for floors that are their own master (ETABS API convention,
+    # confirmed by the sample code provided).
+    is_master:  List[bool] = []
+    similar_to: List[str]  = []
+    for s in stories:
+        sim = (s.get("similar_to") or "").strip()
+        is_master.append(bool(s.get("master", not sim)))
+        similar_to.append(sim if sim else "None")
 
-    # API signatures by ETABS version. We try each in order; the first that
-    # accepts our arg count and returns 0 wins.
-    #   SetStories      : 8 args (no color)
-    #   SetStories_1    : 8 args (no color) — same shape
-    #   SetStories_2    : 9 args (adds color array) on some versions
-    # Pass color when the signature accepts it; if it complains about
-    # argument count, fall through to the 8-arg variant.
-    color = [0] * n
+    splice   = [False] * n
+    splice_h = [0.0] * n
 
+    # Per ETABS API sample, SetStories signature is:
+    #   (Names[], Elevations[], Heights[],
+    #    IsMasterStory[], SimilarToStory[],
+    #    SpliceAbove[], SpliceHeight[])
+    # 7 array args, NO BaseElevation, NO NumberStories, NO color.
     last_err = None
-    for api, extra in (("SetStories",  []),
-                        ("SetStories_2", [color]),
-                        ("SetStories_1", [])):
+    for api in ("SetStories", "SetStories_1", "SetStories_2"):
         fn = getattr(SapModel.Story, api, None)
         if fn is None:
             continue
         try:
-            ret = fn(0.0, n, names, heights, is_master, similar_to,
-                      splice, splice_h, *extra)
+            ret = fn(names, elevations, heights,
+                      is_master, similar_to,
+                      splice, splice_h)
             # comtypes returns either an int ret code or a tuple ending in
             # the ret code. Treat non-zero as failure and try the next API.
             if isinstance(ret, tuple):
