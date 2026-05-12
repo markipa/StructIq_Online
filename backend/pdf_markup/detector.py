@@ -295,17 +295,20 @@ def detect_members(img_bgr: np.ndarray) -> Dict[str, list]:
     slab_mask = _mask_color(hsv, "slab")
     wall_mask = _mask_color(hsv, "wall")
 
-    # Red columns and blue beams puncture the green slab fill — OR them into
-    # the slab mask + close large gaps so the outer contour traces ONE region
-    # instead of fragmenting around every column.
-    slab_mask = cv2.bitwise_or(slab_mask, col_mask)
-    slab_mask = cv2.bitwise_or(slab_mask, beam_mask)
+    # Slab: red columns and blue beams puncture the green fill. Only union
+    # them in if green is actually drawn — otherwise the column squares
+    # would be miscounted as slabs/walls on a PDF with no slab markup.
     big = cv2.getStructuringElement(cv2.MORPH_RECT, (25, 25))
-    slab_mask = cv2.morphologyEx(slab_mask, cv2.MORPH_CLOSE, big, iterations=2)
+    if int(np.count_nonzero(slab_mask)) > 5000:        # >5000 green px = real slab
+        slab_mask = cv2.bitwise_or(slab_mask, col_mask)
+        slab_mask = cv2.bitwise_or(slab_mask, beam_mask)
+        slab_mask = cv2.morphologyEx(slab_mask, cv2.MORPH_CLOSE, big, iterations=2)
 
-    # Same treatment for walls so wall outlines aren't broken by columns
-    wall_mask = cv2.bitwise_or(wall_mask, col_mask)
-    wall_mask = cv2.morphologyEx(wall_mask, cv2.MORPH_CLOSE, big, iterations=1)
+    # Walls: same gating — never invent walls from column squares on a PDF
+    # that has no yellow/orange markup at all.
+    if int(np.count_nonzero(wall_mask)) > 3000:        # >3000 yellow px = real wall
+        wall_mask = cv2.bitwise_or(wall_mask, col_mask)
+        wall_mask = cv2.morphologyEx(wall_mask, cv2.MORPH_CLOSE, big, iterations=1)
 
     return {
         "columns":    _detect_columns(col_mask),
