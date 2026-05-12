@@ -63,20 +63,26 @@ def _define_stories(SapModel, stories: List[Dict]) -> List[str]:
 
     splice      = [False] * n
     splice_h    = [0.0] * n
-    color       = [0] * n
+
+    # API signatures by ETABS version. We try each in order; the first that
+    # accepts our arg count and returns 0 wins.
+    #   SetStories      : 8 args (no color)
+    #   SetStories_1    : 8 args (no color) — same shape
+    #   SetStories_2    : 9 args (adds color array) on some versions
+    # Pass color when the signature accepts it; if it complains about
+    # argument count, fall through to the 8-arg variant.
+    color = [0] * n
 
     last_err = None
-    for api in ("SetStories_2", "SetStories"):
+    for api, extra in (("SetStories",  []),
+                        ("SetStories_2", [color]),
+                        ("SetStories_1", [])):
         fn = getattr(SapModel.Story, api, None)
         if fn is None:
             continue
         try:
-            if api == "SetStories_2":
-                ret = fn(0.0, n, names, heights, is_master, similar_to,
-                          splice, splice_h, color)
-            else:
-                ret = fn(0.0, n, names, heights, is_master, similar_to,
-                          splice, splice_h)
+            ret = fn(0.0, n, names, heights, is_master, similar_to,
+                      splice, splice_h, *extra)
             # comtypes returns either an int ret code or a tuple ending in
             # the ret code. Treat non-zero as failure and try the next API.
             if isinstance(ret, tuple):
